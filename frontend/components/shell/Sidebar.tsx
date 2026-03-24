@@ -2,7 +2,18 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Settings, BookOpen, Inbox, CalendarDays, FileText, ChevronLeft, ChevronRight, X, Shield, Workflow } from "lucide-react";
+import { LayoutDashboard, Settings, BookOpen, Inbox, CalendarDays, FileText, ChevronLeft, ChevronRight, X, Shield, Workflow, Folder, Globe, Bell, Star, Zap, Users, type LucideIcon } from "lucide-react";
+
+const PLUGIN_ICONS: Record<string, LucideIcon> = {
+  folder: Folder,
+  globe: Globe,
+  bell: Bell,
+  star: Star,
+  zap: Zap,
+  users: Users,
+  file: FileText,
+  workflow: Workflow,
+};
 import { useState } from "react";
 import { useAuth } from "@/lib/auth/context";
 import { usePluginRegistry } from "@/lib/plugins/registry";
@@ -82,7 +93,9 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
         {/* Plugin nav entries from registry */}
         {navEntries
           .filter(entry => entry.slot === "sidebar_main")
-          .map(entry => (
+          .map(entry => {
+            const PluginIcon = PLUGIN_ICONS[entry.icon?.toLowerCase()] ?? Folder;
+            return (
             <Link
               key={entry.id}
               href={`/${orgSlug}${entry.route}`}
@@ -93,10 +106,11 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
                   : "text-slate-300 hover:bg-slate-700 hover:text-white"
               }`}
             >
-              <span className="shrink-0 w-[18px] text-center">{entry.icon}</span>
+              <PluginIcon size={18} className="shrink-0" />
               {!collapsed && <span className="truncate">{entry.label}</span>}
             </Link>
-          ))}
+            );
+          })}
 
         {/* Plugin-Slot: sidebar_main */}
         <SlotRenderer slotId="sidebar_main" orgSlug={orgSlug} orgId={orgId} collapsed={collapsed} />
