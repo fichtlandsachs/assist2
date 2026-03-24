@@ -23,7 +23,10 @@ async def _generate_pdf_async(story_id: str, org_id: str) -> None:
     async with AsyncSessionLocal() as db:
         # 1. Load story
         result = await db.execute(
-            select(UserStory).where(UserStory.id == uuid.UUID(story_id))
+            select(UserStory).where(
+                UserStory.id == uuid.UUID(story_id),
+                UserStory.organization_id == uuid.UUID(org_id),
+            )
         )
         story = result.scalar_one_or_none()
         if story is None:

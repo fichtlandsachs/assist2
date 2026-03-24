@@ -17,6 +17,7 @@ def test_generate_story_pdf_calls_pdf_service():
     mock_story.organization_id = uuid.UUID(org_id)
     mock_story.generated_docs = "{}"
     mock_story.status.value = "done"
+    mock_story.organization_id = uuid.UUID(org_id)
 
     mock_settings_row = MagicMock()
     mock_settings_row.page_format = "a4"
