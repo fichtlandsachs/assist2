@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
@@ -12,6 +14,19 @@ from app.models.membership import Membership, MembershipRole
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.membership import InviteRequest, MembershipUpdate
+from app.services.n8n_client import n8n_client
+
+logger = logging.getLogger(__name__)
+
+
+def _fire_and_forget(coro) -> None:
+    """Schedule a coroutine fire-and-forget style. Errors are logged, not raised."""
+    async def _run():
+        try:
+            await coro
+        except Exception as e:
+            logger.warning(f"fire-and-forget failed: {e}")
+    asyncio.create_task(_run())
 
 
 class MembershipService:
@@ -107,6 +122,27 @@ class MembershipService:
         membership.joined_at = datetime.now(timezone.utc)
 
         await db.commit()
+
+        # Load org + user for n8n trigger
+        from app.models.organization import Organization
+        org_result = await db.execute(
+            select(Organization).where(Organization.id == membership.organization_id)
+        )
+        _org = org_result.scalar_one_or_none()
+        user_result = await db.execute(
+            select(User).where(User.id == membership.user_id)
+        )
+        _user = user_result.scalar_one_or_none()
+        if _org and _user:
+            _fire_and_forget(n8n_client.trigger_workflow("nextcloud-provisioning", {
+                "type": "user_joined_org",
+                "user": {
+                    "email": _user.email,
+                    "display_name": _user.display_name or _user.email,
+                },
+                "org": {"slug": _org.slug, "name": _org.name},
+            }))
+
         await db.refresh(membership)
         return membership
 
