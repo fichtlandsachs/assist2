@@ -15,6 +15,7 @@ class PluginRead(BaseModel):
     type: str
     is_active: bool
     requires_config: bool
+    manifest: Dict[str, Any] = {}
 
 
 class OrgPluginRead(BaseModel):
