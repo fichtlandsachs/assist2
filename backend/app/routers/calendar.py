@@ -1,15 +1,19 @@
 import uuid
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
+from urllib.parse import urlencode
 
+import httpx
 from fastapi import APIRouter, Depends, status
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.deps import get_current_user
 from app.models.user import User
-from app.models.calendar_connection import CalendarConnection
+from app.models.organization import Organization
+from app.models.calendar_connection import CalendarConnection, CalendarProvider
 from app.models.calendar_event import CalendarEvent
 from app.schemas.calendar import (
     CalendarConnectionCreate,
@@ -18,6 +22,9 @@ from app.schemas.calendar import (
     CalendarEventRead,
 )
 from app.core.exceptions import NotFoundException
+from app.core.security import encrypt_value
+from app.config import get_settings
+from app.tasks.calendar_sync import sync_calendar_task
 
 router = APIRouter()
 
@@ -175,3 +182,142 @@ async def delete_calendar_event(
         raise NotFoundException("Calendar event not found")
     await db.delete(event)
     await db.commit()
+
+
+# ── Google OAuth2 ──────────────────────────────────────────────────────────────
+
+@router.get(
+    "/calendar/connections/google/authorize",
+    summary="Start Google Calendar OAuth2 flow",
+)
+async def google_calendar_authorize(
+    org_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Return the Google OAuth2 authorization URL for calendar access."""
+    settings = get_settings()
+    base_url = settings.APP_BASE_URL.rstrip("/")
+    redirect_uri = f"{base_url}/api/v1/calendar/connections/google/callback"
+    state = f"{org_id}:{current_user.id}"
+
+    params = urlencode({
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "https://www.googleapis.com/auth/calendar.readonly",
+        "access_type": "offline",
+        "prompt": "consent",
+        "state": state,
+    })
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{params}"
+    return {"url": auth_url}
+
+
+@router.get(
+    "/calendar/connections/google/callback",
+    summary="Handle Google Calendar OAuth2 callback",
+)
+async def google_calendar_callback(
+    code: str,
+    state: str,
+    db: AsyncSession = Depends(get_db),
+) -> RedirectResponse:
+    """Exchange OAuth2 code for tokens and create a CalendarConnection."""
+    settings = get_settings()
+
+    # Parse state
+    try:
+        org_id_str, user_id_str = state.split(":", 1)
+        org_id = uuid.UUID(org_id_str)
+        user_id = uuid.UUID(user_id_str)
+    except (ValueError, AttributeError):
+        return RedirectResponse(url="/calendar?error=oauth_failed", status_code=302)
+
+    # Verify org exists to prevent IDOR
+    org_result = await db.execute(select(Organization).where(Organization.id == org_id))
+    org = org_result.scalar_one_or_none()
+    if org is None:
+        return RedirectResponse(url="/", status_code=302)
+
+    error_redirect = f"/{org.slug}/calendar?error=oauth_failed"
+    success_redirect = f"/{org.slug}/calendar"
+
+    base_url = settings.APP_BASE_URL.rstrip("/")
+    redirect_uri = f"{base_url}/api/v1/calendar/connections/google/callback"
+
+    # Exchange code for tokens
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            token_resp = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "code": code,
+                    "client_id": settings.GOOGLE_CLIENT_ID,
+                    "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+            )
+            token_resp.raise_for_status()
+            token_data = token_resp.json()
+
+            access_token = token_data["access_token"]
+            refresh_token = token_data.get("refresh_token", "")
+            expires_in = token_data.get("expires_in", 3600)
+            token_expires_at = datetime.now(timezone.utc).replace(microsecond=0)
+            from datetime import timedelta
+            token_expires_at = token_expires_at + timedelta(seconds=expires_in)
+
+            # Fetch user info to get email
+            userinfo_resp = await client.get(
+                "https://www.googleapis.com/oauth2/v2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            userinfo_resp.raise_for_status()
+            userinfo = userinfo_resp.json()
+            email_address = userinfo.get("email", "")
+    except Exception:
+        return RedirectResponse(url=error_redirect, status_code=302)
+
+    # Create CalendarConnection with encrypted tokens
+    connection = CalendarConnection(
+        organization_id=org_id,
+        user_id=user_id,
+        provider=CalendarProvider.google,
+        email_address=email_address,
+        display_name=userinfo.get("name") or email_address,
+        access_token_enc=encrypt_value(access_token),
+        refresh_token_enc=encrypt_value(refresh_token) if refresh_token else None,
+        token_expires_at=token_expires_at,
+        is_active=True,
+    )
+    db.add(connection)
+    await db.commit()
+
+    return RedirectResponse(url=success_redirect, status_code=302)
+
+
+# ── Sync trigger ───────────────────────────────────────────────────────────────
+
+@router.post(
+    "/calendar/connections/{connection_id}/sync",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Trigger calendar sync",
+)
+async def trigger_calendar_sync(
+    connection_id: uuid.UUID,
+    org_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Enqueue a Celery task to sync the calendar connection."""
+    stmt = select(CalendarConnection).where(
+        CalendarConnection.id == connection_id,
+        CalendarConnection.organization_id == org_id,
+    )
+    result = await db.execute(stmt)
+    connection = result.scalar_one_or_none()
+    if connection is None:
+        raise NotFoundException("Calendar connection not found")
+    sync_calendar_task.delay(str(connection_id), str(org_id))
+    return {"status": "queued", "connection_id": str(connection_id)}
