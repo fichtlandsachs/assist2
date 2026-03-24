@@ -3,10 +3,12 @@ import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import bcrypt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.core.exceptions import UnauthorizedException
+from app.models.user import User
 
 
 MOCK_TOKEN_RESPONSE = TokenResponse(
@@ -18,16 +20,34 @@ MOCK_TOKEN_RESPONSE = TokenResponse(
 
 @pytest.mark.asyncio
 async def test_login_success(db: AsyncSession):
-    """login() calls AuthentikClient and returns tokens."""
+    """login() looks up user, verifies password, calls AuthentikClient and returns tokens."""
     from app.services.auth_service import auth_service
 
+    password = "pass123"
+    user = User(
+        email="user@example.com",
+        authentik_id="99",
+        display_name="Test User",
+        password_hash=bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(),
+        is_active=True,
+    )
+    db.add(user)
+    await db.commit()
+
     with patch(
+        "app.services.auth_service.authentik_client.create_app_password",
+        new_callable=AsyncMock,
+        return_value="app-key-xyz",
+    ), patch(
         "app.services.auth_service.authentik_client.authenticate_user",
         new_callable=AsyncMock,
         return_value=MOCK_TOKEN_RESPONSE,
+    ), patch(
+        "app.services.auth_service.authentik_client.delete_app_password",
+        new_callable=AsyncMock,
     ):
         result = await auth_service.login(db, LoginRequest(
-            email="user@example.com", password="pass123"
+            email="user@example.com", password=password
         ))
 
     assert result.access_token == "access-123"
@@ -60,11 +80,18 @@ async def test_register_creates_user_in_db(db: AsyncSession):
     with patch(
         "app.services.auth_service.authentik_client.create_user",
         new_callable=AsyncMock,
-        return_value="authentik-id-abc",
+        return_value="42",  # Authentik returns integer PK as string
+    ), patch(
+        "app.services.auth_service.authentik_client.create_app_password",
+        new_callable=AsyncMock,
+        return_value="app-key-xyz",
     ), patch(
         "app.services.auth_service.authentik_client.authenticate_user",
         new_callable=AsyncMock,
         return_value=MOCK_TOKEN_RESPONSE,
+    ), patch(
+        "app.services.auth_service.authentik_client.delete_app_password",
+        new_callable=AsyncMock,
     ):
         result = await auth_service.register(db, RegisterRequest(
             email="new@example.com",
@@ -79,7 +106,7 @@ async def test_register_creates_user_in_db(db: AsyncSession):
     )
     user = db_result.scalar_one_or_none()
     assert user is not None
-    assert user.authentik_id == "authentik-id-abc"
+    assert user.authentik_id == "42"
 
 
 @pytest.mark.asyncio

@@ -14,9 +14,13 @@ MOCK_TOKENS = TokenResponse(
 @pytest.mark.asyncio
 async def test_register_success(client: AsyncClient):
     with patch("app.services.auth_service.authentik_client.create_user",
-               new_callable=AsyncMock, return_value="new-authentik-id"), \
+               new_callable=AsyncMock, return_value="55"), \
+         patch("app.services.auth_service.authentik_client.create_app_password",
+               new_callable=AsyncMock, return_value="app-key"), \
          patch("app.services.auth_service.authentik_client.authenticate_user",
-               new_callable=AsyncMock, return_value=MOCK_TOKENS):
+               new_callable=AsyncMock, return_value=MOCK_TOKENS), \
+         patch("app.services.auth_service.authentik_client.delete_app_password",
+               new_callable=AsyncMock):
         response = await client.post("/api/v1/auth/register", json={
             "email": "newuser@example.com",
             "password": "securepassword123",
@@ -29,12 +33,29 @@ async def test_register_success(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_login_success(client: AsyncClient):
-    with patch("app.services.auth_service.authentik_client.authenticate_user",
-               new_callable=AsyncMock, return_value=MOCK_TOKENS):
+async def test_login_success(client: AsyncClient, db):
+    import bcrypt
+    from app.models.user import User
+    password = "testpassword123"
+    user = User(
+        email="testuser@example.com",
+        authentik_id="77",
+        display_name="Test User",
+        password_hash=bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(),
+        is_active=True,
+    )
+    db.add(user)
+    await db.commit()
+
+    with patch("app.services.auth_service.authentik_client.create_app_password",
+               new_callable=AsyncMock, return_value="app-key"), \
+         patch("app.services.auth_service.authentik_client.authenticate_user",
+               new_callable=AsyncMock, return_value=MOCK_TOKENS), \
+         patch("app.services.auth_service.authentik_client.delete_app_password",
+               new_callable=AsyncMock):
         response = await client.post("/api/v1/auth/login", json={
             "email": "testuser@example.com",
-            "password": "testpassword123",
+            "password": password,
         })
 
     assert response.status_code == 200
