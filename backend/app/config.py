@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     AUTHENTIK_JWKS_URL: str = ""
     AUTHENTIK_APP_SLUG: str = "backend"  # Slug of the OAuth2 Application created in Authentik UI
 
+    # Stirling PDF
+    STIRLING_PDF_URL: str = "http://assist2-stirling-pdf:8080"
+    PDF_TEMPLATES_PATH: str = "/app/pdf_templates"
+    PDF_CACHE_PATH: str = "/app/pdf_cache"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
