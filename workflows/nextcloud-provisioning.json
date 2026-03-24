@@ -1,0 +1,236 @@
+{
+  "name": "nextcloud-provisioning",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "nextcloud-provisioning",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "nextcloud-provisioning"
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "output": "single",
+        "rules": {
+          "rules": [
+            {"conditions": {"options": {"caseSensitive": true}, "conditions": [{"leftValue": "={{ $json.body.type }}", "rightValue": "org_created", "operator": {"type": "string", "operation": "equals"}}]}, "renameOutput": true, "outputKey": "org_created"},
+            {"conditions": {"options": {"caseSensitive": true}, "conditions": [{"leftValue": "={{ $json.body.type }}", "rightValue": "user_created", "operator": {"type": "string", "operation": "equals"}}]}, "renameOutput": true, "outputKey": "user_created"},
+            {"conditions": {"options": {"caseSensitive": true}, "conditions": [{"leftValue": "={{ $json.body.type }}", "rightValue": "user_joined_org", "operator": {"type": "string", "operation": "equals"}}]}, "renameOutput": true, "outputKey": "user_joined_org"}
+          ]
+        }
+      },
+      "id": "node-switch",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.NEXTCLOUD_URL }}/ocs/v1.php/cloud/groups",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [{"name": "groupid", "value": "=org-{{ $('Webhook').first().json.body.org.slug }}"}]
+        },
+        "options": {
+          "response": {"response": {"responseFormat": "text"}},
+          "headers": {"parameters": [{"name": "OCS-APIRequest", "value": "true"}]}
+        }
+      },
+      "id": "node-create-group",
+      "name": "OCS: Gruppe anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 100],
+      "credentials": {"httpBasicAuth": {"id": "1", "name": "Nextcloud Admin"}}
+    },
+    {
+      "parameters": {
+        "jsCode": "const xml = $input.first().json.data;\nconst match = xml.match(/<statuscode>(\\d+)<\\/statuscode>/);\nconst code = match ? parseInt(match[1]) : 0;\nif (code !== 100 && code !== 102) {\n  throw new Error('OCS Gruppe anlegen: statuscode=' + code);\n}\nreturn $input.all();"
+      },
+      "id": "node-check-group",
+      "name": "Check: Gruppe OK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.NEXTCLOUD_URL }}/apps/groupfolders/folders",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [{"name": "mountpoint", "value": "=Organizations/{{ $('Webhook').first().json.body.org.slug }}"}]
+        },
+        "options": {}
+      },
+      "id": "node-create-folder",
+      "name": "GroupFolders: Ordner anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 100],
+      "credentials": {"httpBasicAuth": {"id": "1", "name": "Nextcloud Admin"}}
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst folderId = data.id ?? (data.ocs && data.ocs.data && data.ocs.data.id);\nconst slug = $('Webhook').first().json.body.org.slug;\nreturn [{ json: { folder_id: folderId, slug } }];"
+      },
+      "id": "node-extract-folder-id",
+      "name": "Extract folder_id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1360, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.NEXTCLOUD_URL }}/apps/groupfolders/folders/{{ $json.folder_id }}/groups",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {"name": "group", "value": "=org-{{ $json.slug }}"},
+            {"name": "permissions", "value": "31"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-assign-group",
+      "name": "GroupFolders: Gruppe zuweisen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1580, 100],
+      "credentials": {"httpBasicAuth": {"id": "1", "name": "Nextcloud Admin"}}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.NEXTCLOUD_URL }}/ocs/v1.php/cloud/users/admin/groups",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [{"name": "groupid", "value": "=org-{{ $('Webhook').first().json.body.org.slug }}"}]
+        },
+        "options": {
+          "response": {"response": {"responseFormat": "text"}},
+          "headers": {"parameters": [{"name": "OCS-APIRequest", "value": "true"}]}
+        }
+      },
+      "id": "node-admin-to-group",
+      "name": "OCS: Admin zur Gruppe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1800, 100],
+      "credentials": {"httpBasicAuth": {"id": "1", "name": "Nextcloud Admin"}}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.NEXTCLOUD_URL }}/ocs/v1.php/cloud/users",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {"name": "userid", "value": "={{ $json.body.user.email.split('@')[0] }}"},
+            {"name": "email", "value": "={{ $json.body.user.email }}"},
+            {"name": "displayName", "value": "={{ $json.body.user.display_name }}"},
+            {"name": "password", "value": "={{ $randomString(24) }}"}
+          ]
+        },
+        "options": {
+          "response": {"response": {"responseFormat": "text"}},
+          "headers": {"parameters": [{"name": "OCS-APIRequest", "value": "true"}]}
+        }
+      },
+      "id": "node-create-user",
+      "name": "OCS: User anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300],
+      "credentials": {"httpBasicAuth": {"id": "1", "name": "Nextcloud Admin"}}
+    },
+    {
+      "parameters": {
+        "jsCode": "const xml = $input.first().json.data;\nconst match = xml.match(/<statuscode>(\\d+)<\\/statuscode>/);\nconst code = match ? parseInt(match[1]) : 0;\nif (code !== 100 && code !== 102) {\n  throw new Error('OCS User anlegen: statuscode=' + code);\n}\nreturn $input.all();"
+      },
+      "id": "node-check-user",
+      "name": "Check: User OK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.NEXTCLOUD_URL }}/ocs/v1.php/cloud/users/{{ $json.body.user.email.split('@')[0] }}/groups",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [{"name": "groupid", "value": "=org-{{ $json.body.org.slug }}"}]
+        },
+        "options": {
+          "response": {"response": {"responseFormat": "text"}},
+          "headers": {"parameters": [{"name": "OCS-APIRequest", "value": "true"}]}
+        }
+      },
+      "id": "node-user-to-group",
+      "name": "OCS: User zur Gruppe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 500],
+      "credentials": {"httpBasicAuth": {"id": "1", "name": "Nextcloud Admin"}}
+    },
+    {
+      "parameters": {
+        "jsCode": "const xml = $input.first().json.data;\nconst match = xml.match(/<statuscode>(\\d+)<\\/statuscode>/);\nconst code = match ? parseInt(match[1]) : 0;\nif (code !== 100 && code !== 102) {\n  throw new Error('OCS User-Gruppe: statuscode=' + code);\n}\nreturn $input.all();"
+      },
+      "id": "node-check-user-group",
+      "name": "Check: User-Gruppe OK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 500]
+    }
+  ],
+  "connections": {
+    "node-webhook": {"main": [[{"node": "node-switch", "type": "main", "index": 0}]]},
+    "node-switch": {
+      "main": [
+        [{"node": "node-create-group", "type": "main", "index": 0}],
+        [{"node": "node-create-user", "type": "main", "index": 0}],
+        [{"node": "node-user-to-group", "type": "main", "index": 0}]
+      ]
+    },
+    "node-create-group": {"main": [[{"node": "node-check-group", "type": "main", "index": 0}]]},
+    "node-check-group": {"main": [[{"node": "node-create-folder", "type": "main", "index": 0}]]},
+    "node-create-folder": {"main": [[{"node": "node-extract-folder-id", "type": "main", "index": 0}]]},
+    "node-extract-folder-id": {"main": [[{"node": "node-assign-group", "type": "main", "index": 0}]]},
+    "node-assign-group": {"main": [[{"node": "node-admin-to-group", "type": "main", "index": 0}]]},
+    "node-create-user": {"main": [[{"node": "node-check-user", "type": "main", "index": 0}]]},
+    "node-user-to-group": {"main": [[{"node": "node-check-user-group", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "tags": []
+}
