@@ -15,6 +15,7 @@ from app.models.message import Message, MessageStatus
 from app.models.calendar_connection import CalendarConnection, CalendarProvider
 from app.models.calendar_event import CalendarEvent, EventStatus
 from app.models.test_case import TestCase, TestResult
+from app.models.pdf_settings import PdfSettings
 
 __all__ = [
     "User",
@@ -50,4 +51,5 @@ __all__ = [
     "EventStatus",
     "TestCase",
     "TestResult",
+    "PdfSettings",
 ]
