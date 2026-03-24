@@ -23,7 +23,7 @@ async def test_html_to_pdf_success():
     client = StirlingPDFClient()
     html = "<html><body><h1>Test</h1></body></html>"
 
-    with patch("httpx.AsyncClient") as mock_http:
+    with patch("app.services.stirling_client.httpx.AsyncClient") as mock_http:
         mock_http.return_value.__aenter__.return_value.post = AsyncMock(
             return_value=make_mock_response(200, b"%PDF-1.4 fake-pdf-bytes")
         )
@@ -39,7 +39,7 @@ async def test_html_to_pdf_raises_on_error():
     import httpx
     client = StirlingPDFClient()
 
-    with patch("httpx.AsyncClient") as mock_http:
+    with patch("app.services.stirling_client.httpx.AsyncClient") as mock_http:
         mock_http.return_value.__aenter__.return_value.post = AsyncMock(
             return_value=make_mock_response(500)
         )
@@ -53,10 +53,25 @@ async def test_overlay_pdfs_success():
     from app.services.stirling_client import StirlingPDFClient
     client = StirlingPDFClient()
 
-    with patch("httpx.AsyncClient") as mock_http:
+    with patch("app.services.stirling_client.httpx.AsyncClient") as mock_http:
         mock_http.return_value.__aenter__.return_value.post = AsyncMock(
             return_value=make_mock_response(200, b"%PDF-merged")
         )
         result = await client.overlay_pdfs(b"%PDF-content", b"%PDF-letterhead")
 
     assert result == b"%PDF-merged"
+
+
+@pytest.mark.asyncio
+async def test_overlay_pdfs_raises_on_error():
+    """overlay_pdfs raises HTTPStatusError on non-200 response."""
+    from app.services.stirling_client import StirlingPDFClient
+    import httpx
+    client = StirlingPDFClient()
+
+    with patch("app.services.stirling_client.httpx.AsyncClient") as mock_http:
+        mock_http.return_value.__aenter__.return_value.post = AsyncMock(
+            return_value=make_mock_response(500)
+        )
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.overlay_pdfs(b"%PDF-base", b"%PDF-overlay")
