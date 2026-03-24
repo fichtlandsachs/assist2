@@ -325,25 +325,13 @@ services:
       MYSQL_DATABASE: nextcloud
       MYSQL_USER: nextcloud
       MYSQL_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
-      OVERWRITEPROTOCOL: https
-      OVERWRITECLIURL: https://nextcloud.${DOMAIN}
-      OVERWRITEHOST: nextcloud.${DOMAIN}
     volumes:
       - assist2_nextcloud_data:/var/www/html
     networks:
-      - proxy
       - internal
     depends_on:
       nextcloud-db:
         condition: service_healthy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.${DOMAIN}`)"
-      - "traefik.http.routers.nextcloud.entrypoints=websecure"
-      - "traefik.http.routers.nextcloud.tls.certresolver=letsencrypt"
-      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
-      - "traefik.http.middlewares.nextcloud-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.routers.nextcloud.middlewares=nextcloud-headers"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/status.php"]
       interval: 30s

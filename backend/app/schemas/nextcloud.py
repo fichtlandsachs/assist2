@@ -16,3 +16,8 @@ class NextcloudFile(BaseModel):
 class NextcloudFileList(BaseModel):
     files: List[NextcloudFile]
     nextcloud_url: str
+
+
+class NextcloudUploadResult(BaseModel):
+    ok: bool
+    path: str
