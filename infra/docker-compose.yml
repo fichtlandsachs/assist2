@@ -16,6 +16,8 @@ volumes:
   assist2_authentik_db_data:
   assist2_authentik_media:
   assist2_authentik_templates:
+  assist2_pdf_templates:
+  assist2_pdf_cache:
 
 services:
   postgres:
@@ -168,6 +170,7 @@ services:
       AUTHENTIK_BACKEND_CLIENT_SECRET: ${AUTHENTIK_BACKEND_CLIENT_SECRET}
       AUTHENTIK_JWKS_URL: ${AUTHENTIK_JWKS_URL}
       AUTHENTIK_APP_SLUG: ${AUTHENTIK_APP_SLUG:-backend}
+      STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
     networks:
       - proxy
       - internal
@@ -200,6 +203,7 @@ services:
       N8N_WEBHOOK_URL: http://assist2-n8n:5678
       N8N_API_KEY: ${N8N_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
     networks:
       - internal
     healthcheck:
@@ -270,3 +274,16 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
+  stirling-pdf:
+    image: stirlingtools/stirling-pdf:latest
+    container_name: assist2-stirling-pdf
+    restart: unless-stopped
+    environment:
+      DOCKER_ENABLE_SECURITY: "false"
+      INSTALL_BOOK_AND_ADVANCED_HTML_OPS: "true"
+    volumes:
+      - assist2_pdf_templates:/app/pdf_templates
+      - assist2_pdf_cache:/app/pdf_cache
+    networks:
+      - internal

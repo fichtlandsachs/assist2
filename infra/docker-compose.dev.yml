@@ -1,0 +1,96 @@
+version: "3.9"
+
+# Dev-Overrides: Port-Bindings für lokale Entwicklung, kein TLS
+# Verwendung: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  traefik:
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=DEBUG"
+    ports:
+      - "80:80"
+      - "8080:8080"
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/${POSTGRES_DB:-platform_db}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-devredis}@redis:6379/0
+      SECRET_KEY: dev-secret-key-not-for-production-use-only
+      JWT_SECRET: dev-jwt-secret-not-for-production-use-only
+      ENCRYPTION_KEY: ZGV2LWVuY3J5cHRpb24ta2V5LTMyLWJ5dGVzIQ==
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      ENVIRONMENT: development
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+      N8N_WEBHOOK_URL: http://n8n:5678
+      N8N_API_KEY: ${N8N_API_KEY:-dev-n8n-key}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../backend:/app
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+
+  worker:
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/${POSTGRES_DB:-platform_db}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-devredis}@redis:6379/0
+      SECRET_KEY: dev-secret-key-not-for-production-use-only
+      JWT_SECRET: dev-jwt-secret-not-for-production-use-only
+      ENCRYPTION_KEY: ZGV2LWVuY3J5cHRpb24ta2V5LTMyLWJ5dGVzIQ==
+      ENVIRONMENT: development
+      STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
+    volumes:
+      - ../backend:/app
+
+  n8n:
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+    ports:
+      - "5678:5678"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`localhost`) && PathPrefix(`/n8n`)"
+      - "traefik.http.routers.n8n.entrypoints=web"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+
+  frontend:
+    ports:
+      - "3000:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`localhost`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+  stirling-pdf:
+    ports:
+      - "8081:8080"
