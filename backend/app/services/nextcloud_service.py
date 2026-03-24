@@ -67,10 +67,13 @@ def _parse_webdav_response(xml_text: str, org_slug: str) -> List[NextcloudFile]:
             try:
                 last_modified = datetime.strptime(lm_el.text, "%a, %d %b %Y %H:%M:%S %Z")
             except ValueError:
-                pass
+                logger.debug(f"Could not parse last_modified date: {lm_el.text!r}")
 
         size_el = prop.find(f"{{{_DAV_NS}}}getcontentlength")
-        size = int(size_el.text) if size_el is not None and size_el.text else 0
+        try:
+            size = int(size_el.text) if size_el is not None and size_el.text else 0
+        except ValueError:
+            size = 0
 
         files.append(NextcloudFile(
             name=name,
