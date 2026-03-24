@@ -1,6 +1,5 @@
 """HTTP client for Stirling PDF REST API."""
 import logging
-from typing import Optional
 
 import httpx
 
