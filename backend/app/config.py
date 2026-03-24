@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     PDF_TEMPLATES_PATH: str = "/app/pdf_templates"
     PDF_CACHE_PATH: str = "/app/pdf_cache"
 
+    # Nextcloud
+    NEXTCLOUD_URL: str = "https://nextcloud.fichtlworks.com"
+    NEXTCLOUD_ADMIN_USER: str = "admin"
+    NEXTCLOUD_ADMIN_APP_PASSWORD: str = ""  # Nextcloud App Password für WebDAV + OCS
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
