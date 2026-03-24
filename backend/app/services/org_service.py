@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -9,7 +11,21 @@ from app.core.exceptions import ConflictException, NotFoundException
 from app.models.membership import Membership, MembershipRole
 from app.models.organization import Organization
 from app.models.role import Role
+from app.models.user import User
 from app.schemas.organization import OrgCreate, OrgUpdate
+from app.services.n8n_client import n8n_client
+
+logger = logging.getLogger(__name__)
+
+
+def _fire_and_forget(coro) -> None:
+    """Schedule a coroutine fire-and-forget style. Errors are logged, not raised."""
+    async def _run():
+        try:
+            await coro
+        except Exception as e:
+            logger.warning(f"fire-and-forget failed: {e}")
+    asyncio.create_task(_run())
 
 
 class OrgService:
@@ -68,6 +84,31 @@ class OrgService:
             db.add(membership_role)
 
         await db.commit()
+
+        # Load creator user for n8n payload
+        creator_result = await db.execute(
+            select(User).where(User.id == creator_id)
+        )
+        creator = creator_result.scalar_one_or_none()
+
+        # Trigger 1: Create Nextcloud group + folder for this org
+        _fire_and_forget(n8n_client.trigger_workflow("nextcloud-provisioning", {
+            "type": "org_created",
+            "org": {"slug": org.slug, "name": org.name},
+        }))
+
+        # Trigger 2: Add creator to Nextcloud group
+        # (creator is set active directly, never goes through membership_service.accept)
+        if creator:
+            _fire_and_forget(n8n_client.trigger_workflow("nextcloud-provisioning", {
+                "type": "user_joined_org",
+                "user": {
+                    "email": creator.email,
+                    "display_name": creator.display_name or creator.email,
+                },
+                "org": {"slug": org.slug, "name": org.name},
+            }))
+
         await db.refresh(org)
         return org
 
