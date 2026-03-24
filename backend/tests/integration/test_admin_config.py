@@ -12,6 +12,7 @@ import uuid
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from unittest.mock import patch
 
 from app.models.user import User
 from app.models.organization import Organization
@@ -414,7 +415,11 @@ async def test_llm_allowed_when_retrieval_only_false(
     await db.refresh(story)
 
     # Should NOT be 503 (might be 500/other if AI key is missing in test env, but not 503)
-    r = await client.post(f"/api/v1/user-stories/{story.id}/ai-dod", headers=auth_headers)
+    with patch(
+        "app.services.ai_story_service.execute_pipeline",
+        return_value=('[{"text":"dummy suggestion","category":"testing"}]', {}),
+    ):
+        r = await client.post(f"/api/v1/user-stories/{story.id}/ai-dod", headers=auth_headers)
     assert r.status_code != 503
 
 
