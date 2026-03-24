@@ -40,9 +40,9 @@ class PdfService:
             except (json.JSONDecodeError, TypeError):
                 dod_items = []
 
-        cfg = get_settings()
         logo_path: Optional[str] = None
         if settings.logo_filename and hasattr(story, "organization_id"):
+            cfg = get_settings()
             logo_path = str(
                 Path(cfg.PDF_TEMPLATES_PATH) / str(story.organization_id) / settings.logo_filename
             )

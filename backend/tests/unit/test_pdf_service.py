@@ -101,7 +101,7 @@ async def test_generate_and_cache_pdf(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_generate_applies_letterhead(tmp_path):
+async def test_generate_no_letterhead_skips_overlay(tmp_path):
     """generate_and_cache does NOT call overlay_pdfs when letterhead_filename is None."""
     from app.services.pdf_service import PdfService
     service = PdfService()
@@ -119,3 +119,32 @@ async def test_generate_applies_letterhead(tmp_path):
         await service.generate_and_cache(story, settings, test_cases=[], features=[])
 
     mock_stirling.overlay_pdfs.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_generate_applies_letterhead_when_file_exists(tmp_path):
+    """generate_and_cache calls overlay_pdfs when letterhead file exists on disk."""
+    from app.services.pdf_service import PdfService
+    service = PdfService()
+    story = make_mock_story()
+    story.organization_id = uuid.uuid4()
+    settings = make_mock_settings()
+    settings.letterhead_filename = "letterhead.pdf"
+
+    # Create a fake letterhead file at the expected path
+    letterhead_dir = tmp_path / str(story.organization_id)
+    letterhead_dir.mkdir(parents=True)
+    (letterhead_dir / "letterhead.pdf").write_bytes(b"%PDF-letterhead")
+
+    with patch("app.services.pdf_service.stirling_client") as mock_stirling, \
+         patch("app.services.pdf_service.get_settings") as mock_cfg:
+        mock_stirling.html_to_pdf = AsyncMock(return_value=b"%PDF-base")
+        mock_stirling.overlay_pdfs = AsyncMock(return_value=b"%PDF-merged")
+        mock_cfg.return_value.PDF_CACHE_PATH = str(tmp_path)
+        mock_cfg.return_value.PDF_TEMPLATES_PATH = str(tmp_path)
+
+        filename = await service.generate_and_cache(story, settings, test_cases=[], features=[])
+
+    mock_stirling.overlay_pdfs.assert_called_once()
+    cached = tmp_path / filename
+    assert cached.read_bytes() == b"%PDF-merged"
