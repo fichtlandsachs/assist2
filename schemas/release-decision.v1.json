@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://platform.local/schemas/release-decision.v1.json",
+  "title": "ReleaseDecision",
+  "description": "Finale Freigabe-Entscheidung für ein Release",
+  "type": "object",
+  "required": [
+    "release_id", "process_id", "decision",
+    "gates_status", "evaluated_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "release_id": { "type": "string", "format": "uuid" },
+    "process_id": { "type": "string", "format": "uuid" },
+    "story_id": { "type": "string", "format": "uuid" },
+    "decision": {
+      "type": "string",
+      "enum": ["approved", "blocked"],
+      "description": "Freigabe nur wenn ALLE gates passed sind"
+    },
+    "gates_status": {
+      "type": "object",
+      "required": [
+        "architecture_approved",
+        "security_passed",
+        "performance_passed",
+        "testing_passed",
+        "deployment_ready",
+        "documentation_ready"
+      ],
+      "properties": {
+        "architecture_approved": { "type": "boolean" },
+        "security_passed": { "type": "boolean" },
+        "performance_passed": { "type": "boolean" },
+        "testing_passed": { "type": "boolean" },
+        "deployment_ready": { "type": "boolean" },
+        "documentation_ready": { "type": "boolean" }
+      }
+    },
+    "evaluated_at": { "type": "string", "format": "date-time" },
+    "approved_by": {
+      "type": ["string", "null"],
+      "description": "User-ID oder 'orchestrator' bei automatischer Freigabe"
+    },
+    "version": { "type": "string", "description": "Release-Version, z.B. 1.2.0" },
+    "artifact_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Alle Artefakt-IDs die zur Entscheidung geführt haben"
+    },
+    "notes": { "type": "string" }
+  }
+}

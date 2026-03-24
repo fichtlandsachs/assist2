@@ -1,0 +1,190 @@
+{
+  "name": "user-provisioning",
+  "nodes": [
+    {
+      "id": "node_1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "path": "user-provisioning",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_2",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\n\nconst required = [\n  { path: 'process_id', val: body.process_id },\n  { path: 'membership_id', val: body.membership_id },\n  { path: 'user.id', val: body.user?.id },\n  { path: 'user.email', val: body.user?.email },\n  { path: 'organization.id', val: body.organization?.id },\n];\n\nconst missing = required.filter(f => !f.val).map(f => f.path);\n\nif (missing.length > 0) {\n  throw new Error(`Missing required fields: ${missing.join(', ')}`);\n}\n\nreturn [{\n  json: {\n    process_id: body.process_id,\n    membership_id: body.membership_id,\n    user: body.user,\n    organization: body.organization,\n    event: body.event ?? 'user.invited',\n    validated_at: new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_3",
+      "name": "Check Idempotency",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.organization.id }}/members/{{ $json.membership_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node_4",
+      "name": "Idempotency Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst statusCode = response.statusCode ?? response.status ?? 200;\n\n// If member already exists and is active, skip provisioning\nif (statusCode === 200 && response.body?.status === 'active') {\n  return [{\n    json: {\n      already_provisioned: true,\n      membership_id: response.body.id,\n      message: 'User already provisioned — idempotent skip',\n      skipped_at: new Date().toISOString(),\n    }\n  }];\n}\n\n// Pass through for provisioning\nconst prev = $('Validate Input').first().json;\nreturn [{\n  json: {\n    ...prev,\n    already_provisioned: false,\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_5",
+      "name": "Send Invitation Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "parameters": {
+        "jsCode": "// Stub: In production, replace with n8n-nodes-base.emailSend\n// or integrate with SendGrid/SES via httpRequest\nconst input = $input.first().json;\n\nif (input.already_provisioned) {\n  return [{ json: { ...input, email_sent: false, email_skipped: true } }];\n}\n\nconst emailPayload = {\n  to: input.user.email,\n  subject: `Einladung zur AI-Native Workspace Platform`,\n  body: `Hallo ${input.user.display_name ?? input.user.email},\\n\\nSie wurden zu einer Organisation eingeladen.\\n\\nBitte klicken Sie auf den folgenden Link, um Ihr Konto zu aktivieren:\\n${process.env.APP_URL ?? 'https://app.platform.local'}/accept-invitation?token=${input.membership_id}\\n\\nDiese Einladung ist 7 Tage gültig.\\n\\nMit freundlichen Grüßen,\\nDas Platform Team`,\n  html: `<h2>Einladung</h2><p>Sie wurden eingeladen. <a href=\"${process.env.APP_URL ?? 'https://app.platform.local'}/accept-invitation?token=${input.membership_id}\">Jetzt aktivieren</a></p>`,\n};\n\nconsole.log('Email stub — would send:', JSON.stringify(emailPayload));\n\nreturn [{\n  json: {\n    ...input,\n    email_sent: true,\n    email_payload: emailPayload,\n    email_sent_at: new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_6",
+      "name": "Update Execution Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $('Validate Input').first().json.organization.id }}/workflows/executions/{{ $execution.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "status", "value": "running" },
+            { "name": "n8n_execution_id", "value": "={{ $execution.id }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node_7",
+      "name": "Emit Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "parameters": {
+        "jsCode": "// Emit user.provisioned event via Redis Pub/Sub (stubbed as HTTP call)\nconst input = $('Send Invitation Email').first().json;\n\nconst event = {\n  event_type: 'user.provisioned',\n  process_id: input.process_id,\n  membership_id: input.membership_id,\n  organization_id: input.organization.id,\n  user_id: input.user.id,\n  email_sent: input.email_sent,\n  provisioned_at: new Date().toISOString(),\n  source: 'n8n:user-provisioning',\n};\n\n// In production: POST to internal event bus / Redis HTTP bridge\nconsole.log('Event emitted:', JSON.stringify(event));\n\nreturn [{ json: { ...input, event_emitted: event } }];"
+      }
+    },
+    {
+      "id": "node_8",
+      "name": "Persist Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $('Validate Input').first().json.organization.id }}/workflows/executions/{{ $execution.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"completed\",\n  \"result_snapshot\": {\n    \"status\": \"completed\",\n    \"membership_id\": \"{{ $('Validate Input').first().json.membership_id }}\",\n    \"email_sent\": {{ $('Send Invitation Email').first().json.email_sent }},\n    \"provisioned_at\": \"{{ $now.toISO() }}\"\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node_9",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2000, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"completed\",\n  \"membership_id\": \"{{ $('Validate Input').first().json.membership_id }}\",\n  \"email_sent\": {{ $('Send Invitation Email').first().json.email_sent }},\n  \"provisioned_at\": \"{{ $now.toISO() }}\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "node_10",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 520],
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nconsole.error('user-provisioning workflow error:', JSON.stringify({\n  execution_id: $execution.id,\n  error: error.message ?? error,\n  timestamp: new Date().toISOString(),\n}));\n\nreturn [{\n  json: {\n    status: 'failed',\n    error: error.message ?? String(error),\n    execution_id: $execution.id,\n    failed_at: new Date().toISOString(),\n  }\n}];"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }]]
+    },
+    "Validate Input": {
+      "main": [[{ "node": "Check Idempotency", "type": "main", "index": 0 }]]
+    },
+    "Check Idempotency": {
+      "main": [[{ "node": "Idempotency Gate", "type": "main", "index": 0 }]]
+    },
+    "Idempotency Gate": {
+      "main": [[{ "node": "Send Invitation Email", "type": "main", "index": 0 }]]
+    },
+    "Send Invitation Email": {
+      "main": [[{ "node": "Update Execution Status", "type": "main", "index": 0 }]]
+    },
+    "Update Execution Status": {
+      "main": [[{ "node": "Emit Event", "type": "main", "index": 0 }]]
+    },
+    "Emit Event": {
+      "main": [[{ "node": "Persist Result", "type": "main", "index": 0 }]]
+    },
+    "Persist Result": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "platform-local"
+  }
+}

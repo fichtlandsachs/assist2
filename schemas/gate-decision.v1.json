@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://platform.local/schemas/gate-decision.v1.json",
+  "title": "GateDecision",
+  "description": "Entscheidung an einem Workflow-Gate",
+  "type": "object",
+  "required": ["gate_id", "decision", "evaluated_at", "rules_applied"],
+  "additionalProperties": false,
+  "properties": {
+    "gate_id": {
+      "type": "string",
+      "description": "Identifier des Gates, z.B. architecture_approved"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["approved", "approved_with_actions", "rework_required", "blocked"],
+      "description": "Ergebnis der Gate-Prüfung"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rules_applied": {
+      "type": "array",
+      "description": "Angewendete Entscheidungsregeln in Prioritätsreihenfolge",
+      "items": {
+        "type": "object",
+        "required": ["rule", "result"],
+        "properties": {
+          "rule": { "type": "string" },
+          "result": { "type": "string", "enum": ["passed", "warning", "blocked"] },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "blocking_agents": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Agenten die BLOCKING gemeldet haben"
+    },
+    "warning_agents": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "actions_required": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_stage": {
+      "type": "string",
+      "description": "Folge-Stage basierend auf der Entscheidung"
+    }
+  }
+}

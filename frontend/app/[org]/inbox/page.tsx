@@ -1,0 +1,400 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { useOrg } from "@/lib/hooks/useOrg";
+import { apiRequest, fetcher } from "@/lib/api/client";
+import useSWR from "swr";
+import type { MailConnection, Message } from "@/types";
+import { RefreshCw, Mail, Archive, Eye, Search, ChevronRight, Inbox } from "lucide-react";
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Strip Re:/AW:/Fwd: prefixes to get the base subject for threading */
+function normalizeSubject(subject: string | null): string {
+  if (!subject) return "(Kein Betreff)";
+  return subject
+    .replace(/^(re|aw|fwd|fw|wg|sv):\s*/gi, "")
+    .replace(/^(re|aw|fwd|fw|wg|sv):\s*/gi, "") // double pass
+    .trim() || "(Kein Betreff)";
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const hours = diff / (1000 * 60 * 60);
+  if (hours < 24) return date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  if (hours < 48) return "Gestern";
+  if (hours < 168) return date.toLocaleDateString("de-DE", { weekday: "short" });
+  return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+}
+
+function formatDateFull(dateStr: string | null): string {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleString("de-DE", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+interface ThreadGroup {
+  key: string;           // normalized subject
+  subject: string;       // display subject (original of first)
+  messages: Message[];   // sorted oldest → newest
+  unreadCount: number;
+  latestDate: string | null;
+  senders: string[];     // unique sender names/emails
+}
+
+export default function InboxPage({ params }: { params: { org: string } }) {
+  const { org } = useOrg(params.org);
+  const [selectedThreadKey, setSelectedThreadKey] = useState<string | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [search, setSearch] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [reclustering, setReclustering] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const { data: connections } = useSWR<MailConnection[]>(
+    org ? `/api/v1/inbox/connections?org_id=${org.id}` : null,
+    fetcher
+  );
+
+  const { data: allMessages, mutate: mutateAll } = useSWR<Message[]>(
+    org ? `/api/v1/inbox/messages?org_id=${org.id}` : null,
+    fetcher,
+    { refreshInterval: 60000 }
+  );
+  const mutateMessages = mutateAll;
+
+  const connectionMap = useMemo(() => {
+    const m: Record<string, MailConnection> = {};
+    (connections ?? []).forEach((c) => { m[c.id] = c; });
+    return m;
+  }, [connections]);
+
+  // Build thread groups from all messages
+  const threads = useMemo((): ThreadGroup[] => {
+    const src = allMessages ?? [];
+    const groups: Record<string, ThreadGroup> = {};
+
+    for (const msg of src) {
+      // Prefer AI topic_cluster, fall back to normalised subject
+      const key = msg.topic_cluster ?? normalizeSubject(msg.subject);
+      if (!groups[key]) {
+        groups[key] = {
+          key,
+          subject: msg.topic_cluster ?? msg.subject ?? "(Kein Betreff)",
+          messages: [],
+          unreadCount: 0,
+          latestDate: null,
+          senders: [],
+        };
+      }
+      const g = groups[key];
+      g.messages.push(msg);
+      if (msg.status === "unread") g.unreadCount++;
+      if (!g.latestDate || (msg.received_at && msg.received_at > g.latestDate)) {
+        g.latestDate = msg.received_at;
+      }
+      const sender = msg.sender_name || msg.sender_email;
+      if (!g.senders.includes(sender)) g.senders.push(sender);
+    }
+
+    // Sort messages within each group oldest→newest
+    for (const g of Object.values(groups)) {
+      g.messages.sort((a, b) =>
+        (a.received_at ?? "").localeCompare(b.received_at ?? "")
+      );
+    }
+
+    // Filter by search
+    const term = search.toLowerCase();
+    return Object.values(groups)
+      .filter((g) => {
+        if (!term) return true;
+        return (
+          g.subject.toLowerCase().includes(term) ||
+          g.senders.some((s) => s.toLowerCase().includes(term))
+        );
+      })
+      .sort((a, b) => (b.latestDate ?? "").localeCompare(a.latestDate ?? ""));
+  }, [allMessages, search]);
+
+  const selectedThread = threads.find((t) => t.key === selectedThreadKey) ?? null;
+
+  async function handleRecluster() {
+    if (!org) return;
+    setReclustering(true);
+    try {
+      await apiRequest(`/api/v1/inbox/recluster?org_id=${org.id}`, { method: "POST" });
+      // Poll briefly then refresh
+      setTimeout(() => { void mutateAll(); setReclustering(false); }, 8000);
+    } catch { setReclustering(false); }
+  }
+
+  async function handleSyncAll() {
+    if (!org || !connections) return;
+    setSyncing(true);
+    try {
+      await Promise.all(
+        connections.map((c) =>
+          apiRequest(`/api/v1/inbox/connections/${c.id}/sync?org_id=${org.id}`, { method: "POST" })
+            .catch(() => null)
+        )
+      );
+      await Promise.all([mutateMessages(), mutateAll()]);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleMarkRead(msg: Message) {
+    setActionLoading(msg.id + "_read");
+    try {
+      await apiRequest(`/api/v1/inbox/messages/${msg.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "read" }),
+      });
+      await Promise.all([mutateMessages(), mutateAll()]);
+      setSelectedMessage({ ...msg, status: "read" });
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleArchive(msg: Message) {
+    setActionLoading(msg.id + "_archive");
+    try {
+      await apiRequest(`/api/v1/inbox/messages/${msg.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "archived" }),
+      });
+      await Promise.all([mutateMessages(), mutateAll()]);
+      setSelectedMessage(null);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  const totalUnread = threads.reduce((n, t) => n + t.unreadCount, 0);
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-5rem)] gap-0 -m-4 md:-m-6">
+      {/* Top bar */}
+      <div className="flex items-center gap-3 px-4 md:px-6 py-3 bg-white border-b border-slate-200 shrink-0">
+        <div className="flex items-center gap-2 flex-1">
+          <Inbox size={18} className="text-brand-600 shrink-0" />
+          <h1 className="text-base font-semibold text-slate-900">Posteingang</h1>
+          {totalUnread > 0 && (
+            <span className="px-2 py-0.5 bg-brand-600 text-white text-xs font-semibold rounded-full">{totalUnread}</span>
+          )}
+        </div>
+        <div className="relative flex-1 max-w-xs">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Suchen…"
+            className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-400 bg-slate-50"
+          />
+        </div>
+        <button
+          onClick={() => void handleRecluster()}
+          disabled={reclustering}
+          title="Themen neu gruppieren (KI)"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={reclustering ? "animate-spin text-brand-500" : ""} />
+          <span className="hidden sm:inline">{reclustering ? "Gruppiere…" : "Neu gruppieren"}</span>
+        </button>
+        <button
+          onClick={() => void handleSyncAll()}
+          disabled={syncing || !connections?.length}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+          <span className="hidden sm:inline">Aktualisieren</span>
+        </button>
+      </div>
+
+      {/* Main 3-pane layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left: Thread list */}
+        <div className="w-72 xl:w-80 shrink-0 border-r border-slate-200 overflow-y-auto bg-white">
+          {!allMessages ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
+            </div>
+          ) : threads.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <Mail size={36} className="text-slate-300 mb-3" />
+              <p className="text-sm text-slate-500 font-medium">Keine Nachrichten</p>
+              <p className="text-xs text-slate-400 mt-1">
+                {search ? "Keine Treffer für deine Suche." : "Klicke auf Aktualisieren, um E-Mails zu laden."}
+              </p>
+            </div>
+          ) : (
+            threads.map((thread) => {
+              const isSelected = thread.key === selectedThreadKey;
+              const hasUnread = thread.unreadCount > 0;
+              return (
+                <button
+                  key={thread.key}
+                  onClick={() => { setSelectedThreadKey(thread.key); setSelectedMessage(null); }}
+                  className={`w-full text-left px-4 py-3 border-b border-slate-100 transition-colors hover:bg-slate-50 ${isSelected ? "bg-brand-50 border-l-2 border-l-brand-500" : ""}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm truncate ${hasUnread ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
+                        {normalizeSubject(thread.subject)}
+                      </p>
+                      <p className="text-xs text-slate-400 truncate mt-0.5">
+                        {thread.senders.slice(0, 2).join(", ")}
+                        {thread.senders.length > 2 && ` +${thread.senders.length - 2}`}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className="text-xs text-slate-400">{formatDate(thread.latestDate)}</span>
+                      <div className="flex items-center gap-1">
+                        {thread.messages.length > 1 && (
+                          <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                            {thread.messages.length}
+                          </span>
+                        )}
+                        {hasUnread && (
+                          <span className="w-2 h-2 bg-brand-500 rounded-full" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* Middle: Message list for selected thread */}
+        <div className={`w-64 xl:w-72 shrink-0 border-r border-slate-200 overflow-y-auto bg-slate-50 ${!selectedThread ? "hidden md:block" : ""}`}>
+          {!selectedThread ? (
+            <div className="flex flex-col items-center justify-center h-full py-12 text-center px-4">
+              <ChevronRight size={32} className="text-slate-300 mb-2" />
+              <p className="text-sm text-slate-400">Thema wählen</p>
+            </div>
+          ) : (
+            <>
+              <div className="px-3 py-2.5 border-b border-slate-200 bg-white">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide truncate">
+                  {normalizeSubject(selectedThread.subject)}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">{selectedThread.messages.length} Nachrichten</p>
+              </div>
+              {selectedThread.messages.map((msg) => {
+                const conn = connectionMap[msg.connection_id];
+                const isActive = selectedMessage?.id === msg.id;
+                return (
+                  <button
+                    key={msg.id}
+                    onClick={() => setSelectedMessage(msg)}
+                    className={`w-full text-left px-3 py-3 border-b border-slate-100 transition-colors hover:bg-white ${isActive ? "bg-white border-l-2 border-l-brand-500" : ""}`}
+                  >
+                    <div className="flex items-start justify-between gap-1">
+                      <p className={`text-xs flex-1 truncate ${msg.status === "unread" ? "font-bold text-slate-900" : "font-medium text-slate-600"}`}>
+                        {msg.sender_name ?? msg.sender_email}
+                      </p>
+                      <span className="text-xs text-slate-400 shrink-0">{formatDate(msg.received_at)}</span>
+                    </div>
+                    {conn && (
+                      <p className="text-xs text-brand-500 truncate mt-0.5">→ {conn.email_address}</p>
+                    )}
+                    {msg.snippet && (
+                      <p className="text-xs text-slate-400 truncate mt-0.5">{msg.snippet}</p>
+                    )}
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+
+        {/* Right: Message detail */}
+        <div className="flex-1 overflow-y-auto bg-white">
+          {!selectedMessage ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <Mail size={40} className="text-slate-300 mb-3" />
+              <p className="text-sm font-medium text-slate-500">
+                {selectedThread ? "Nachricht auswählen" : "Thema auswählen"}
+              </p>
+            </div>
+          ) : (
+            <div className="p-5 md:p-6 space-y-4">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-base font-semibold text-slate-900 break-words">
+                    {selectedMessage.subject ?? "(Kein Betreff)"}
+                  </h2>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xs font-medium text-slate-400 w-16 shrink-0">Von</span>
+                      <span className="text-sm text-slate-700">
+                        {selectedMessage.sender_name
+                          ? `${selectedMessage.sender_name} <${selectedMessage.sender_email}>`
+                          : selectedMessage.sender_email}
+                      </span>
+                    </div>
+                    {connectionMap[selectedMessage.connection_id] && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xs font-medium text-slate-400 w-16 shrink-0">Konto</span>
+                        <span className="text-sm text-slate-700">
+                          {connectionMap[selectedMessage.connection_id].display_name ?? connectionMap[selectedMessage.connection_id].email_address}
+                        </span>
+                      </div>
+                    )}
+                    {selectedMessage.received_at && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xs font-medium text-slate-400 w-16 shrink-0">Datum</span>
+                        <span className="text-xs text-slate-500">{formatDateFull(selectedMessage.received_at)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+                  {selectedMessage.status === "unread" && (
+                    <button
+                      onClick={() => void handleMarkRead(selectedMessage)}
+                      disabled={!!actionLoading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                    >
+                      <Eye size={12} /> Als gelesen
+                    </button>
+                  )}
+                  <button
+                    onClick={() => void handleArchive(selectedMessage)}
+                    disabled={!!actionLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                  >
+                    <Archive size={12} /> Archivieren
+                  </button>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="text-sm text-slate-700 leading-relaxed">
+                {selectedMessage.body_text ? (
+                  <pre className="whitespace-pre-wrap font-sans">{selectedMessage.body_text}</pre>
+                ) : selectedMessage.snippet ? (
+                  <p>{selectedMessage.snippet}</p>
+                ) : (
+                  <p className="text-slate-400 italic">Kein Nachrichteninhalt verfügbar.</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

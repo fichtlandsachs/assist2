@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://platform.local/schemas/workflow-stage.v1.json",
+  "title": "WorkflowStage",
+  "description": "Repräsentiert den Zustand einer Workflow-Stage",
+  "type": "object",
+  "required": ["stage", "status", "started_at"],
+  "additionalProperties": false,
+  "properties": {
+    "stage": {
+      "type": "string",
+      "enum": [
+        "intake", "story_analysis", "architecture_design",
+        "architecture_review", "architecture_consolidation",
+        "implementation", "post_implementation_review",
+        "deployment_preparation", "documentation_training",
+        "final_release_decision", "done",
+        "rework_architecture", "rework_implementation", "rework_deployment"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "in_progress", "completed", "blocked", "rework_required"]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "agent_artifacts": {
+      "type": "array",
+      "items": { "$ref": "agent-artifact.v1.json" }
+    },
+    "gate_decision": {
+      "$ref": "gate-decision.v1.json"
+    },
+    "rework_instruction": {
+      "oneOf": [
+        { "$ref": "rework-instruction.v1.json" },
+        { "type": "null" }
+      ]
+    },
+    "decision_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["timestamp", "decision", "reason"],
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "decision": { "type": "string" },
+          "reason": { "type": "string" },
+          "triggered_by": { "type": "string" }
+        }
+      }
+    }
+  }
+}

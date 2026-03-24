@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://platform.local/schemas/agent-artifact.v1.json",
+  "title": "AgentArtifact",
+  "description": "Standardisiertes Ausgabeformat für alle AI-Agenten",
+  "type": "object",
+  "required": ["agent", "status", "artifact_type", "artifact", "blocking"],
+  "additionalProperties": false,
+  "properties": {
+    "agent": {
+      "type": "string",
+      "enum": [
+        "ScrumMasterAI", "ArchitectAI", "CodingAI", "SecurityAI",
+        "PerformanceAI", "UXAI", "DatabaseAI", "NetworkAI",
+        "DeployAI", "TestingAI", "DocumentationTrainingAI"
+      ],
+      "description": "Erzeugende Agentenrolle"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["OK", "WARNING", "BLOCKING"],
+      "description": "Gesamtstatus des Artefakts"
+    },
+    "artifact_type": {
+      "type": "string",
+      "description": "Typ des Artefakts, z.B. architecture_design, security_review"
+    },
+    "artifact": {
+      "type": "object",
+      "description": "Eigentlicher Artefakt-Inhalt (typ-spezifisch)"
+    },
+    "blocking": {
+      "type": "boolean",
+      "description": "True = blockiert Fortschritt im Workflow"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "description"],
+        "properties": {
+          "id": { "type": "string" },
+          "severity": { "type": "string", "enum": ["info", "warning", "critical"] },
+          "description": { "type": "string" },
+          "location": { "type": "string" },
+          "recommendation": { "type": "string" }
+        }
+      }
+    },
+    "required_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action", "priority"],
+        "properties": {
+          "action": { "type": "string" },
+          "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+          "assignee_agent": { "type": "string" },
+          "deadline": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "model_id": { "type": "string" },
+        "prompt_ref": { "type": "string" },
+        "prompt_version": { "type": "string" },
+        "temperature": { "type": "number" },
+        "input_tokens": { "type": "integer" },
+        "output_tokens": { "type": "integer" },
+        "generated_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

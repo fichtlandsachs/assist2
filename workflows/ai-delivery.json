@@ -1,0 +1,539 @@
+{
+  "name": "ai-delivery",
+  "nodes": [
+    {
+      "id": "node_1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [160, 400],
+      "parameters": {
+        "path": "ai-delivery",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_2",
+      "name": "Stage: Intake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [380, 400],
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\n\nconst required = ['story_id', 'organization_id'];\nconst missing = required.filter(f => !body[f]);\nif (missing.length > 0) {\n  throw new Error(`Missing required fields: ${missing.join(', ')}`);\n}\n\nconst process_id = body.process_id ?? `proc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;\n\nreturn [{\n  json: {\n    process_id,\n    story_id: body.story_id,\n    org_id: body.organization_id,\n    organization_id: body.organization_id,\n    triggered_by: body.user_id ?? 'system',\n    governance: {\n      max_rework_cycles: 3,\n      arch_rework_count: 0,\n      impl_rework_count: 0,\n      deploy_rework_count: 0,\n    },\n    stages_completed: [],\n    current_stage: 'intake',\n    intake_at: new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_3",
+      "name": "Stage: Story Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [600, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/agents/scrum-master-ai/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"dor_check\",\n  \"process_id\": \"{{ $json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $json.story_id }}\",\n    \"organization_id\": \"{{ $json.org_id }}\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_4",
+      "name": "Validate ScrumMaster Artifact",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [820, 400],
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst artifact = response.artifact ?? {};\n\n// Schema check\nif (!response.agent || !response.artifact_type) {\n  throw new Error('Invalid ScrumMasterAI artifact: missing agent or artifact_type');\n}\nif (response.artifact_type !== 'story_analysis') {\n  throw new Error(`Unexpected artifact_type: ${response.artifact_type}`);\n}\n\nconst intake = $('Stage: Intake').first().json;\nreturn [{\n  json: {\n    ...intake,\n    current_stage: 'story_analysis',\n    story_analysis: {\n      dor_passed: artifact.dor_passed ?? false,\n      missing_fields: artifact.missing_fields ?? [],\n      tasks: artifact.tasks ?? [],\n      dependencies: artifact.dependencies ?? [],\n      required_agents: artifact.required_agents ?? [],\n      risk_assessment: artifact.risk_assessment ?? 'medium',\n    },\n    scrum_master_blocking: response.blocking ?? !artifact.dor_passed,\n    stages_completed: [...(intake.stages_completed ?? []), 'story_analysis'],\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_5",
+      "name": "Gate: Story Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1040, 400],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.scrum_master_blocking }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "false" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node_5b",
+      "name": "Story Not Ready - Rework Required",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 560],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst findings = input.story_analysis?.missing_fields ?? [];\nreturn [{\n  json: {\n    status: 'blocked',\n    reason: 'dor_not_met',\n    story_id: input.story_id,\n    org_id: input.org_id,\n    findings,\n    message: `Story does not meet Definition of Ready. Missing: ${findings.join(', ')}`,\n    blocked_at: new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_6",
+      "name": "Stage: Architecture Design",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1260, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/agents/architect-ai/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"design_architecture\",\n  \"process_id\": \"{{ $json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $json.story_id }}\",\n    \"story_analysis\": {{ JSON.stringify($json.story_analysis) }},\n    \"organization_id\": \"{{ $json.org_id }}\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_7",
+      "name": "Validate Architecture",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1480, 400],
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nif (!response.artifact || response.artifact_type !== 'architecture_design') {\n  throw new Error('Invalid ArchitectAI artifact');\n}\nconst prev = $('Gate: Story Ready?').first().json;\nreturn [{\n  json: {\n    ...prev,\n    current_stage: 'architecture_design',\n    architecture: response.artifact,\n    arch_blocking: response.blocking ?? false,\n    stages_completed: [...(prev.stages_completed ?? []), 'architecture_design'],\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_8",
+      "name": "Stage: Architecture Review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1700, 400],
+      "parameters": {
+        "jsCode": "// Parallel invocations of 6 review agents\n// In production use n8n's splitInBatches or HTTP parallel execution\n// Here we prepare the review request payload\nconst input = $input.first().json;\nconst reviewAgents = ['security-ai', 'performance-ai', 'ux-ai', 'database-ai', 'network-ai', 'testing-ai'];\n\nreturn reviewAgents.map(agentId => ({\n  json: {\n    ...input,\n    review_agent_id: agentId,\n    current_stage: 'architecture_review',\n  }\n}));"
+      }
+    },
+    {
+      "id": "node_8b",
+      "name": "Invoke Review Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1920, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/agents/{{ $json.review_agent_id }}/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"review_architecture\",\n  \"process_id\": \"{{ $json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $json.story_id }}\",\n    \"architecture\": {{ JSON.stringify($json.architecture) }},\n    \"organization_id\": \"{{ $json.org_id }}\"\n  }\n}",
+        "options": {
+          "response": { "response": { "neverError": true } }
+        }
+      }
+    },
+    {
+      "id": "node_9",
+      "name": "Collect Review Artifacts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2140, 400],
+      "parameters": {
+        "jsCode": "// Collect all review agent responses\nconst items = $input.all();\nconst reviews = items.map((item, i) => ({\n  agent: item.json.agent ?? `review_agent_${i}`,\n  status: item.json.status ?? 'OK',\n  blocking: item.json.blocking ?? false,\n  findings: item.json.findings ?? [],\n  artifact: item.json.artifact ?? {},\n}));\n\nconst prev = $('Validate Architecture').first().json;\n\nreturn [{\n  json: {\n    ...prev,\n    review_artifacts: reviews,\n    current_stage: 'architecture_review_collected',\n    stages_completed: [...(prev.stages_completed ?? []), 'architecture_review'],\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_10",
+      "name": "Stage: Architecture Consolidation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2360, 400],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst reviews = input.review_artifacts ?? [];\n\nconst securityReview = reviews.find(r => r.agent?.toLowerCase().includes('security'));\nconst performanceReview = reviews.find(r => r.agent?.toLowerCase().includes('performance'));\nconst otherReviews = reviews.filter(r => r !== securityReview && r !== performanceReview);\n\nlet decision = 'approved';\nlet reason = 'All reviews passed';\n\nif (securityReview?.blocking) {\n  decision = 'blocked';\n  reason = 'SecurityAI blocking — architecture must not proceed';\n} else if (performanceReview?.blocking) {\n  decision = 'rework_required';\n  reason = 'PerformanceAI blocking — rework required';\n} else if (otherReviews.some(r => r.blocking)) {\n  decision = 'rework_required';\n  const blocking = otherReviews.filter(r => r.blocking).map(r => r.agent);\n  reason = `Blocking reviews from: ${blocking.join(', ')}`;\n} else if (reviews.some(r => r.status === 'WARNING')) {\n  decision = 'approved_with_actions';\n  reason = 'Warnings present — approved with required actions';\n}\n\nconst newArchReworkCount = input.governance.arch_rework_count ?? 0;\n\nreturn [{\n  json: {\n    ...input,\n    current_stage: 'architecture_consolidation',\n    consolidation: {\n      decision,\n      reason,\n      all_findings: reviews.flatMap(r => r.findings),\n      review_summary: reviews.map(r => ({ agent: r.agent, status: r.status, blocking: r.blocking })),\n    },\n    governance: {\n      ...input.governance,\n      arch_rework_count: decision === 'rework_required' ? newArchReworkCount + 1 : newArchReworkCount,\n    },\n    stages_completed: [...(input.stages_completed ?? []), 'architecture_consolidation'],\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_11",
+      "name": "Gate: Architecture Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2580, 400],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.consolidation.decision }}",
+              "rightValue": "blocked",
+              "operator": { "type": "string", "operation": "notEquals" }
+            },
+            {
+              "leftValue": "={{ $json.consolidation.decision }}",
+              "rightValue": "rework_required",
+              "operator": { "type": "string", "operation": "notEquals" }
+            },
+            {
+              "leftValue": "={{ $json.governance.arch_rework_count }}",
+              "rightValue": 3,
+              "operator": { "type": "number", "operation": "lt" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node_11b",
+      "name": "Arch Rework Loop Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2580, 560],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (input.governance.arch_rework_count >= 3) {\n  return [{ json: { ...input, status: 'manual_intervention_required', reason: 'Max architecture rework cycles exceeded (3)', blocked_at: new Date().toISOString() } }];\n}\n// Return to architecture design with incremented counter\n// In production: loop via n8n's loop node or redirect\nreturn [{ json: { ...input, _rework_loop: true, return_to: 'architecture_design' } }];"
+      }
+    },
+    {
+      "id": "node_12",
+      "name": "Stage: Implementation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2800, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/agents/coding-ai/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"implement\",\n  \"process_id\": \"{{ $json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $json.story_id }}\",\n    \"architecture\": {{ JSON.stringify($json.architecture) }},\n    \"consolidation\": {{ JSON.stringify($json.consolidation) }},\n    \"organization_id\": \"{{ $json.org_id }}\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_13",
+      "name": "Validate Implementation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3020, 400],
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nif (!response.artifact || response.artifact_type !== 'implementation') {\n  throw new Error('Invalid CodingAI artifact: expected implementation');\n}\nconst prev = $('Gate: Architecture Approved?').first().json;\nreturn [{\n  json: {\n    ...prev,\n    current_stage: 'implementation',\n    implementation: response.artifact,\n    impl_blocking: response.blocking ?? false,\n    stages_completed: [...(prev.stages_completed ?? []), 'implementation'],\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_14",
+      "name": "Stage: Post-Impl Review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3240, 400],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst reviewAgents = ['security-ai', 'performance-ai', 'testing-ai', 'database-ai', 'network-ai', 'ux-ai'];\nreturn reviewAgents.map(agentId => ({\n  json: { ...input, review_agent_id: agentId, current_stage: 'post_impl_review' }\n}));"
+      }
+    },
+    {
+      "id": "node_14b",
+      "name": "Invoke Post-Impl Review Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3460, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/agents/{{ $json.review_agent_id }}/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"review_implementation\",\n  \"process_id\": \"{{ $json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $json.story_id }}\",\n    \"implementation\": {{ JSON.stringify($json.implementation) }},\n    \"organization_id\": \"{{ $json.org_id }}\"\n  }\n}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "node_15",
+      "name": "Gate: Implementation Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3680, 400],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.impl_blocking }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "false" }
+            },
+            {
+              "leftValue": "={{ $json.governance.impl_rework_count }}",
+              "rightValue": 3,
+              "operator": { "type": "number", "operation": "lt" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node_15b",
+      "name": "Impl Rework Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3680, 560],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst count = (input.governance.impl_rework_count ?? 0) + 1;\nif (count >= 3) {\n  return [{ json: { ...input, status: 'manual_intervention_required', reason: 'Max implementation rework cycles exceeded (3)', blocked_at: new Date().toISOString() } }];\n}\nreturn [{ json: { ...input, governance: { ...input.governance, impl_rework_count: count }, _rework_loop: true, return_to: 'implementation' } }];"
+      }
+    },
+    {
+      "id": "node_16",
+      "name": "Stage: Deployment Preparation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3900, 400],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst deployAgents = ['deploy-ai', 'security-ai', 'network-ai'];\nreturn deployAgents.map(agentId => ({\n  json: { ...input, deploy_agent_id: agentId, current_stage: 'deployment_preparation' }\n}));"
+      }
+    },
+    {
+      "id": "node_16b",
+      "name": "Invoke Deploy Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [4120, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/agents/{{ $json.deploy_agent_id }}/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"prepare_deployment\",\n  \"process_id\": \"{{ $json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $json.story_id }}\",\n    \"implementation\": {{ JSON.stringify($json.implementation) }},\n    \"organization_id\": \"{{ $json.org_id }}\"\n  }\n}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "node_17",
+      "name": "Gate: Deployment Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [4340, 400],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.deploy_blocking }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "false" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node_17b",
+      "name": "Deploy Blocked",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4340, 560],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: { ...input, status: 'blocked', reason: 'Deployment preparation failed', blocked_at: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "node_18",
+      "name": "Stage: Documentation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [4560, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/agents/documentation-training-ai/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"generate_documentation\",\n  \"process_id\": \"{{ $json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $json.story_id }}\",\n    \"implementation\": {{ JSON.stringify($json.implementation) }},\n    \"organization_id\": \"{{ $json.org_id }}\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_19",
+      "name": "Stage: Final Release Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4780, 400],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst docResponse = $('Stage: Documentation').first().json;\n\nconst docBlocking = docResponse.blocking ?? false;\nconst allGatesPassed = !input.deploy_blocking && !input.impl_blocking && !input.arch_blocking;\n\nlet release_decision = 'approved';\nlet release_reason = 'All stages passed successfully';\n\nif (!allGatesPassed) {\n  release_decision = 'rejected';\n  release_reason = 'One or more gates failed';\n} else if (docBlocking) {\n  release_decision = 'conditional';\n  release_reason = 'Documentation incomplete — conditional approval';\n}\n\nconst semver = (() => {\n  const d = new Date();\n  return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;\n})();\n\nreturn [{\n  json: {\n    ...input,\n    current_stage: 'final_release_decision',\n    release_decision: {\n      decision: release_decision,\n      reason: release_reason,\n      version: semver,\n      decided_at: new Date().toISOString(),\n      process_id: input.process_id,\n      story_id: input.story_id,\n      gates: {\n        architecture: !input.arch_blocking,\n        implementation: !input.impl_blocking,\n        deployment: !input.deploy_blocking,\n        documentation: !docBlocking,\n      },\n    },\n    stages_completed: [...(input.stages_completed ?? []), 'final_release_decision'],\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_20",
+      "name": "Gate: Release Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [5000, 400],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.release_decision.decision }}",
+              "rightValue": "rejected",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node_21",
+      "name": "Done",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5220, 400],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// Emit completion event\nconsole.log('Event: ai_delivery.completed', JSON.stringify({\n  process_id: input.process_id,\n  story_id: input.story_id,\n  organization_id: input.org_id,\n  release_decision: input.release_decision,\n  stages_completed: input.stages_completed,\n  completed_at: new Date().toISOString(),\n}));\n\nreturn [{\n  json: {\n    status: 'completed',\n    process_id: input.process_id,\n    story_id: input.story_id,\n    release_decision: input.release_decision,\n    stages_completed: input.stages_completed,\n    governance: input.governance,\n    completed_at: new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_21b",
+      "name": "Release Rejected",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5000, 560],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: { status: 'rejected', process_id: input.process_id, story_id: input.story_id, release_decision: input.release_decision, rejected_at: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "node_22",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2360, 600],
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nconsole.error('ai-delivery workflow error:', JSON.stringify({\n  execution_id: $execution.id,\n  error: error.message ?? error,\n  timestamp: new Date().toISOString(),\n}));\nreturn [{\n  json: {\n    status: 'failed',\n    error: error.message ?? String(error),\n    execution_id: $execution.id,\n    failed_at: new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_23",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [5440, 400],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Stage: Intake", "type": "main", "index": 0 }]]
+    },
+    "Stage: Intake": {
+      "main": [[{ "node": "Stage: Story Analysis", "type": "main", "index": 0 }]]
+    },
+    "Stage: Story Analysis": {
+      "main": [[{ "node": "Validate ScrumMaster Artifact", "type": "main", "index": 0 }]]
+    },
+    "Validate ScrumMaster Artifact": {
+      "main": [[{ "node": "Gate: Story Ready?", "type": "main", "index": 0 }]]
+    },
+    "Gate: Story Ready?": {
+      "main": [
+        [{ "node": "Stage: Architecture Design", "type": "main", "index": 0 }],
+        [{ "node": "Story Not Ready - Rework Required", "type": "main", "index": 0 }]
+      ]
+    },
+    "Stage: Architecture Design": {
+      "main": [[{ "node": "Validate Architecture", "type": "main", "index": 0 }]]
+    },
+    "Validate Architecture": {
+      "main": [[{ "node": "Stage: Architecture Review", "type": "main", "index": 0 }]]
+    },
+    "Stage: Architecture Review": {
+      "main": [[{ "node": "Invoke Review Agent", "type": "main", "index": 0 }]]
+    },
+    "Invoke Review Agent": {
+      "main": [[{ "node": "Collect Review Artifacts", "type": "main", "index": 0 }]]
+    },
+    "Collect Review Artifacts": {
+      "main": [[{ "node": "Stage: Architecture Consolidation", "type": "main", "index": 0 }]]
+    },
+    "Stage: Architecture Consolidation": {
+      "main": [[{ "node": "Gate: Architecture Approved?", "type": "main", "index": 0 }]]
+    },
+    "Gate: Architecture Approved?": {
+      "main": [
+        [{ "node": "Stage: Implementation", "type": "main", "index": 0 }],
+        [{ "node": "Arch Rework Loop Check", "type": "main", "index": 0 }]
+      ]
+    },
+    "Stage: Implementation": {
+      "main": [[{ "node": "Validate Implementation", "type": "main", "index": 0 }]]
+    },
+    "Validate Implementation": {
+      "main": [[{ "node": "Stage: Post-Impl Review", "type": "main", "index": 0 }]]
+    },
+    "Stage: Post-Impl Review": {
+      "main": [[{ "node": "Invoke Post-Impl Review Agent", "type": "main", "index": 0 }]]
+    },
+    "Invoke Post-Impl Review Agent": {
+      "main": [[{ "node": "Gate: Implementation Approved?", "type": "main", "index": 0 }]]
+    },
+    "Gate: Implementation Approved?": {
+      "main": [
+        [{ "node": "Stage: Deployment Preparation", "type": "main", "index": 0 }],
+        [{ "node": "Impl Rework Check", "type": "main", "index": 0 }]
+      ]
+    },
+    "Stage: Deployment Preparation": {
+      "main": [[{ "node": "Invoke Deploy Agent", "type": "main", "index": 0 }]]
+    },
+    "Invoke Deploy Agent": {
+      "main": [[{ "node": "Gate: Deployment Ready?", "type": "main", "index": 0 }]]
+    },
+    "Gate: Deployment Ready?": {
+      "main": [
+        [{ "node": "Stage: Documentation", "type": "main", "index": 0 }],
+        [{ "node": "Deploy Blocked", "type": "main", "index": 0 }]
+      ]
+    },
+    "Stage: Documentation": {
+      "main": [[{ "node": "Stage: Final Release Decision", "type": "main", "index": 0 }]]
+    },
+    "Stage: Final Release Decision": {
+      "main": [[{ "node": "Gate: Release Approved?", "type": "main", "index": 0 }]]
+    },
+    "Gate: Release Approved?": {
+      "main": [
+        [{ "node": "Done", "type": "main", "index": 0 }],
+        [{ "node": "Release Rejected", "type": "main", "index": 0 }]
+      ]
+    },
+    "Done": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "platform-local"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://platform.local/schemas/orchestrator-output.v1.json",
+  "title": "OrchestratorOutput",
+  "description": "Standardisierter Output des Master Orchestrators pro Stage",
+  "type": "object",
+  "required": [
+    "process_id", "current_stage", "next_stage",
+    "status", "blocking_issues", "warnings",
+    "required_agent_calls", "artifacts_to_validate",
+    "gate_decision", "decision_log"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "process_id": { "type": "string", "format": "uuid" },
+    "current_stage": { "type": "string" },
+    "next_stage": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["in_progress", "blocked", "rework_required", "approved", "done"]
+    },
+    "blocking_issues": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "required_agent_calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agent", "stage", "input"],
+        "properties": {
+          "agent": { "type": "string" },
+          "stage": { "type": "string" },
+          "input": { "type": "object" },
+          "parallel": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "artifacts_to_validate": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "gate_decision": {
+      "oneOf": [
+        { "$ref": "gate-decision.v1.json" },
+        { "type": "null" }
+      ]
+    },
+    "rework_instruction": {
+      "oneOf": [
+        { "$ref": "rework-instruction.v1.json" },
+        { "type": "null" }
+      ]
+    },
+    "decision_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["timestamp", "decision", "reason"],
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "decision": { "type": "string" },
+          "reason": { "type": "string" },
+          "priority_rule_applied": { "type": "string" }
+        }
+      }
+    }
+  }
+}

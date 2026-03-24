@@ -1,0 +1,278 @@
+{
+  "name": "story-lifecycle",
+  "nodes": [
+    {
+      "id": "node_1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "path": "story-lifecycle",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_2",
+      "name": "Validate Transition",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\n\nconst required = ['process_id', 'story_id', 'status_from', 'status_to', 'organization_id'];\nconst missing = required.filter(f => !body[f]);\nif (missing.length > 0) {\n  throw new Error(`Missing required fields: ${missing.join(', ')}`);\n}\n\nconst ALLOWED_TRANSITIONS = {\n  'draft': ['ready'],\n  'ready': ['in_progress'],\n  'in_progress': ['in_review'],\n  'in_review': ['done'],\n};\n\nconst allowed = ALLOWED_TRANSITIONS[body.status_from] ?? [];\nif (!allowed.includes(body.status_to)) {\n  throw new Error(`Invalid transition: ${body.status_from} → ${body.status_to}. Allowed: ${allowed.join(', ') || 'none'}`);\n}\n\nreturn [{\n  json: {\n    process_id: body.process_id,\n    story_id: body.story_id,\n    organization_id: body.organization_id,\n    org_id: body.organization_id,\n    status_from: body.status_from,\n    status_to: body.status_to,\n    user_id: body.user_id,\n    story: body.story ?? {},\n    scrum_master_id: body.scrum_master_id ?? 'scrum-master-ai',\n    validated_at: new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_3",
+      "name": "Route by Status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [680, 300],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.status_to }}", "rightValue": "ready", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "draft_to_ready"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.status_to }}", "rightValue": "in_progress", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "to_in_progress"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.status_to }}", "rightValue": "in_review", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "to_in_review"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.status_to }}", "rightValue": "done", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "to_done"
+            }
+          ]
+        },
+        "fallbackOutput": "none"
+      }
+    },
+    {
+      "id": "node_4",
+      "name": "ScrumMasterAI DoR Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 160],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/agents/{{ $json.scrum_master_id }}/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"dor_check\",\n  \"context\": {\n    \"story_id\": \"{{ $json.story_id }}\",\n    \"story\": {{ JSON.stringify($json.story) }},\n    \"organization_id\": \"{{ $json.org_id }}\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_5",
+      "name": "Gate: DoR Passed?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1180, 160],
+      "parameters": {
+        "jsCode": "const agentResponse = $input.first().json;\nconst artifact = agentResponse.artifact ?? {};\nconst blocking = agentResponse.blocking ?? !artifact.dor_passed;\n\nif (blocking) {\n  // Signal revert\n  return [null, [{\n    json: {\n      story_id: $('Validate Transition').first().json.story_id,\n      org_id: $('Validate Transition').first().json.org_id,\n      dor_failed: true,\n      findings: agentResponse.findings ?? [],\n      missing_fields: artifact.missing_fields ?? [],\n      revert_to: 'draft',\n    }\n  }]];\n}\n\nreturn [[{\n  json: {\n    ...$('Validate Transition').first().json,\n    dor_passed: true,\n    dor_artifact: artifact,\n  }\n}], null];"
+      }
+    },
+    {
+      "id": "node_6",
+      "name": "On Fail: Revert Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1400, 240],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/stories/{{ $json.story_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"draft\",\n  \"metadata\": {\n    \"dor_check_failed\": true,\n    \"dor_findings\": {{ JSON.stringify($json.findings) }},\n    \"reverted_at\": \"{{ $now.toISO() }}\"\n  }\n}",
+        "options": {
+          "response": { "response": { "neverError": true } }
+        }
+      }
+    },
+    {
+      "id": "node_7",
+      "name": "Emit: development_started",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconsole.log('Event: story.development_started', JSON.stringify({\n  story_id: input.story_id,\n  organization_id: input.org_id,\n  started_at: new Date().toISOString(),\n}));\nreturn [{ json: { ...input, event_emitted: 'story.development_started' } }];"
+      }
+    },
+    {
+      "id": "node_8",
+      "name": "TestingAI Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 460],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/agents/testing-ai/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"review_story_completion\",\n  \"context\": {\n    \"story_id\": \"{{ $json.story_id }}\",\n    \"story\": {{ JSON.stringify($json.story) }},\n    \"organization_id\": \"{{ $json.org_id }}\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_9",
+      "name": "Gate: Tests Passed?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1180, 460],
+      "parameters": {
+        "jsCode": "const agentResponse = $input.first().json;\nconst artifact = agentResponse.artifact ?? {};\nconst passed = !agentResponse.blocking && (artifact.coverage_ok ?? true);\n\nif (!passed) {\n  throw new Error(`Testing gate failed: ${JSON.stringify(agentResponse.findings ?? [])}`);\n}\n\nreturn [{ json: { ...$('Validate Transition').first().json, testing_artifact: artifact, tests_passed: true } }];"
+      }
+    },
+    {
+      "id": "node_10",
+      "name": "DocumentationTrainingAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1400, 460],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $('Validate Transition').first().json.org_id }}/agents/documentation-training-ai/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"generate_story_summary\",\n  \"context\": {\n    \"story_id\": \"{{ $('Validate Transition').first().json.story_id }}\",\n    \"organization_id\": \"{{ $('Validate Transition').first().json.org_id }}\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_11",
+      "name": "Notify Assignee",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1640, 300],
+      "parameters": {
+        "jsCode": "// Collect data from whichever branch ran\nlet input;\ntry { input = $('Gate: DoR Passed?').first().json; } catch(e) {}\ntry { input = input ?? $('Emit: development_started').first().json; } catch(e) {}\ntry { input = input ?? $('Gate: Tests Passed?').first().json; } catch(e) {}\n\nconst transition = $('Validate Transition').first().json;\n\nconsole.log('Notification stub — would notify assignee:', JSON.stringify({\n  story_id: transition.story_id,\n  user_id: transition.user_id,\n  transition: `${transition.status_from} → ${transition.status_to}`,\n  notified_at: new Date().toISOString(),\n}));\n\nreturn [{ json: { ...transition, notification_sent: true } }];"
+      }
+    },
+    {
+      "id": "node_12",
+      "name": "Persist Lifecycle Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1860, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $('Validate Transition').first().json.org_id }}/workflows/executions/{{ $execution.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"completed\",\n  \"result_snapshot\": {\n    \"story_id\": \"{{ $('Validate Transition').first().json.story_id }}\",\n    \"transition\": \"{{ $('Validate Transition').first().json.status_from }} → {{ $('Validate Transition').first().json.status_to }}\",\n    \"completed_at\": \"{{ $now.toISO() }}\"\n  }\n}",
+        "options": {
+          "response": { "response": { "neverError": true } }
+        }
+      }
+    },
+    {
+      "id": "node_13",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2080, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"completed\",\n  \"story_id\": \"{{ $('Validate Transition').first().json.story_id }}\",\n  \"transition\": \"{{ $('Validate Transition').first().json.status_from }} → {{ $('Validate Transition').first().json.status_to }}\",\n  \"completed_at\": \"{{ $now.toISO() }}\"\n}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "node_14",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 620],
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nconsole.error('story-lifecycle error:', JSON.stringify({\n  execution_id: $execution.id,\n  error: error.message ?? error,\n  timestamp: new Date().toISOString(),\n}));\nreturn [{ json: { status: 'failed', error: error.message ?? String(error), failed_at: new Date().toISOString() } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Validate Transition", "type": "main", "index": 0 }]]
+    },
+    "Validate Transition": {
+      "main": [[{ "node": "Route by Status", "type": "main", "index": 0 }]]
+    },
+    "Route by Status": {
+      "main": [
+        [{ "node": "ScrumMasterAI DoR Check", "type": "main", "index": 0 }],
+        [{ "node": "Emit: development_started", "type": "main", "index": 0 }],
+        [{ "node": "Notify Assignee", "type": "main", "index": 0 }],
+        [{ "node": "TestingAI Check", "type": "main", "index": 0 }]
+      ]
+    },
+    "ScrumMasterAI DoR Check": {
+      "main": [[{ "node": "Gate: DoR Passed?", "type": "main", "index": 0 }]]
+    },
+    "Gate: DoR Passed?": {
+      "main": [
+        [{ "node": "Notify Assignee", "type": "main", "index": 0 }],
+        [{ "node": "On Fail: Revert Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Emit: development_started": {
+      "main": [[{ "node": "Notify Assignee", "type": "main", "index": 0 }]]
+    },
+    "TestingAI Check": {
+      "main": [[{ "node": "Gate: Tests Passed?", "type": "main", "index": 0 }]]
+    },
+    "Gate: Tests Passed?": {
+      "main": [[{ "node": "DocumentationTrainingAI", "type": "main", "index": 0 }]]
+    },
+    "DocumentationTrainingAI": {
+      "main": [[{ "node": "Notify Assignee", "type": "main", "index": 0 }]]
+    },
+    "Notify Assignee": {
+      "main": [[{ "node": "Persist Lifecycle Result", "type": "main", "index": 0 }]]
+    },
+    "Persist Lifecycle Result": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "platform-local"
+  }
+}

@@ -1,0 +1,329 @@
+{
+  "name": "deployment",
+  "nodes": [
+    {
+      "id": "node_1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [160, 300],
+      "parameters": {
+        "path": "deployment",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_2",
+      "name": "Validate Release",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [380, 300],
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\n\nconst required = ['process_id', 'organization_id', 'story_id', 'release_decision'];\nconst missing = required.filter(f => !body[f]);\nif (missing.length > 0) {\n  throw new Error(`Missing required fields: ${missing.join(', ')}`);\n}\n\nif (body.release_decision?.decision === 'rejected') {\n  throw new Error('Cannot deploy: release_decision is rejected');\n}\n\nreturn [{\n  json: {\n    process_id: body.process_id,\n    organization_id: body.organization_id,\n    org_id: body.organization_id,\n    story_id: body.story_id,\n    release_decision: body.release_decision,\n    implementation: body.implementation ?? {},\n    architecture: body.architecture ?? {},\n    triggered_by: body.user_id ?? 'system',\n    validated_at: new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_3",
+      "name": "SecurityAI: Pre-Deployment Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [600, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $json.org_id }}/agents/security-ai/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"pre_deployment_security_check\",\n  \"process_id\": \"{{ $json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $json.story_id }}\",\n    \"implementation\": {{ JSON.stringify($json.implementation) }},\n    \"release_decision\": {{ JSON.stringify($json.release_decision) }},\n    \"organization_id\": \"{{ $json.org_id }}\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_4",
+      "name": "Gate: Security Passed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [820, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.blocking }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "false" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node_4b",
+      "name": "Security Blocked - Abort",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [820, 460],
+      "parameters": {
+        "jsCode": "const secCheck = $input.first().json;\nconst release = $('Validate Release').first().json;\nconsole.error('Deployment aborted: SecurityAI blocking', JSON.stringify(secCheck.findings));\nreturn [{ json: { status: 'aborted', reason: 'SecurityAI pre-deployment check failed', findings: secCheck.findings ?? [], story_id: release.story_id, aborted_at: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "node_5",
+      "name": "NetworkAI: Routing Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1040, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $('Validate Release').first().json.org_id }}/agents/network-ai/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"check_routing\",\n  \"process_id\": \"{{ $('Validate Release').first().json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $('Validate Release').first().json.story_id }}\",\n    \"implementation\": {{ JSON.stringify($('Validate Release').first().json.implementation) }},\n    \"organization_id\": \"{{ $('Validate Release').first().json.org_id }}\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_6",
+      "name": "DeployAI: Deployment Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1260, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $('Validate Release').first().json.org_id }}/agents/deploy-ai/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"create_deployment_plan\",\n  \"process_id\": \"{{ $('Validate Release').first().json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $('Validate Release').first().json.story_id }}\",\n    \"implementation\": {{ JSON.stringify($('Validate Release').first().json.implementation) }},\n    \"network_check\": {{ JSON.stringify($json) }},\n    \"organization_id\": \"{{ $('Validate Release').first().json.org_id }}\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_7",
+      "name": "Gate: Deployment Plan Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1480, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.artifact?.checks?.reproducible }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            },
+            {
+              "leftValue": "={{ $json.artifact?.checks?.secrets_clean }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            },
+            {
+              "leftValue": "={{ $json.blocking }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "false" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node_7b",
+      "name": "Plan Invalid - Abort",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1480, 460],
+      "parameters": {
+        "jsCode": "const plan = $input.first().json;\nconst release = $('Validate Release').first().json;\nconsole.error('Deployment plan invalid:', JSON.stringify(plan));\nreturn [{ json: { status: 'aborted', reason: `Deployment plan failed checks: reproducible=${plan.artifact?.checks?.reproducible}, secrets_clean=${plan.artifact?.checks?.secrets_clean}`, story_id: release.story_id, aborted_at: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "node_8",
+      "name": "Execute Deployment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1700, 300],
+      "parameters": {
+        "jsCode": "// Simulates: docker compose up --build -d\n// In production: SSH executor or Docker API call\nconst release = $('Validate Release').first().json;\nconst deployPlan = $('DeployAI: Deployment Plan').first().json;\n\nconsole.log('Executing deployment stub:', JSON.stringify({\n  story_id: release.story_id,\n  process_id: release.process_id,\n  services: deployPlan.artifact?.services ?? ['api', 'frontend', 'worker'],\n  command: 'docker compose up --build -d',\n  started_at: new Date().toISOString(),\n}));\n\n// Simulate deployment success\nreturn [{\n  json: {\n    ...release,\n    deploy_plan: deployPlan.artifact ?? {},\n    deployment_executed: true,\n    deployment_started_at: new Date().toISOString(),\n    services_deployed: deployPlan.artifact?.services ?? ['api', 'frontend', 'worker'],\n    deployment_id: `deploy_${Date.now()}`,\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_9",
+      "name": "Healthcheck",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1920, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_BASE_URL }}/health",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node_10",
+      "name": "Gate: Healthchecks Passed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2140, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": { "type": "number", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node_11",
+      "name": "On Success: Emit deployed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2360, 200],
+      "parameters": {
+        "jsCode": "const deployment = $('Execute Deployment').first().json;\n\nconsole.log('Event: release.deployed', JSON.stringify({\n  event_type: 'release.deployed',\n  process_id: deployment.process_id,\n  story_id: deployment.story_id,\n  organization_id: deployment.org_id,\n  deployment_id: deployment.deployment_id,\n  deployed_at: new Date().toISOString(),\n}));\n\nreturn [{\n  json: {\n    status: 'deployed',\n    process_id: deployment.process_id,\n    story_id: deployment.story_id,\n    deployment_id: deployment.deployment_id,\n    services_deployed: deployment.services_deployed,\n    deployed_at: new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_12",
+      "name": "On Failure: Rollback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2360, 420],
+      "parameters": {
+        "jsCode": "// Simulate rollback: docker compose down && docker compose up [previous image]\nconst deployment = $('Execute Deployment').first().json;\n\nconsole.warn('Healthcheck failed — initiating rollback:', JSON.stringify({\n  story_id: deployment.story_id,\n  deployment_id: deployment.deployment_id,\n  rollback_command: 'docker compose down && docker compose up [previous]',\n  rollback_at: new Date().toISOString(),\n}));\n\nreturn [{\n  json: {\n    status: 'rolled_back',\n    process_id: deployment.process_id,\n    story_id: deployment.story_id,\n    deployment_id: deployment.deployment_id,\n    reason: 'Healthcheck failed after deployment',\n    rollback_at: new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "node_13",
+      "name": "DocumentationTrainingAI: Deployment Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2580, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $('Validate Release').first().json.org_id }}/agents/documentation-training-ai/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"log_deployment\",\n  \"process_id\": \"{{ $('Validate Release').first().json.process_id }}\",\n  \"context\": {\n    \"story_id\": \"{{ $('Validate Release').first().json.story_id }}\",\n    \"deployment_result\": {{ JSON.stringify($json) }},\n    \"organization_id\": \"{{ $('Validate Release').first().json.org_id }}\"\n  }\n}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "node_14",
+      "name": "Persist Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2800, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/organizations/{{ $('Validate Release').first().json.org_id }}/workflows/executions/{{ $execution.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"completed\",\n  \"result_snapshot\": {{ JSON.stringify($('On Success: Emit deployed').first().json) }}\n}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "node_15",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [3020, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('On Success: Emit deployed').first().json) }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Validate Release", "type": "main", "index": 0 }]]
+    },
+    "Validate Release": {
+      "main": [[{ "node": "SecurityAI: Pre-Deployment Check", "type": "main", "index": 0 }]]
+    },
+    "SecurityAI: Pre-Deployment Check": {
+      "main": [[{ "node": "Gate: Security Passed?", "type": "main", "index": 0 }]]
+    },
+    "Gate: Security Passed?": {
+      "main": [
+        [{ "node": "NetworkAI: Routing Check", "type": "main", "index": 0 }],
+        [{ "node": "Security Blocked - Abort", "type": "main", "index": 0 }]
+      ]
+    },
+    "NetworkAI: Routing Check": {
+      "main": [[{ "node": "DeployAI: Deployment Plan", "type": "main", "index": 0 }]]
+    },
+    "DeployAI: Deployment Plan": {
+      "main": [[{ "node": "Gate: Deployment Plan Valid?", "type": "main", "index": 0 }]]
+    },
+    "Gate: Deployment Plan Valid?": {
+      "main": [
+        [{ "node": "Execute Deployment", "type": "main", "index": 0 }],
+        [{ "node": "Plan Invalid - Abort", "type": "main", "index": 0 }]
+      ]
+    },
+    "Execute Deployment": {
+      "main": [[{ "node": "Healthcheck", "type": "main", "index": 0 }]]
+    },
+    "Healthcheck": {
+      "main": [[{ "node": "Gate: Healthchecks Passed?", "type": "main", "index": 0 }]]
+    },
+    "Gate: Healthchecks Passed?": {
+      "main": [
+        [{ "node": "On Success: Emit deployed", "type": "main", "index": 0 }],
+        [{ "node": "On Failure: Rollback", "type": "main", "index": 0 }]
+      ]
+    },
+    "On Success: Emit deployed": {
+      "main": [[{ "node": "DocumentationTrainingAI: Deployment Log", "type": "main", "index": 0 }]]
+    },
+    "On Failure: Rollback": {
+      "main": [[{ "node": "DocumentationTrainingAI: Deployment Log", "type": "main", "index": 0 }]]
+    },
+    "DocumentationTrainingAI: Deployment Log": {
+      "main": [[{ "node": "Persist Result", "type": "main", "index": 0 }]]
+    },
+    "Persist Result": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "platform-local"
+  }
+}

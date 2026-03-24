@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://platform.local/schemas/plugin-manifest.v1.json",
+  "title": "PluginManifest",
+  "description": "Vollständiges Plugin-Manifest für die AI-Native Workspace Platform",
+  "type": "object",
+  "required": ["slug", "name", "version", "type", "entry_point"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Kebab-case eindeutiger Identifier"
+    },
+    "name": { "type": "string" },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semver"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["ui", "provider", "action", "hybrid"]
+    },
+    "author": { "type": "string" },
+    "description": { "type": "string" },
+    "min_platform_version": { "type": "string" },
+    "entry_point": { "type": "string" },
+    "frontend_entry": { "type": "string" },
+    "permissions_required": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z_]+:[a-z_]+$" }
+    },
+    "nav_entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "route", "slot"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "icon": { "type": "string" },
+          "route": { "type": "string" },
+          "slot": {
+            "type": "string",
+            "enum": ["sidebar_main", "sidebar_bottom"]
+          },
+          "position": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "slots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "slot", "component"],
+        "properties": {
+          "id": { "type": "string" },
+          "slot": {
+            "type": "string",
+            "enum": ["sidebar_main", "sidebar_bottom", "topbar_right", "panel_right", "panel_bottom", "dashboard_widget", "command_palette", "context_menu"]
+          },
+          "component": { "type": "string" },
+          "trigger": { "type": "string" }
+        }
+      }
+    },
+    "api_routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["prefix", "module"],
+        "properties": {
+          "prefix": { "type": "string" },
+          "module": { "type": "string" }
+        }
+      }
+    },
+    "db_migrations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "workflow_hooks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["event", "workflow_slug"],
+        "properties": {
+          "event": { "type": "string" },
+          "workflow_slug": { "type": "string" }
+        }
+      }
+    },
+    "config_schema": {
+      "type": "object",
+      "description": "JSON Schema für org-spezifische Plugin-Konfiguration"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["ai_assistance", "workflow_integration", "group_assignment", "notification_push", "file_upload", "real_time_updates", "export_pdf", "import_csv"]
+      }
+    }
+  }
+}

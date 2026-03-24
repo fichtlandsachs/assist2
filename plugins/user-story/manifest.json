@@ -1,0 +1,76 @@
+{
+  "$schema": "https://platform.local/schemas/plugin-manifest.v1.json",
+  "slug": "user-story",
+  "name": "User Story",
+  "version": "1.0.0",
+  "type": "hybrid",
+  "author": "Platform Team",
+  "description": "Agiles User Story Management mit AI-Unterstützung und vollständigem Delivery-Workflow",
+  "min_platform_version": "1.0.0",
+  "entry_point": "plugins/user_story/backend/routes.py",
+  "frontend_entry": "plugins/user-story/frontend/index.tsx",
+  "permissions_required": [
+    "story:create", "story:read", "story:update", "story:delete",
+    "workflow:execute", "agent:invoke", "org:read"
+  ],
+  "nav_entries": [
+    {
+      "id": "user-story-list",
+      "label": "User Stories",
+      "icon": "BookOpen",
+      "route": "/stories",
+      "slot": "sidebar_main",
+      "position": 10
+    }
+  ],
+  "slots": [
+    {
+      "id": "story-dashboard-widget",
+      "slot": "dashboard_widget",
+      "component": "StoryDashboardWidget"
+    }
+  ],
+  "api_routes": [
+    {
+      "prefix": "/api/v1/plugins/user-story",
+      "module": "plugins.user_story.backend.routes"
+    }
+  ],
+  "db_migrations": ["plugins/user-story/backend/migrations/"],
+  "workflow_hooks": [
+    { "event": "story.status_changed", "workflow_slug": "story-lifecycle" },
+    { "event": "story.ai_delivery_requested", "workflow_slug": "ai-delivery" }
+  ],
+  "config_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "default_priority": {
+        "type": "string",
+        "enum": ["low", "medium", "high", "critical"],
+        "default": "medium"
+      },
+      "ai_assistance_enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "dor_check_on_ready": {
+        "type": "boolean",
+        "default": true,
+        "description": "DoR-Check automatisch beim Übergang zu 'ready'"
+      },
+      "default_story_points": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 13,
+        "default": 3
+      }
+    },
+    "required": ["default_priority", "ai_assistance_enabled"]
+  },
+  "capabilities": [
+    "ai_assistance",
+    "workflow_integration",
+    "group_assignment"
+  ]
+}
