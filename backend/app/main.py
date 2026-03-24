@@ -9,6 +9,7 @@ from app.config import get_settings
 from app.database import engine
 from app.routers import agents, auth, epics, features, groups, integrations, memberships, organizations, plugins, roles, users, workflows, user_stories, inbox, calendar, test_cases, admin_config
 from app.routers.pdf_settings import router as pdf_settings_router
+from app.routers.nextcloud import router as nextcloud_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -94,3 +95,4 @@ app.include_router(calendar.router, prefix="/api/v1", tags=["Calendar"])
 app.include_router(test_cases.router, prefix="/api/v1", tags=["TestCases"])
 app.include_router(admin_config.router, prefix="/api/v1", tags=["AdminConfig"])
 app.include_router(pdf_settings_router, prefix="/api/v1", tags=["PDF Settings"])
+app.include_router(nextcloud_router, prefix="/api/v1", tags=["Nextcloud"])
