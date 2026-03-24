@@ -23,7 +23,6 @@ def _membership_to_read(membership) -> MembershipRead:
     roles = []
     for mr in membership.membership_roles:
         if mr.role:
-            perms = [p for p in mr.role.permissions] if hasattr(mr.role, 'permissions') else []
             roles.append(RoleRead(
                 id=mr.role.id,
                 name=mr.role.name,
