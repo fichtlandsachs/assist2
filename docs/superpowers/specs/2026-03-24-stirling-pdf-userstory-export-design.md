@@ -136,7 +136,13 @@ All under `/api/v1/organizations/{org_id}/pdf-settings`. Require `org:update` pe
 Status changes are handled directly in `backend/app/routers/user_stories.py` in the `update_user_story` PATCH handler. After persisting the update, the handler checks if `status` transitioned to `"done"` and, if so, dispatches the Celery task:
 
 ```python
-# In update_user_story (routers/user_stories.py) — after db.commit()
+# In update_user_story (routers/user_stories.py)
+# Capture old status BEFORE the setattr update loop:
+old_status = story.status
+
+# ... existing update loop (setattr / db.commit) ...
+
+# After db.commit(), dispatch if status just transitioned to done:
 if data.status == UserStoryStatus.done and old_status != UserStoryStatus.done:
     generate_story_pdf.delay(str(story.id), str(story.organization_id))
 ```
@@ -260,18 +266,22 @@ Celery Task: generate_story_pdf(story_id, org_id)
 | `backend/tests/integration/test_pdf_settings.py` | Integration tests for API |
 | `backend/migrations/versions/0017_pdf_settings.py` | Migration: create pdf_settings table (depends on P1 migrations 0015 + 0016 landing first; renumber if needed) |
 
+### New Frontend Files
+| File | Purpose |
+|------|---------|
+| `frontend/app/[org]/admin/pdf/page.tsx` | Admin page: PDF settings + template upload |
+| `frontend/components/admin/PdfSettingsForm.tsx` | Settings form (company name, format, language, header/footer) |
+| `frontend/components/admin/TemplateUpload.tsx` | File upload component (letterhead PDF + logo) |
+
 ### Modified Files
 | File | Changes |
 |------|---------|
-| `infra/docker-compose.yml` | Add stirling-pdf service + 2 volumes |
+| `infra/docker-compose.yml` | Add stirling-pdf service + 2 volumes; add `STIRLING_PDF_URL` to both `backend` and `worker` service env blocks |
 | `infra/.env.example` | Add STIRLING_PDF_URL |
-| `backend/app/config.py` | Add STIRLING_PDF_URL + PDF_TEMPLATES_PATH + PDF_CACHE_PATH settings |
-| `backend/app/celery_app.py` | Add `app.tasks.pdf_tasks` to `include` list |
+| `backend/app/config.py` | Add `STIRLING_PDF_URL: str = "http://assist2-stirling-pdf:8080"`, `PDF_TEMPLATES_PATH: str = "/app/pdf_templates"`, `PDF_CACHE_PATH: str = "/app/pdf_cache"` |
+| `backend/app/celery_app.py` | Add `"app.tasks.pdf_tasks"` to `include` list |
 | `backend/app/main.py` | Register pdf_settings router |
-| `backend/app/routers/user_stories.py` | Add `.delay()` call on status → done transition |
-| `frontend/app/[org]/admin/pdf/page.tsx` | New admin page |
-| `frontend/components/admin/PdfSettingsForm.tsx` | Settings form component |
-| `frontend/components/admin/TemplateUpload.tsx` | File upload component |
+| `backend/app/routers/user_stories.py` | Capture `old_status = story.status` before update loop; dispatch `generate_story_pdf.delay()` after commit if status transitioned to `done` |
 
 ---
 
