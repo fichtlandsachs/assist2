@@ -60,9 +60,8 @@ class AuthService:
         await db.commit()
         await db.refresh(user)
 
-        # Get tokens via login
-        from app.schemas.auth import LoginRequest as LR
-        return await self.login(db, LR(email=data.email, password=data.password))
+        # Get tokens via login (use lowercased email to match Authentik username)
+        return await self.login(db, LoginRequest(email=data.email.lower(), password=data.password))
 
     async def refresh(self, db: AsyncSession, refresh_token: str) -> TokenResponse:
         """Refresh token pair via Authentik."""
