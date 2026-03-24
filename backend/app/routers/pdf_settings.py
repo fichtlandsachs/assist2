@@ -1,7 +1,9 @@
 """API endpoints for PDF settings (branding + template management)."""
+import datetime
 import logging
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from fastapi.responses import Response
@@ -31,10 +33,17 @@ async def _get_or_create_settings(org_id: uuid.UUID, db: AsyncSession) -> PdfSet
     )
     row = result.scalar_one_or_none()
     if row is None:
-        row = PdfSettings(organization_id=org_id)
-        db.add(row)
-        await db.commit()
-        await db.refresh(row)
+        try:
+            row = PdfSettings(organization_id=org_id)
+            db.add(row)
+            await db.commit()
+            await db.refresh(row)
+        except Exception:
+            await db.rollback()
+            result = await db.execute(
+                select(PdfSettings).where(PdfSettings.organization_id == org_id)
+            )
+            row = result.scalar_one()
     return row
 
 
@@ -184,8 +193,6 @@ async def preview_pdf(
     Synchronously generates a sample PDF using current settings.
     Returns raw PDF bytes (Content-Type: application/pdf).
     """
-    import datetime
-    from types import SimpleNamespace
     row = await _get_or_create_settings(org_id, db)
     sample_story = SimpleNamespace(
         id=uuid.uuid4(),
