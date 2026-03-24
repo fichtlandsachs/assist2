@@ -12,12 +12,12 @@ interface PluginRegistryState {
 }
 
 export function usePluginRegistry(orgId: string): PluginRegistryState {
-  const { data, error, isLoading } = useSWR<{ items: OrgPlugin[] }>(
+  const { data, error, isLoading } = useSWR<OrgPlugin[]>(
     orgId ? `/api/v1/organizations/${orgId}/plugins` : null,
     fetcher
   );
 
-  const plugins = data?.items ?? [];
+  const plugins = Array.isArray(data) ? data : [];
 
   // Sammle alle nav_entries aus aktiven Plugin-Manifests
   const navEntries: PluginNavEntry[] = plugins

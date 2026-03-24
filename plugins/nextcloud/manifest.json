@@ -10,7 +10,7 @@
       "label": "Dateien",
       "icon": "folder",
       "route": "/nextcloud",
-      "slot": "sidebar",
+      "slot": "sidebar_main",
       "position": 50
     }
   ],
