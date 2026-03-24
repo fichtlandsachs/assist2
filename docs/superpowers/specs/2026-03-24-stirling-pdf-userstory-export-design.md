@@ -62,11 +62,15 @@ stirling-pdf:
     DOCKER_ENABLE_SECURITY: "false"
     INSTALL_BOOK_AND_ADVANCED_HTML_OPS: "true"
   volumes:
-    - assist2_pdf_templates:/usr/share/tessdata
-    - assist2_pdf_cache:/app/cache
+    - assist2_pdf_templates:/app/pdf_templates
+    - assist2_pdf_cache:/app/pdf_cache
   networks:
     - internal
 ```
+
+Volume mounts:
+- `assist2_pdf_templates` → `/app/pdf_templates` — per-org template files (`{org_id}/letterhead.pdf`, `{org_id}/logo.png`)
+- `assist2_pdf_cache` → `/app/pdf_cache` — locally cached generated PDFs before Nextcloud is available
 
 Not exposed via Traefik — only reachable by the backend over the `internal` network.
 
@@ -127,25 +131,62 @@ All under `/api/v1/organizations/{org_id}/pdf-settings`. Require `org:update` pe
 
 ## PDF Generation Flow
 
+### Trigger Point
+
+Status changes are handled directly in `backend/app/routers/user_stories.py` in the `update_user_story` PATCH handler. After persisting the update, the handler checks if `status` transitioned to `"done"` and, if so, dispatches the Celery task:
+
+```python
+# In update_user_story (routers/user_stories.py) — after db.commit()
+if data.status == UserStoryStatus.done and old_status != UserStoryStatus.done:
+    generate_story_pdf.delay(str(story.id), str(story.organization_id))
+```
+
+This is an intentional switch from the existing `BackgroundTasks` pattern used for `_regenerate_docs_bg` to Celery `.delay()`, because PDF generation requires retry semantics. The task module must be added to `celery_app.py`'s `include` list (see Modified Files).
+
+### `generated_docs` is a JSON String
+
+The ORM column `user_stories.generated_docs` is `Mapped[Optional[str]]` — a JSON-serialized string, not a dict. All reads/writes follow this pattern (as used in `routers/user_stories.py`):
+
+```python
+docs = json.loads(story.generated_docs or "{}")
+docs["pdf_url"] = "Userstories_generated/..."
+story.generated_docs = json.dumps(docs)
+await db.commit()
+```
+
+The Celery task must follow this same pattern when writing `pdf_url`.
+
+### Task Flow
+
 ```
 PATCH /user-stories/{id}  (status → done)
-  → story_service detects status change
-  → enqueue Celery task: generate_story_pdf.delay(story_id, org_id)
+  → update_user_story router handler detects status transition
+  → generate_story_pdf.delay(story_id, org_id)
 
 Celery Task: generate_story_pdf(story_id, org_id)
-  1. Load story + test_cases + features + generated_docs from DB
-  2. Load pdf_settings for org_id (fallback to defaults if not set)
-  3. Render Jinja2 template → HTML string
-  4. POST HTML to Stirling PDF /api/v1/misc/html-to-pdf → PDF bytes
-  5. If letterhead configured:
+  1. Load story + test_cases + features from DB
+  2. Parse generated_docs: docs = json.loads(story.generated_docs or "{}")
+  3. Load pdf_settings for org_id (fallback to defaults if not set)
+  4. Render Jinja2 template → HTML string
+  5. POST HTML to Stirling PDF /api/v1/misc/html-to-pdf → PDF bytes
+  6. If letterhead configured:
        POST [generated.pdf, letterhead.pdf] to /api/v1/general/overlay-pdfs → final PDF
-  6. If Nextcloud available:
-       WebDAV PUT → /Userstories_generated/{story_id}_{date}.pdf
-       UPDATE story.generated_docs["pdf_url"] = "Userstories_generated/{story_id}_{date}.pdf"
-  7. Else (Nextcloud not yet set up):
-       Save to local cache volume /app/pdf_cache/{story_id}_{date}.pdf
-       UPDATE story.generated_docs["pdf_url"] = "cache:{story_id}_{date}.pdf"
+  7. Determine storage:
+       Phase 1 (Nextcloud not yet set up):
+         Write PDF to /app/pdf_cache/{story_id}_{date}.pdf
+         docs["pdf_url"] = "cache:{story_id}_{date}.pdf"
+       Phase 2+ (Nextcloud available, NEXTCLOUD_URL set in settings):
+         WebDAV PUT → /Userstories_generated/{story_id}_{date}.pdf
+         docs["pdf_url"] = "Userstories_generated/{story_id}_{date}.pdf"
+  8. story.generated_docs = json.dumps(docs)
+     await db.commit()
 ```
+
+**Note on Phase 1 → Phase 2 migration of cached PDFs:** PDFs written to the local cache during Phase 1 are not automatically re-uploaded when Nextcloud becomes available. A one-time migration script (similar to `migrate_to_authentik.py`) will be provided in Phase 2 to upload cached PDFs to Nextcloud and update `pdf_url` values. No automatic retry-on-update mechanism is implemented.
+
+### Preview Endpoint
+
+`POST /pdf-settings/preview` calls `StirlingPDFClient` **synchronously** (direct `httpx` call in the router handler, not via Celery) and returns the PDF bytes as `application/pdf`. This is acceptable for a low-frequency admin operation.
 
 ---
 
@@ -175,9 +216,9 @@ Celery Task: generate_story_pdf(story_id, org_id)
 
 | Failure | Behavior |
 |---------|----------|
-| Stirling PDF unreachable | Celery retry ×3, 60 s apart; after 3 failures: log error, story stays `done`, no PDF |
-| Nextcloud unreachable | PDF saved to local cache volume; retry on next story update |
-| HTML render error | Task fails immediately; error logged in `ai_steps` table |
+| Stirling PDF unreachable | Celery retry ×3, 60 s apart; after 3 failures: log error at ERROR level, story stays `done`, no PDF |
+| Nextcloud unreachable (Phase 2+) | PDF saved to local cache volume; manual migration script in Phase 2 handles re-upload |
+| HTML render error | Task fails immediately; error logged via Python `logger.error()` |
 | No `pdf_settings` for org | Defaults used (A4, German, no logo/letterhead) — always functional |
 | PDF already exists in Nextcloud | Overwritten (latest version wins) |
 
@@ -217,16 +258,17 @@ Celery Task: generate_story_pdf(story_id, org_id)
 | `backend/tests/unit/test_stirling_client.py` | Unit tests for StirlingPDFClient |
 | `backend/tests/unit/test_pdf_service.py` | Unit tests for PdfService |
 | `backend/tests/integration/test_pdf_settings.py` | Integration tests for API |
-| `backend/migrations/versions/0017_pdf_settings.py` | Migration: create pdf_settings table |
+| `backend/migrations/versions/0017_pdf_settings.py` | Migration: create pdf_settings table (depends on P1 migrations 0015 + 0016 landing first; renumber if needed) |
 
 ### Modified Files
 | File | Changes |
 |------|---------|
-| `infra/docker-compose.yml` | Add stirling-pdf service + volumes |
+| `infra/docker-compose.yml` | Add stirling-pdf service + 2 volumes |
 | `infra/.env.example` | Add STIRLING_PDF_URL |
-| `backend/app/config.py` | Add STIRLING_PDF_URL setting |
+| `backend/app/config.py` | Add STIRLING_PDF_URL + PDF_TEMPLATES_PATH + PDF_CACHE_PATH settings |
+| `backend/app/celery_app.py` | Add `app.tasks.pdf_tasks` to `include` list |
 | `backend/app/main.py` | Register pdf_settings router |
-| `backend/app/routers/user_stories.py` | Enqueue generate_story_pdf on status → done |
+| `backend/app/routers/user_stories.py` | Add `.delay()` call on status → done transition |
 | `frontend/app/[org]/admin/pdf/page.tsx` | New admin page |
 | `frontend/components/admin/PdfSettingsForm.tsx` | Settings form component |
 | `frontend/components/admin/TemplateUpload.tsx` | File upload component |
