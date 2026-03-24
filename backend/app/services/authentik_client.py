@@ -20,11 +20,11 @@ class AuthentikClient:
 
     @property
     def _token_url(self) -> str:
-        return f"{self._settings.AUTHENTIK_URL}/application/o/{self._settings.AUTHENTIK_APP_SLUG}/token/"
+        return f"{self._settings.AUTHENTIK_URL}/application/o/token/"
 
     @property
     def _revoke_url(self) -> str:
-        return f"{self._settings.AUTHENTIK_URL}/application/o/{self._settings.AUTHENTIK_APP_SLUG}/revoke/"
+        return f"{self._settings.AUTHENTIK_URL}/application/o/revoke/"
 
     @property
     def _users_url(self) -> str:
@@ -37,18 +37,18 @@ class AuthentikClient:
             "Content-Type": "application/json",
         }
 
-    async def authenticate_user(self, email: str, password: str) -> TokenResponse:
-        """OIDC Resource Owner Password Credentials grant."""
+    async def authenticate_user(self, username: str, app_password: str) -> TokenResponse:
+        """Exchange an Authentik app-password token for OIDC tokens."""
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(
                 self._token_url,
                 data={
                     "grant_type": "password",
-                    "username": email,
-                    "password": password,
+                    "username": username,
+                    "password": app_password,
                     "client_id": self._settings.AUTHENTIK_BACKEND_CLIENT_ID,
                     "client_secret": self._settings.AUTHENTIK_BACKEND_CLIENT_SECRET,
-                    "scope": "openid email profile",
+                    "scope": "openid email profile offline_access",
                 },
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
@@ -142,6 +142,41 @@ class AuthentikClient:
                 )
         except httpx.RequestError as e:
             logger.warning(f"Failed to revoke token: {e}")
+
+    async def create_app_password(self, authentik_pk: int, identifier: str, expires: str) -> str:
+        """Create a short-lived app-password token. Returns the token key."""
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                f"{self._settings.AUTHENTIK_URL}/api/v3/core/tokens/",
+                json={
+                    "identifier": identifier,
+                    "intent": "app_password",
+                    "user": authentik_pk,
+                    "expiring": True,
+                    "expires": expires,
+                },
+                headers=self._api_headers,
+            )
+        resp.raise_for_status()
+        # Key is not in the creation response — must be fetched separately
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            key_resp = await client.get(
+                f"{self._settings.AUTHENTIK_URL}/api/v3/core/tokens/{identifier}/view_key/",
+                headers=self._api_headers,
+            )
+        key_resp.raise_for_status()
+        return key_resp.json()["key"]
+
+    async def delete_app_password(self, identifier: str) -> None:
+        """Delete an app-password token (best-effort, silent on 404)."""
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                await client.delete(
+                    f"{self._settings.AUTHENTIK_URL}/api/v3/core/tokens/{identifier}/",
+                    headers=self._api_headers,
+                )
+        except httpx.RequestError as e:
+            logger.warning(f"Failed to delete app password {identifier}: {e}")
 
     async def get_user_by_email(self, email: str) -> Optional[dict[str, Any]]:
         """Find an Authentik user by email. Returns None if not found."""

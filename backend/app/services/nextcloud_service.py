@@ -95,7 +95,7 @@ class NextcloudService:
         """
         settings = get_settings()
         url = (
-            f"{settings.NEXTCLOUD_URL}/remote.php/dav/files/"
+            f"{settings.NEXTCLOUD_INTERNAL_URL}/remote.php/dav/files/"
             f"{settings.NEXTCLOUD_ADMIN_USER}/Organizations/{org_slug}/"
         )
         auth = (settings.NEXTCLOUD_ADMIN_USER, settings.NEXTCLOUD_ADMIN_APP_PASSWORD)

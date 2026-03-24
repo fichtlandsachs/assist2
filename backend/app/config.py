@@ -56,7 +56,8 @@ class Settings(BaseSettings):
     PDF_CACHE_PATH: str = "/app/pdf_cache"
 
     # Nextcloud
-    NEXTCLOUD_URL: str = "https://nextcloud.fichtlworks.com"
+    NEXTCLOUD_URL: str = "https://nextcloud.fichtlworks.com"  # Public URL (for frontend links)
+    NEXTCLOUD_INTERNAL_URL: str = "http://assist2-nextcloud"  # Internal URL (for backend WebDAV/OCS)
     NEXTCLOUD_ADMIN_USER: str = "admin"
     NEXTCLOUD_ADMIN_APP_PASSWORD: str = ""  # Nextcloud App Password für WebDAV + OCS
 

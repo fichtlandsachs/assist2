@@ -49,6 +49,7 @@ def _decode_jwt(token: str, jwks: dict) -> dict:
     kid = header.get("kid")
     alg = header.get("alg", "RS256")
 
+    settings = get_settings()
     for key_data in jwks.get("keys", []):
         if kid is None or key_data.get("kid") == kid:
             signing_key = pyjwt.PyJWK(key_data).key
@@ -56,6 +57,7 @@ def _decode_jwt(token: str, jwks: dict) -> dict:
                 token,
                 signing_key,
                 algorithms=[alg],
+                audience=settings.AUTHENTIK_BACKEND_CLIENT_ID,
                 options={"verify_exp": True},
             )
 
