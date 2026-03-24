@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -73,11 +72,6 @@ async def logout(
 )
 async def get_me(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ) -> UserWithLinks:
     """Get the authenticated user's profile."""
-    result = await db.execute(
-        select(User).where(User.id == current_user.id)
-    )
-    user = result.scalar_one()
-    return UserWithLinks.model_validate(user)
+    return UserWithLinks.model_validate(current_user)
