@@ -2,7 +2,7 @@
 import base64
 import hashlib
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
@@ -72,7 +72,7 @@ async def validate_authentik_token(token: str) -> dict:
         return _decode_jwt(token, jwks)
     except pyjwt.ExpiredSignatureError:
         raise UnauthorizedException(detail="Token has expired")
-    except (pyjwt.InvalidTokenError, Exception) as e:
+    except pyjwt.InvalidTokenError as e:
         logger.debug(f"Token validation failed: {e}")
         raise UnauthorizedException(detail="Could not validate credentials")
 
@@ -105,18 +105,14 @@ def decrypt_value(value: str) -> str:
 
 
 # ── Backward-compatibility stubs (removed in future tasks) ────────────────────
-import bcrypt as _bcrypt
-from datetime import timedelta
+def hash_password(password: str) -> str:  # noqa: ARG001
+    """Deprecated: auth is now handled by Authentik. (legacy — removed in Task 6)"""
+    raise NotImplementedError("Password hashing moved to Authentik")
 
 
-def hash_password(password: str) -> str:
-    """Hash a plain text password using bcrypt. (legacy — to be removed)"""
-    return _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
-
-
-def verify_password(plain: str, hashed: str) -> bool:
-    """Verify a plain text password against a bcrypt hash. (legacy — to be removed)"""
-    return _bcrypt.checkpw(plain.encode(), hashed.encode())
+def verify_password(plain: str, hashed: str) -> bool:  # noqa: ARG001
+    """Deprecated: auth is now handled by Authentik. (legacy — removed in Task 6)"""
+    raise NotImplementedError("Password verification moved to Authentik")
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
