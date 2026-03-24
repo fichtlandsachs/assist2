@@ -237,20 +237,20 @@ async def test_post_config_regular_user_forbidden(
     db.add(MembershipRole(membership_id=membership.id, role_id=member_role.id))
     await db.commit()
 
-    # Login as test_user_2
-    login = await client.post(
-        "/api/v1/auth/login",
-        json={"email": "testuser2@example.com", "password": "testpassword123"},
-    )
-    assert login.status_code == 200
-    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    # Override get_current_user to return test_user_2 directly (no Authentik needed)
+    from app.main import app
+    from app.deps import get_current_user
 
-    r = await client.post(
-        f"/api/v1/admin/{org_id_str}/config",
-        json={"config_type": "retrieval", "config_payload": {"top_k": 99}},
-        headers=headers,
-    )
-    assert r.status_code == 403
+    app.dependency_overrides[get_current_user] = lambda: test_user_2
+    try:
+        r = await client.post(
+            f"/api/v1/admin/{org_id_str}/config",
+            json={"config_type": "retrieval", "config_payload": {"top_k": 99}},
+            headers={"Authorization": "Bearer test-token"},
+        )
+        assert r.status_code == 403
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
 
 
 @pytest.mark.asyncio
