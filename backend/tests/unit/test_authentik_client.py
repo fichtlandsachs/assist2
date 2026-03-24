@@ -129,6 +129,34 @@ async def test_get_user_by_email_found():
 
 
 @pytest.mark.asyncio
+async def test_revoke_token_success():
+    """revoke_token calls the revoke endpoint and returns None."""
+    client = AuthentikClient()
+
+    with patch("httpx.AsyncClient") as mock_http:
+        mock_http.return_value.__aenter__.return_value.post = AsyncMock(
+            return_value=make_mock_response(200, {})
+        )
+        result = await client.revoke_token("some-token")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_revoke_token_swallows_request_error():
+    """revoke_token silently ignores httpx.RequestError (fire-and-forget)."""
+    import httpx as _httpx
+    client = AuthentikClient()
+
+    with patch("httpx.AsyncClient") as mock_http:
+        mock_http.return_value.__aenter__.return_value.post = AsyncMock(
+            side_effect=_httpx.RequestError("connection refused")
+        )
+        # Must not raise
+        await client.revoke_token("some-token")
+
+
+@pytest.mark.asyncio
 async def test_get_user_by_email_not_found():
     """Returns None when no user found."""
     client = AuthentikClient()

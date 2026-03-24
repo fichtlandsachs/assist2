@@ -97,7 +97,10 @@ class AuthentikClient:
                 json={"password": password},
                 headers=self._api_headers,
             )
-        resp.raise_for_status()
+        if resp.status_code >= 400:
+            raise UnauthorizedException(
+                detail=f"Failed to set password for Authentik user {authentik_id}"
+            )
 
     async def refresh_token(self, refresh_token: str) -> TokenResponse:
         """Exchange refresh token for a new token pair."""
