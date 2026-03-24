@@ -1,6 +1,6 @@
 """Integration tests for PDF settings API and story → done trigger."""
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from httpx import AsyncClient
 
 from app.models.user_story import UserStory, StoryStatus
@@ -31,7 +31,6 @@ async def test_story_done_dispatches_pdf_task(client: AsyncClient, auth_headers:
     await db.refresh(story)
 
     with patch("app.routers.user_stories.generate_story_pdf") as mock_task:
-        mock_task.delay = lambda *args, **kwargs: None  # sync callable, not AsyncMock
         response = await client.patch(
             f"/api/v1/user-stories/{story.id}",
             json={"status": "done"},
@@ -39,5 +38,4 @@ async def test_story_done_dispatches_pdf_task(client: AsyncClient, auth_headers:
         )
 
     assert response.status_code == 200
-    # Task was dispatched (we can verify by checking mock_task.delay was called)
-    # Note: since we replaced delay with a lambda, just verify the response is correct
+    mock_task.delay.assert_called_once_with(str(story.id), str(story.organization_id))
