@@ -16,7 +16,7 @@ depends_on = None
 def upgrade() -> None:
     op.add_column(
         'users',
-        sa.Column('authentik_id', sa.String(255), nullable=True, unique=True)
+        sa.Column('authentik_id', sa.String(255), nullable=True)
     )
     op.create_index('ix_users_authentik_id', 'users', ['authentik_id'], unique=True)
 
