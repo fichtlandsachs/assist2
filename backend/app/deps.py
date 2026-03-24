@@ -44,6 +44,7 @@ async def get_current_user(
         result = await db.execute(
             select(User).where(
                 User.email == email.lower(),
+                User.authentik_id.is_(None),
                 User.deleted_at.is_(None),
             )
         )
@@ -65,8 +66,6 @@ async def get_current_user(
 async def get_current_active_user(
     user: User = Depends(get_current_user),
 ) -> User:
-    if not user.is_active:
-        raise UnauthorizedException(detail="User account is disabled")
     return user
 
 
