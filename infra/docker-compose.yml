@@ -167,7 +167,7 @@ services:
       AUTHENTIK_BACKEND_CLIENT_ID: ${AUTHENTIK_BACKEND_CLIENT_ID}
       AUTHENTIK_BACKEND_CLIENT_SECRET: ${AUTHENTIK_BACKEND_CLIENT_SECRET}
       AUTHENTIK_JWKS_URL: ${AUTHENTIK_JWKS_URL}
-      AUTHENTIK_APP_SLUG: ${AUTHENTIK_APP_SLUG}
+      AUTHENTIK_APP_SLUG: ${AUTHENTIK_APP_SLUG:-backend}
     networks:
       - proxy
       - internal
@@ -202,7 +202,6 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     networks:
       - internal
-      - proxy
     healthcheck:
       test: ["CMD", "celery", "-A", "app.celery_app", "inspect", "ping", "--timeout", "5"]
       interval: 30s
