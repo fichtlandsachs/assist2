@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getAccessToken } from "@/lib/api/client";
 
 interface TemplateUploadProps {
   label: string;
@@ -30,7 +31,12 @@ export function TemplateUpload({
     try {
       const form = new FormData();
       form.append("file", file);
-      const res = await fetch(uploadUrl, { method: "POST", body: form });
+      const token = getAccessToken();
+      const res = await fetch(uploadUrl, {
+        method: "POST",
+        body: form,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error((err as { detail?: string }).detail ?? "Upload fehlgeschlagen");
@@ -46,7 +52,11 @@ export function TemplateUpload({
   const handleDelete = async () => {
     setError(null);
     try {
-      const res = await fetch(deleteUrl, { method: "DELETE" });
+      const token = getAccessToken();
+      const res = await fetch(deleteUrl, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) throw new Error("Löschen fehlgeschlagen");
       onSuccess();
     } catch (err: unknown) {
