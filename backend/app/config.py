@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     PDF_TEMPLATES_PATH: str = "/app/pdf_templates"
     PDF_CACHE_PATH: str = "/app/pdf_cache"
 
+    # OAuth redirect base (used for calendar/inbox OAuth callbacks)
+    APP_BASE_URL: str = "https://assist2.fichtlworks.com"
+
     # Nextcloud
     NEXTCLOUD_URL: str = "https://nextcloud.fichtlworks.com"  # Public URL (for frontend links)
     NEXTCLOUD_INTERNAL_URL: str = "http://assist2-nextcloud"  # Internal URL (for backend WebDAV/OCS)

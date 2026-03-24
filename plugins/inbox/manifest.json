@@ -1,0 +1,13 @@
+{
+  "slug": "inbox",
+  "name": "Inbox",
+  "version": "1.0.0",
+  "description": "Unified Inbox — IMAP E-Mail-Postfach in der Plattform.",
+  "author": "assist2",
+  "slots": ["dashboard.widget", "sidebar.link"],
+  "permissions": ["inbox:read", "inbox:write"],
+  "frontend": {
+    "entry": "plugins/inbox/frontend/index.tsx"
+  },
+  "backend": null
+}

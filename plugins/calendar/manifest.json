@@ -1,0 +1,13 @@
+{
+  "slug": "calendar",
+  "name": "Kalender",
+  "version": "1.0.0",
+  "description": "Google Calendar Integration — synchronisiert Termine in die Plattform.",
+  "author": "assist2",
+  "slots": ["dashboard.widget", "sidebar.link"],
+  "permissions": ["calendar:read", "calendar:write"],
+  "frontend": {
+    "entry": "plugins/calendar/frontend/index.tsx"
+  },
+  "backend": null
+}
