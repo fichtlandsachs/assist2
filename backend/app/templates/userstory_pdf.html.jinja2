@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="{{ settings.language }}">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 12px; color: #333; margin: 40px; }
+  h1 { font-size: 22px; color: #1a1a2e; border-bottom: 2px solid #1a1a2e; padding-bottom: 8px; }
+  h2 { font-size: 15px; color: #2d3748; margin-top: 24px; }
+  .meta { color: #666; font-size: 11px; margin-bottom: 20px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: bold; }
+  .status-done { background: #c6f6d5; color: #276749; }
+  .priority-high { background: #fed7d7; color: #9b2c2c; }
+  .priority-critical { background: #e53e3e; color: white; }
+  .priority-medium { background: #fefcbf; color: #744210; }
+  .priority-low { background: #e2e8f0; color: #4a5568; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 11px; }
+  th { background: #edf2f7; text-align: left; padding: 6px 8px; border: 1px solid #cbd5e0; }
+  td { padding: 5px 8px; border: 1px solid #e2e8f0; vertical-align: top; }
+  ul { margin: 4px 0; padding-left: 18px; }
+  li { margin: 2px 0; }
+  .dod-check { color: #48bb78; font-weight: bold; }
+  .footer { margin-top: 40px; font-size: 10px; color: #999; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+  .logo { float: right; max-height: 50px; max-width: 150px; }
+  .clearfix::after { content: ""; display: table; clear: both; }
+</style>
+</head>
+<body>
+
+<!-- Cover -->
+<div class="clearfix">
+  {% if logo_path %}
+  <img src="{{ logo_path }}" class="logo" alt="Logo">
+  {% endif %}
+  {% if settings.company_name %}
+  <div style="font-size:11px; color:#666;">{{ settings.company_name }}</div>
+  {% endif %}
+</div>
+{% if settings.header_text %}
+<div style="font-size:11px; color:#666; margin-bottom:8px;">{{ settings.header_text }}</div>
+{% endif %}
+
+<h1>{{ story.title }}</h1>
+<div class="meta">
+  <span class="badge status-done">{{ story.status.value | upper }}</span>&nbsp;
+  <span class="badge priority-{{ story.priority.value }}">{{ story.priority.value | upper }}</span>&nbsp;
+  {% if story.story_points %}Story Points: <strong>{{ story.story_points }}</strong>&nbsp;{% endif %}
+  {% if story.quality_score %}Quality Score: <strong>{{ story.quality_score }}/100</strong>&nbsp;{% endif %}
+  &nbsp;|&nbsp; Erstellt: {{ story.created_at.strftime('%d.%m.%Y') }}
+</div>
+
+<!-- Summary -->
+{% if docs.summary %}
+<h2>Zusammenfassung</h2>
+<p>{{ docs.summary }}</p>
+{% endif %}
+
+<!-- Description -->
+{% if story.description %}
+<h2>Beschreibung</h2>
+<p style="white-space: pre-wrap;">{{ story.description }}</p>
+{% endif %}
+
+<!-- Acceptance Criteria -->
+{% if story.acceptance_criteria %}
+<h2>Akzeptanzkriterien</h2>
+<p style="white-space: pre-wrap;">{{ story.acceptance_criteria }}</p>
+{% endif %}
+
+<!-- Definition of Done -->
+{% if dod_items %}
+<h2>Definition of Done</h2>
+<ul>
+{% for criterion in dod_items %}
+  <li><span class="dod-check">✓</span> {{ criterion }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<!-- Test Cases -->
+{% if test_cases %}
+<h2>Testfälle ({{ test_cases | length }})</h2>
+<table>
+  <tr><th>Titel</th><th>Status</th><th>Erwartetes Ergebnis</th></tr>
+  {% for tc in test_cases %}
+  <tr>
+    <td>{{ tc.title }}</td>
+    <td>{{ tc.status.value }}</td>
+    <td>{{ tc.expected_result or '—' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+<!-- Features -->
+{% if features %}
+<h2>Features ({{ features | length }})</h2>
+<table>
+  <tr><th>Titel</th><th>Beschreibung</th><th>Points</th></tr>
+  {% for f in features %}
+  <tr>
+    <td>{{ f.title }}</td>
+    <td>{{ f.description or '—' }}</td>
+    <td>{{ f.story_points or '—' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+<!-- Technical Notes -->
+{% if docs.technical_notes %}
+<h2>Technische Hinweise</h2>
+<p style="white-space: pre-wrap;">{{ docs.technical_notes }}</p>
+{% endif %}
+
+<!-- Changelog -->
+{% if docs.changelog %}
+<h2>Changelog-Eintrag</h2>
+<p style="white-space: pre-wrap;">{{ docs.changelog }}</p>
+{% endif %}
+
+<!-- Additional Info -->
+{% if story.doc_additional_info %}
+<h2>Zusätzliche Informationen</h2>
+<p style="white-space: pre-wrap;">{{ story.doc_additional_info }}</p>
+{% endif %}
+
+<!-- Footer -->
+<div class="footer">
+  {% if settings.company_name %}{{ settings.company_name }} &nbsp;|&nbsp; {% endif %}
+  Generiert am {{ generated_at }} &nbsp;|&nbsp; Story-ID: {{ story.id }}
+  {% if settings.footer_text %} &nbsp;|&nbsp; {{ settings.footer_text }}{% endif %}
+</div>
+
+</body>
+</html>
