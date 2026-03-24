@@ -76,3 +76,46 @@ def test_render_html_no_crash_with_empty_docs():
 
     html = service.render_html(story, settings, test_cases=[], features=[])
     assert "Als Nutzer" in html
+
+
+@pytest.mark.asyncio
+async def test_generate_and_cache_pdf(tmp_path):
+    """generate_and_cache stores PDF in cache path and returns filename."""
+    from app.services.pdf_service import PdfService
+    service = PdfService()
+    story = make_mock_story()
+    settings = make_mock_settings()
+
+    with patch("app.services.pdf_service.stirling_client") as mock_stirling, \
+         patch("app.services.pdf_service.get_settings") as mock_cfg:
+        mock_stirling.html_to_pdf = AsyncMock(return_value=b"%PDF-fake")
+        mock_cfg.return_value.PDF_CACHE_PATH = str(tmp_path)
+        mock_cfg.return_value.PDF_TEMPLATES_PATH = str(tmp_path)
+
+        filename = await service.generate_and_cache(story, settings, test_cases=[], features=[])
+
+    assert filename.endswith(".pdf")
+    assert str(story.id)[:8] in filename
+    cached = tmp_path / filename
+    assert cached.read_bytes() == b"%PDF-fake"
+
+
+@pytest.mark.asyncio
+async def test_generate_applies_letterhead(tmp_path):
+    """generate_and_cache does NOT call overlay_pdfs when letterhead_filename is None."""
+    from app.services.pdf_service import PdfService
+    service = PdfService()
+    story = make_mock_story()
+    settings = make_mock_settings()
+    settings.letterhead_filename = None  # no letterhead
+
+    with patch("app.services.pdf_service.stirling_client") as mock_stirling, \
+         patch("app.services.pdf_service.get_settings") as mock_cfg:
+        mock_stirling.html_to_pdf = AsyncMock(return_value=b"%PDF-fake")
+        mock_stirling.overlay_pdfs = AsyncMock(return_value=b"%PDF-merged")
+        mock_cfg.return_value.PDF_CACHE_PATH = str(tmp_path)
+        mock_cfg.return_value.PDF_TEMPLATES_PATH = str(tmp_path)
+
+        await service.generate_and_cache(story, settings, test_cases=[], features=[])
+
+    mock_stirling.overlay_pdfs.assert_not_called()
