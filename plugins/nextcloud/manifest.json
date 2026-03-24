@@ -1,0 +1,25 @@
+{
+  "slug": "nextcloud",
+  "name": "Nextcloud Files",
+  "version": "1.0.0",
+  "type": "hybrid",
+  "capabilities": ["file_upload"],
+  "nav_entries": [
+    {
+      "id": "nextcloud",
+      "label": "Dateien",
+      "icon": "folder",
+      "route": "/nextcloud",
+      "slot": "sidebar",
+      "position": 50
+    }
+  ],
+  "slots": [
+    {
+      "slotId": "dashboard.widgets",
+      "component": "RecentFilesWidget",
+      "position": 10
+    }
+  ],
+  "config_schema": {}
+}
