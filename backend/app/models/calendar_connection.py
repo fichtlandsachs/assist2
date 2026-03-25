@@ -2,7 +2,7 @@ import uuid
 import enum
 from datetime import datetime, timezone
 from typing import Optional
-from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, Enum
+from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, Enum, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
@@ -25,5 +25,6 @@ class CalendarConnection(Base):
     token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     last_sync_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    sync_interval_minutes: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

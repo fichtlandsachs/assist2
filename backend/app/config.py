@@ -52,6 +52,8 @@ class Settings(BaseSettings):
 
     # Stirling PDF
     STIRLING_PDF_URL: str = "http://assist2-stirling-pdf:8080"
+    STIRLING_PDF_USERNAME: str = "admin"
+    STIRLING_PDF_PASSWORD: str = "stirling"
     PDF_TEMPLATES_PATH: str = "/app/pdf_templates"
     PDF_CACHE_PATH: str = "/app/pdf_cache"
 
@@ -63,6 +65,10 @@ class Settings(BaseSettings):
     NEXTCLOUD_INTERNAL_URL: str = "http://assist2-nextcloud"  # Internal URL (for backend WebDAV/OCS)
     NEXTCLOUD_ADMIN_USER: str = "admin"
     NEXTCLOUD_ADMIN_APP_PASSWORD: str = ""  # Nextcloud App Password für WebDAV + OCS
+
+    # Sync defaults (used as initial value when creating connections)
+    MAIL_SYNC_INTERVAL_MINUTES: int = 15
+    CALENDAR_SYNC_INTERVAL_MINUTES: int = 30
 
     model_config = SettingsConfigDict(
         env_file=".env",
