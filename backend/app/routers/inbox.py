@@ -96,12 +96,16 @@ async def delete_mail_connection(
 )
 async def update_mail_connection(
     connection_id: uuid.UUID,
+    org_id: uuid.UUID,
     data: MailConnectionUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MailConnectionRead:
     """Update sync interval or other settings for a mail connection."""
-    stmt = select(MailConnection).where(MailConnection.id == connection_id)
+    stmt = select(MailConnection).where(
+        MailConnection.id == connection_id,
+        MailConnection.organization_id == org_id,
+    )
     result = await db.execute(stmt)
     connection = result.scalar_one_or_none()
     if connection is None:

@@ -104,12 +104,16 @@ async def delete_calendar_connection(
 )
 async def update_calendar_connection(
     connection_id: uuid.UUID,
+    org_id: uuid.UUID,
     data: CalendarConnectionUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> CalendarConnectionRead:
     """Update sync interval or other settings for a calendar connection."""
-    stmt = select(CalendarConnection).where(CalendarConnection.id == connection_id)
+    stmt = select(CalendarConnection).where(
+        CalendarConnection.id == connection_id,
+        CalendarConnection.organization_id == org_id,
+    )
     result = await db.execute(stmt)
     connection = result.scalar_one_or_none()
     if connection is None:

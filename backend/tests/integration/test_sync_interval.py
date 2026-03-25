@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
@@ -41,10 +43,11 @@ async def calendar_conn(db: AsyncSession, test_user, test_org) -> CalendarConnec
 
 @pytest.mark.asyncio
 async def test_patch_mail_connection_interval(
-    client: AsyncClient, auth_headers: dict, mail_conn: MailConnection
+    client: AsyncClient, auth_headers: dict, mail_conn: MailConnection, test_org
 ):
     resp = await client.patch(
         f"/api/v1/inbox/connections/{mail_conn.id}",
+        params={"org_id": str(test_org.id)},
         json={"sync_interval_minutes": 5},
         headers=auth_headers,
     )
@@ -54,10 +57,11 @@ async def test_patch_mail_connection_interval(
 
 @pytest.mark.asyncio
 async def test_patch_calendar_connection_interval(
-    client: AsyncClient, auth_headers: dict, calendar_conn: CalendarConnection
+    client: AsyncClient, auth_headers: dict, calendar_conn: CalendarConnection, test_org
 ):
     resp = await client.patch(
         f"/api/v1/calendar/connections/{calendar_conn.id}",
+        params={"org_id": str(test_org.id)},
         json={"sync_interval_minutes": 60},
         headers=auth_headers,
     )
@@ -66,10 +70,25 @@ async def test_patch_calendar_connection_interval(
 
 
 @pytest.mark.asyncio
-async def test_patch_mail_connection_not_found(client: AsyncClient, auth_headers: dict):
-    import uuid
+async def test_patch_mail_connection_not_found(client: AsyncClient, auth_headers: dict, test_org):
     resp = await client.patch(
         f"/api/v1/inbox/connections/{uuid.uuid4()}",
+        params={"org_id": str(test_org.id)},
+        json={"sync_interval_minutes": 5},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_patch_mail_connection_wrong_org(
+    client: AsyncClient, auth_headers: dict, mail_conn: MailConnection
+):
+    """Cannot update a connection by providing the wrong org_id — returns 404."""
+    wrong_org_id = uuid.uuid4()
+    resp = await client.patch(
+        f"/api/v1/inbox/connections/{mail_conn.id}",
+        params={"org_id": str(wrong_org_id)},
         json={"sync_interval_minutes": 5},
         headers=auth_headers,
     )

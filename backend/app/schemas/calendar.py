@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from datetime import datetime
 import uuid
@@ -13,7 +13,7 @@ class CalendarConnectionCreate(BaseModel):
 
 
 class CalendarConnectionUpdate(BaseModel):
-    sync_interval_minutes: Optional[int] = None
+    sync_interval_minutes: Optional[int] = Field(default=None, ge=1)
     display_name: Optional[str] = None
     is_active: Optional[bool] = None
 
