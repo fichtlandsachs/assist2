@@ -17,6 +17,12 @@ class MailConnectionCreate(BaseModel):
     imap_use_ssl: Optional[bool] = True
 
 
+class MailConnectionUpdate(BaseModel):
+    sync_interval_minutes: Optional[int] = None
+    display_name: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 class MailConnectionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
@@ -26,6 +32,7 @@ class MailConnectionRead(BaseModel):
     display_name: Optional[str]
     is_active: bool
     last_sync_at: Optional[datetime]
+    sync_interval_minutes: int = 15
     created_at: datetime
     # IMAP metadata (no password returned)
     imap_host: Optional[str] = None

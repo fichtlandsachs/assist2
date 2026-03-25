@@ -18,6 +18,7 @@ from app.models.calendar_event import CalendarEvent
 from app.schemas.calendar import (
     CalendarConnectionCreate,
     CalendarConnectionRead,
+    CalendarConnectionUpdate,
     CalendarEventCreate,
     CalendarEventRead,
 )
@@ -94,6 +95,34 @@ async def delete_calendar_connection(
         raise NotFoundException("Calendar connection not found")
     await db.delete(connection)
     await db.commit()
+
+
+@router.patch(
+    "/calendar/connections/{connection_id}",
+    response_model=CalendarConnectionRead,
+    summary="Update a calendar connection",
+)
+async def update_calendar_connection(
+    connection_id: uuid.UUID,
+    data: CalendarConnectionUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CalendarConnectionRead:
+    """Update sync interval or other settings for a calendar connection."""
+    stmt = select(CalendarConnection).where(CalendarConnection.id == connection_id)
+    result = await db.execute(stmt)
+    connection = result.scalar_one_or_none()
+    if connection is None:
+        raise NotFoundException("Calendar connection not found")
+    if data.sync_interval_minutes is not None:
+        connection.sync_interval_minutes = data.sync_interval_minutes
+    if data.display_name is not None:
+        connection.display_name = data.display_name
+    if data.is_active is not None:
+        connection.is_active = data.is_active
+    await db.commit()
+    await db.refresh(connection)
+    return CalendarConnectionRead.model_validate(connection)
 
 
 @router.get(

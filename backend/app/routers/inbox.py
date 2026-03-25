@@ -10,7 +10,7 @@ from app.deps import get_current_user
 from app.models.user import User
 from app.models.mail_connection import MailConnection
 from app.models.message import Message, MessageStatus
-from app.schemas.inbox import MailConnectionCreate, MailConnectionRead, MessageRead, MessageUpdate
+from app.schemas.inbox import MailConnectionCreate, MailConnectionRead, MessageRead, MessageUpdate, MailConnectionUpdate
 from app.core.exceptions import NotFoundException
 from app.core.security import encrypt_value
 from app.tasks.mail_sync import sync_mailbox_task, recluster_messages_task
@@ -87,6 +87,34 @@ async def delete_mail_connection(
         raise NotFoundException("Mail connection not found")
     await db.delete(connection)
     await db.commit()
+
+
+@router.patch(
+    "/inbox/connections/{connection_id}",
+    response_model=MailConnectionRead,
+    summary="Update a mail connection",
+)
+async def update_mail_connection(
+    connection_id: uuid.UUID,
+    data: MailConnectionUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MailConnectionRead:
+    """Update sync interval or other settings for a mail connection."""
+    stmt = select(MailConnection).where(MailConnection.id == connection_id)
+    result = await db.execute(stmt)
+    connection = result.scalar_one_or_none()
+    if connection is None:
+        raise NotFoundException("Mail connection not found")
+    if data.sync_interval_minutes is not None:
+        connection.sync_interval_minutes = data.sync_interval_minutes
+    if data.display_name is not None:
+        connection.display_name = data.display_name
+    if data.is_active is not None:
+        connection.is_active = data.is_active
+    await db.commit()
+    await db.refresh(connection)
+    return MailConnectionRead.model_validate(connection)
 
 
 @router.get(

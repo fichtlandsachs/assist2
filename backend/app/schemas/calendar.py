@@ -12,6 +12,12 @@ class CalendarConnectionCreate(BaseModel):
     display_name: Optional[str] = None
 
 
+class CalendarConnectionUpdate(BaseModel):
+    sync_interval_minutes: Optional[int] = None
+    display_name: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 class CalendarConnectionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
@@ -21,6 +27,7 @@ class CalendarConnectionRead(BaseModel):
     display_name: Optional[str]
     is_active: bool
     last_sync_at: Optional[datetime]
+    sync_interval_minutes: int = 30
     created_at: datetime
 
 
