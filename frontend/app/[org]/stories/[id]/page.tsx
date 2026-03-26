@@ -293,7 +293,7 @@ function SuggestedTestCaseCard({
 }
 
 // ---------------------------------------------------------------------------
-// DefinitionOfDoneSection — links: Checkliste, rechts: KI-Assistent
+// DefinitionOfDoneSection — links: Checkliste, rechts: Assistent
 // ---------------------------------------------------------------------------
 
 interface AIDoDSuggestionData {
@@ -474,7 +474,7 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
         </div>
       </div>
 
-      {/* RIGHT: KI-Assistent */}
+      {/* RIGHT: Assistent */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
@@ -800,7 +800,7 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
                             </span>
                             {tc.is_ai_generated && (
                               <span className="flex items-center gap-1 px-1.5 py-0.5 bg-violet-100 text-violet-600 rounded text-xs font-medium">
-                                <Sparkles size={10} />KI
+                                <Sparkles size={10} />Auto
                               </span>
                             )}
                           </div>
@@ -852,16 +852,16 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
         </div>
       </div>
 
-      {/* RIGHT: KI-Assistent */}
+      {/* RIGHT: Assistent */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
             <Sparkles size={16} className="text-brand-500" />
-            KI-Assistent
+            Assistent
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             Generiert Testfall-Vorschläge aus den Akzeptanzkriterien und speichert sie direkt an der Story.
-            Beim erneuten Generieren werden bestehende KI-Testfälle ersetzt.
+            Beim erneuten Generieren werden bestehende Testfälle ersetzt.
           </p>
         </div>
 
@@ -898,8 +898,8 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
         <div className="mt-5 space-y-2 text-xs text-slate-500">
           <p className="font-medium text-slate-600">Regeln:</p>
           <ul className="space-y-1 list-disc list-inside">
-            <li>KI-Testfälle werden sofort gespeichert</li>
-            <li>Erneutes Generieren ersetzt bestehende KI-Testfälle</li>
+            <li>Testfälle werden sofort gespeichert</li>
+            <li>Erneutes Generieren ersetzt bestehende Testfälle</li>
             <li>Manuell hinzugefügte Testfälle bleiben erhalten</li>
             <li>Ab Status <strong>Test</strong> sind Hinzufügen und Bearbeiten gesperrt</li>
           </ul>
@@ -1055,7 +1055,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
         <div className="flex items-center gap-2 px-4 sm:px-6 py-4 border-b border-slate-100">
           <FileText size={15} className="text-slate-500" />
           <h2 className="text-base font-semibold text-slate-900">Dokumentation</h2>
-          {docs && <span className="text-xs text-slate-400 ml-1">KI-generiert, wird bei Änderungen aktualisiert</span>}
+          {docs && <span className="text-xs text-slate-400 ml-1">Automatisch generiert, wird bei Änderungen aktualisiert</span>}
         </div>
 
         <div className="p-4 sm:p-6 space-y-6">
@@ -1068,7 +1068,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
           {!isLoading && !docs && !regenerating && (
             <div className="text-center py-6">
               <p className="text-sm text-slate-400">
-                Noch keine KI-Dokumentation vorhanden. Starte die Generierung oder speichere die Story.
+                Noch keine Dokumentation vorhanden. Starte die Generierung oder speichere die Story.
               </p>
             </div>
           )}
@@ -1133,7 +1133,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
         </div>
       </div>
 
-      {/* RIGHT: KI-Assistent / Regenerieren */}
+      {/* RIGHT: Assistent / Regenerieren */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
@@ -1168,7 +1168,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
         )}
 
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">KI-generierte Abschnitte</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Generierte Abschnitte</p>
           {[
             { label: "Zusammenfassung" },
             { label: "Changelog-Eintrag" },
@@ -1561,7 +1561,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
           <div className="text-center py-10 text-slate-400">
             <Package size={32} className="mx-auto mb-2 opacity-30" />
             <p className="text-sm">Noch keine Features.</p>
-            <p className="text-xs mt-1">Features manuell hinzufügen oder KI-Vorschläge generieren.</p>
+            <p className="text-xs mt-1">Features manuell hinzufügen oder Vorschläge generieren.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -1606,7 +1606,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
       <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto space-y-4">
         <div className="flex items-center gap-2">
           <Sparkles size={16} className="text-brand-500" />
-          <h3 className="font-semibold text-slate-900">KI-Feature-Vorschläge</h3>
+          <h3 className="font-semibold text-slate-900">Feature-Vorschläge</h3>
         </div>
         <p className="text-sm text-slate-500">
           Analysiert die User Story und schlägt konkrete, implementierbare Features (Teilfunktionen) vor.

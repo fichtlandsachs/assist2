@@ -52,6 +52,7 @@ from app.services import org_integrations_service as integrations_svc
 from app.services.nextcloud_service import nextcloud_service
 from app.models.organization import Organization
 from app.core.exceptions import NotFoundException
+from app.tasks.agent_tasks import analyze_story_task
 from app.tasks.pdf_tasks import generate_story_pdf
 from app.models.pdf_settings import PdfSettings
 from app.models.feature import Feature
@@ -181,6 +182,7 @@ async def create_user_story(
     background_tasks.add_task(
         _regenerate_docs_bg, story.id, org_id, story.title, story.description, story.acceptance_criteria
     )
+    analyze_story_task.delay(str(story.id), str(org_id))
     return UserStoryRead.model_validate(story)
 
 
