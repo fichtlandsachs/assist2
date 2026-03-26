@@ -41,10 +41,13 @@ async def test_dispatch_mail_syncs_due_connections():
     mock_result.scalars.return_value.all.return_value = [due_conn, not_due_conn, never_synced]
     mock_db.execute = AsyncMock(return_value=mock_result)
 
-    with patch("app.tasks.sync_dispatcher.create_async_engine"), \
+    with patch("app.tasks.sync_dispatcher.create_async_engine") as mock_engine_factory, \
          patch("app.tasks.sync_dispatcher.async_sessionmaker") as mock_sm, \
          patch("app.tasks.sync_dispatcher.sync_mailbox_task") as mock_task:
 
+        mock_engine = MagicMock()
+        mock_engine.dispose = AsyncMock()
+        mock_engine_factory.return_value = mock_engine
         mock_sm.return_value.return_value.__aenter__ = AsyncMock(return_value=mock_db)
         mock_sm.return_value.return_value.__aexit__ = AsyncMock(return_value=False)
 
@@ -67,10 +70,13 @@ async def test_dispatch_mail_nothing_due():
     mock_result.scalars.return_value.all.return_value = [fresh_conn]
     mock_db.execute = AsyncMock(return_value=mock_result)
 
-    with patch("app.tasks.sync_dispatcher.create_async_engine"), \
+    with patch("app.tasks.sync_dispatcher.create_async_engine") as mock_engine_factory, \
          patch("app.tasks.sync_dispatcher.async_sessionmaker") as mock_sm, \
          patch("app.tasks.sync_dispatcher.sync_mailbox_task") as mock_task:
 
+        mock_engine = MagicMock()
+        mock_engine.dispose = AsyncMock()
+        mock_engine_factory.return_value = mock_engine
         mock_sm.return_value.return_value.__aenter__ = AsyncMock(return_value=mock_db)
         mock_sm.return_value.return_value.__aexit__ = AsyncMock(return_value=False)
 
@@ -93,10 +99,13 @@ async def test_dispatch_calendar_syncs_due_connections():
     mock_result.scalars.return_value.all.return_value = [due, not_due]
     mock_db.execute = AsyncMock(return_value=mock_result)
 
-    with patch("app.tasks.sync_dispatcher.create_async_engine"), \
+    with patch("app.tasks.sync_dispatcher.create_async_engine") as mock_engine_factory, \
          patch("app.tasks.sync_dispatcher.async_sessionmaker") as mock_sm, \
          patch("app.tasks.sync_dispatcher.sync_calendar_task") as mock_task:
 
+        mock_engine = MagicMock()
+        mock_engine.dispose = AsyncMock()
+        mock_engine_factory.return_value = mock_engine
         mock_sm.return_value.return_value.__aenter__ = AsyncMock(return_value=mock_db)
         mock_sm.return_value.return_value.__aexit__ = AsyncMock(return_value=False)
 

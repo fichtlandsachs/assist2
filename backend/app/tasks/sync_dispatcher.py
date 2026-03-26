@@ -18,27 +18,39 @@ def _make_engine():
     return create_async_engine(get_settings().DATABASE_URL, echo=False, pool_pre_ping=True)
 
 
+def _is_due(last_sync_at, interval_minutes: int, now: datetime) -> bool:
+    """Return True if the connection is due for sync."""
+    if last_sync_at is None:
+        return True
+    try:
+        return (now - last_sync_at) >= timedelta(minutes=interval_minutes)
+    except TypeError:
+        return True  # naive timestamp — treat as overdue
+
+
 async def _dispatch_mail() -> dict:
     engine = _make_engine()
     SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     now = datetime.now(timezone.utc)
 
-    async with SessionLocal() as db:
-        stmt = select(MailConnection).where(
-            MailConnection.is_active.is_(True),
-            MailConnection.imap_host.isnot(None),
-        )
-        result = await db.execute(stmt)
-        connections = result.scalars().all()
+    try:
+        async with SessionLocal() as db:
+            # System sweep: intentionally queries across all orgs.
+            # Individual sync tasks (sync_mailbox_task) enforce tenant isolation.
+            stmt = select(MailConnection).where(
+                MailConnection.is_active.is_(True),
+                MailConnection.imap_host.isnot(None),
+            )
+            result = await db.execute(stmt)
+            connections = result.scalars().all()
 
-        to_sync = [
-            (str(c.id), str(c.organization_id))
-            for c in connections
-            if c.last_sync_at is None
-            or (now - c.last_sync_at) >= timedelta(minutes=c.sync_interval_minutes)
-        ]
-
-    await engine.dispose()
+            to_sync = [
+                (str(c.id), str(c.organization_id))
+                for c in connections
+                if _is_due(c.last_sync_at, c.sync_interval_minutes, now)
+            ]
+    finally:
+        await engine.dispose()
 
     for conn_id, org_id in to_sync:
         sync_mailbox_task.delay(conn_id, org_id)
@@ -57,23 +69,25 @@ async def _dispatch_calendar() -> dict:
     SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     now = datetime.now(timezone.utc)
 
-    async with SessionLocal() as db:
-        stmt = select(CalendarConnection).where(
-            CalendarConnection.is_active.is_(True),
-            CalendarConnection.provider == CalendarProvider.google,
-            CalendarConnection.access_token_enc.isnot(None),
-        )
-        result = await db.execute(stmt)
-        connections = result.scalars().all()
+    try:
+        async with SessionLocal() as db:
+            # System sweep: intentionally queries across all orgs.
+            # Individual sync tasks (sync_calendar_task) enforce tenant isolation.
+            stmt = select(CalendarConnection).where(
+                CalendarConnection.is_active.is_(True),
+                CalendarConnection.provider == CalendarProvider.google,
+                CalendarConnection.access_token_enc.isnot(None),
+            )
+            result = await db.execute(stmt)
+            connections = result.scalars().all()
 
-        to_sync = [
-            (str(c.id), str(c.organization_id))
-            for c in connections
-            if c.last_sync_at is None
-            or (now - c.last_sync_at) >= timedelta(minutes=c.sync_interval_minutes)
-        ]
-
-    await engine.dispose()
+            to_sync = [
+                (str(c.id), str(c.organization_id))
+                for c in connections
+                if _is_due(c.last_sync_at, c.sync_interval_minutes, now)
+            ]
+    finally:
+        await engine.dispose()
 
     for conn_id, org_id in to_sync:
         sync_calendar_task.delay(conn_id, org_id)
