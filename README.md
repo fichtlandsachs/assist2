@@ -1,45 +1,85 @@
 # assist2
 
-Ein KI-gestütztes Assistenzsystem der zweiten Generation – modular, erweiterbar und produktionsreif.
-
-## Projektbeschreibung
-
-**assist2** ist eine moderne, KI-basierte Assistenzplattform, die Nutzern und Entwicklern ermöglicht, komplexe Aufgaben über eine einheitliche Schnittstelle zu automatisieren und zu delegieren. Das System baut auf den Erfahrungen des Vorgängerprojekts auf und löst dessen Limitierungen durch eine saubere Komponentenarchitektur, austauschbare KI-Provider und eine robuste Aufgabenverwaltung.
-
-### Kernfunktionen
-
-- **Aufgaben-Orchestrierung** – Zerlegung komplexer Anfragen in atomare, sequenzielle oder parallele Teilaufgaben
-- **Multi-Provider-KI** – Unterstützung für Anthropic Claude, OpenAI und lokale Modelle über einen einheitlichen Adapter
-- **Tool-System** – Erweiterbare Werkzeuge (Dateizugriff, Web-Suche, Code-Ausführung, API-Calls)
-- **Persistente Kontexte** – Sitzungs- und Langzeitgedächtnis über eine Vektordatenbank
-- **REST- & WebSocket-API** – Für die Integration in bestehende Workflows und UIs
-- **Webhook-Support** – Reaktion auf externe Ereignisse (GitHub, Slack, CI/CD-Pipelines)
-
-### Zielgruppe
-
-- Entwicklerinnen und Entwickler, die repetitive Aufgaben automatisieren wollen
-- Teams, die einen internen KI-Assistenten betreiben möchten
-- Unternehmen, die KI-Workflows in bestehende Systeme integrieren
+Eine KI-gestützte Plattform für generatives Lernen und maximale persönliche Unterstützung.
 
 ---
 
-## Schnellstart
+## Was ist assist2?
 
-```bash
-# Repository klonen
-git clone https://github.com/fichtlandsachs/assist2.git
-cd assist2
+**assist2** begleitet Menschen in Lern- und Entwicklungsprozessen – individuell, adaptiv
+und kontinuierlich. Das System versteht nicht nur Aufgaben, sondern auch die Person dahinter:
+ihren Wissensstand, ihre Lernweise, ihre Ziele und ihren Fortschritt.
 
-# Abhängigkeiten installieren
-npm install
+Anders als klassische Assistenzsysteme liegt der Schwerpunkt nicht auf der einmaligen
+Beantwortung von Fragen, sondern auf dem **Aufbau nachhaltigen Verständnisses** durch
+generative Lernprozesse. assist2 begleitet aktiv, erkennt Wissenslücken, passt Inhalte
+an und entwickelt sich gemeinsam mit dem Lernenden weiter.
 
-# Umgebungsvariablen konfigurieren
-cp .env.example .env
-# .env anpassen (API-Keys, Datenbankverbindung, etc.)
+---
 
-# Entwicklungsserver starten
-npm run dev
-```
+## Leitprinzipien
+
+### 1. Prozessorientierung vor Ergebnisorientierung
+Nicht die schnelle Antwort steht im Vordergrund, sondern der Weg dorthin.
+assist2 führt Lernende durch strukturierte Prozesse: Verstehen → Anwenden →
+Reflektieren → Vertiefen. Jede Interaktion ist Teil einer langen Lernkette.
+
+### 2. Generatives Lernen
+Wissen entsteht durch aktive Auseinandersetzung. assist2 stellt Fragen statt
+Antworten zu liefern, fordert zur Eigenproduktion auf, gibt gezielte Impulse
+und generiert maßgeschneiderte Übungen, Szenarien und Erklärungen – individuell
+für jede Person und jeden Kontext.
+
+### 3. Maximale persönliche Unterstützung
+Das System kennt seinen Nutzer. Es führt ein dynamisches Lernprofil, erkennt
+Muster (Motivationstiefs, Blockaden, Stärken) und passt Ton, Tempo und
+Schwierigkeitsgrad jederzeit an. Unterstützung bedeutet hier: zur richtigen Zeit
+das Richtige – weder zu viel noch zu wenig.
+
+---
+
+## Kernfunktionen
+
+### Adaptiver Lernpfad
+- Automatische Einschätzung des aktuellen Wissensstands (Onboarding-Diagnose)
+- Dynamische Anpassung von Inhalten, Tempo und Schwierigkeitsgrad
+- Lernziele werden gemeinsam definiert und laufend überprüft
+- Verzweigungen im Lernpfad basierend auf Antwortqualität und Verhalten
+
+### Generative Inhaltsproduktion
+- Aufgaben, Übungen und Erklärungen werden in Echtzeit erzeugt – nie von der Stange
+- Anpassung an Fachgebiet, Sprachniveau, Lernstil und verfügbare Zeit
+- Szenario-basiertes Lernen: realitätsnahe Situationen statt abstrakter Theorie
+- Lückentexte, Quizze, Reflexionsfragen, Fallstudien – alle generativ erstellt
+
+### Persönliches Lernprofil
+- Langzeitgedächtnis über alle Sitzungen hinweg
+- Tracking von Stärken, Schwächen, Interessen und Lernhistorie
+- Erkennung von Wiederholungsbedarfen (Spaced Repetition)
+- Sichtbarmachen des eigenen Fortschritts (Lernkurven, Meilensteine)
+
+### Aktive Begleitung & Coaching
+- Proaktive Erinnerungen und Lernimpulse
+- Motivation durch Anerkennung von Fortschritten
+- Erkennung von Frustration oder Stagnation → automatische Kursanpassung
+- Reflexionsgespräche nach abgeschlossenen Einheiten
+
+### Prozess-Transparenz
+- Jeder Schritt im Lernprozess ist nachvollziehbar dokumentiert
+- Lernende sehen, warum welche Inhalte vorgeschlagen werden
+- Lehrende / Coaches erhalten Einblick in Lernverläufe und können eingreifen
+
+---
+
+## Zielgruppe
+
+| Zielgruppe | Anwendungsfall |
+|---|---|
+| Einzelpersonen | Selbstgesteuertes Lernen eines neuen Fachgebiets |
+| Berufseinsteiger | Onboarding und Kompetenzaufbau im Job |
+| Unternehmen | Mitarbeiterentwicklung, interne Weiterbildung |
+| Bildungseinrichtungen | Digitale Lernbegleitung für Schüler/Studierende |
+| Coaches & Trainer | KI-gestützte Begleitung ihrer Klientel |
 
 ---
 
@@ -49,14 +89,28 @@ npm run dev
 |---|---|
 | Laufzeit | Node.js 22 (TypeScript) |
 | API-Server | Fastify |
-| KI-Integration | Anthropic SDK, OpenAI SDK |
-| Datenbank | PostgreSQL (strukturierte Daten) |
-| Vektordatenbank | pgvector / Chroma |
-| Cache | Redis |
-| Queue | BullMQ (Redis-backed) |
+| KI-Core | Anthropic Claude (claude-opus-4-6 / claude-sonnet-4-6) |
+| Lernprofil-Speicher | PostgreSQL + pgvector |
+| Spaced-Repetition-Engine | Eigene Implementierung (SM-2-Algorithmus) |
+| Cache & Sessions | Redis |
+| Hintergrundprozesse | BullMQ |
+| Echtzeit-Kommunikation | WebSocket (Streaming) |
 | Containerisierung | Docker / Docker Compose |
-| Tests | Vitest, Supertest |
+| Tests | Vitest |
 | CI/CD | GitHub Actions |
+
+---
+
+## Schnellstart
+
+```bash
+git clone https://github.com/fichtlandsachs/assist2.git
+cd assist2
+npm install
+cp .env.example .env
+# ANTHROPIC_API_KEY und Datenbankverbindung in .env eintragen
+npm run dev
+```
 
 ---
 
@@ -65,14 +119,19 @@ npm run dev
 ```
 assist2/
 ├── src/
-│   ├── api/            # HTTP- und WebSocket-Endpunkte
-│   ├── agents/         # Agenten-Logik und Orchestrierung
-│   ├── tools/          # Tool-Implementierungen
-│   ├── providers/      # KI-Provider-Adapter
-│   ├── memory/         # Kontext- und Gedächtnisverwaltung
-│   ├── queue/          # Aufgabenwarteschlange
-│   ├── db/             # Datenbankmodelle und Migrationen
-│   └── config/         # Konfigurationsverwaltung
+│   ├── api/                # HTTP- und WebSocket-Endpunkte
+│   ├── learning/
+│   │   ├── profile/        # Lernprofil-Verwaltung
+│   │   ├── path/           # Adaptiver Lernpfad
+│   │   ├── content/        # Generative Inhaltserzeugung
+│   │   ├── repetition/     # Spaced-Repetition-Engine
+│   │   └── coaching/       # Coaching- und Motivationslogik
+│   ├── agents/             # KI-Agenten (Tutor, Coach, Assessor)
+│   ├── memory/             # Langzeit- und Kurzzeit-Gedächtnis
+│   ├── providers/          # KI-Provider-Adapter
+│   ├── queue/              # Hintergrundaufgaben
+│   ├── db/                 # Datenbankmodelle und Migrationen
+│   └── config/
 ├── tests/
 ├── docker/
 ├── docs/
@@ -84,4 +143,4 @@ assist2/
 
 ## Lizenz
 
-MIT – siehe [LICENSE](LICENSE)
+MIT
