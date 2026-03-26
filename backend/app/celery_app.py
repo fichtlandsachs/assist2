@@ -5,13 +5,14 @@ settings = get_settings()
 
 celery = Celery(
     "assist2",
-    broker=settings.REDIS_URL.replace("redis://", "redis://").replace("/0", "/1"),
+    broker=settings.REDIS_URL.replace("/0", "/1"),
     backend=settings.REDIS_URL.replace("/0", "/2"),
     include=[
         "app.tasks.mail_sync",
         "app.tasks.calendar_sync",
         "app.tasks.agent_tasks",
         "app.tasks.pdf_tasks",
+        "app.tasks.sync_dispatcher",
     ]
 )
 
@@ -25,3 +26,14 @@ celery.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
 )
+
+celery.conf.beat_schedule = {
+    "dispatch-mail-sync": {
+        "task": "sync_dispatcher.dispatch_mail_sync",
+        "schedule": 60.0,  # every 60 seconds
+    },
+    "dispatch-calendar-sync": {
+        "task": "sync_dispatcher.dispatch_calendar_sync",
+        "schedule": 60.0,  # every 60 seconds
+    },
+}
