@@ -44,3 +44,4 @@ Thumbs.db
 
 # Docker
 *.override.yml
+infra/.env
