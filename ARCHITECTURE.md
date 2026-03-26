@@ -1,216 +1,326 @@
 # Architektur – assist2
 
-## Überblick
+## Leitgedanke
 
-assist2 folgt einer **Schichtenarchitektur** mit klar getrennten Verantwortlichkeiten. Die Kernidee ist die strikte Trennung zwischen:
+Die Architektur von assist2 ist um einen zentralen Gedanken herum gebaut:
+**Lernen ist kein einzelner Moment, sondern ein kontinuierlicher Prozess.**
 
-1. **Eingangskanal** (API, Webhooks, CLI)
-2. **Orchestrierung** (Agenten, Aufgabenverwaltung)
-3. **Ausführung** (Tools, KI-Provider)
-4. **Persistenz** (Datenbank, Vektorspeicher, Cache)
+Alle technischen Entscheidungen folgen daraus. Das System muss eine Person über
+Wochen und Monate kennen, verstehen und begleiten – nicht nur die letzte Anfrage
+beantworten. Daraus ergeben sich drei Kernanforderungen:
+
+1. **Persistentes Personenverständnis** – Das System muss wissen, wer jemand ist,
+   was er kann und wohin er will.
+2. **Generative Anpassungsfähigkeit** – Inhalte entstehen zur Laufzeit, nie statisch.
+3. **Proaktive Prozesssteuerung** – Das System wartet nicht, sondern begleitet aktiv.
+
+---
+
+## Systemübersicht
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                        Clients                               │
-│         Web-UI │ CLI │ externe Systeme (Webhooks)            │
-└────────────────────────┬─────────────────────────────────────┘
-                         │ HTTPS / WSS
-┌────────────────────────▼─────────────────────────────────────┐
-│                      API-Schicht                             │
-│              Fastify  (REST + WebSocket)                     │
-│   Authentifizierung │ Rate-Limiting │ Request-Validation     │
-└────────────────────────┬─────────────────────────────────────┘
-                         │
-┌────────────────────────▼─────────────────────────────────────┐
-│                 Orchestrierungs-Schicht                      │
-│                                                              │
-│  ┌─────────────────┐        ┌────────────────────────────┐  │
-│  │  Task-Manager   │◄──────►│  Agent-Runtime             │  │
-│  │  (BullMQ)       │        │  (Planen, Ausführen,       │  │
-│  └─────────────────┘        │   Reflektieren)            │  │
-│                             └────────────────────────────┘  │
-└──────────────┬──────────────────────────┬────────────────────┘
-               │                          │
-┌──────────────▼──────────┐  ┌────────────▼───────────────────┐
-│    KI-Provider-Adapter  │  │        Tool-Registry           │
-│                         │  │                                │
-│  ┌──────────────────┐   │  │  ┌──────────┐ ┌────────────┐  │
-│  │  Anthropic Claude│   │  │  │ WebSearch│ │ FileSystem │  │
-│  └──────────────────┘   │  │  └──────────┘ └────────────┘  │
-│  ┌──────────────────┐   │  │  ┌──────────┐ ┌────────────┐  │
-│  │  OpenAI GPT      │   │  │  │ CodeExec │ │ HTTP/API   │  │
-│  └──────────────────┘   │  │  └──────────┘ └────────────┘  │
-│  ┌──────────────────┐   │  │  ┌──────────────────────────┐ │
-│  │  Lokales Modell  │   │  │  │  (erweiterbar via Plugin) │ │
-│  └──────────────────┘   │  │  └──────────────────────────┘ │
-└─────────────────────────┘  └────────────────────────────────┘
-               │                          │
-┌──────────────▼──────────────────────────▼────────────────────┐
-│                      Persistenz-Schicht                      │
-│                                                              │
-│  PostgreSQL          pgvector / Chroma        Redis          │
-│  (Aufgaben,          (Embeddings,             (Cache,        │
-│   Sessions,           Langzeitgedächtnis)      Queue)        │
-│   Audit-Log)                                                 │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                           Clients                                │
+│         Web-App │ Mobile │ Embed (LMS, Intranet)                 │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │ HTTPS / WSS
+┌────────────────────────────▼─────────────────────────────────────┐
+│                        API-Schicht                               │
+│               Fastify (REST + WebSocket-Streaming)               │
+│         Auth │ Session │ Rate-Limiting │ Schema-Validierung       │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │
+┌────────────────────────────▼─────────────────────────────────────┐
+│                    Lern-Orchestrierung                           │
+│                                                                  │
+│  ┌──────────────────┐   ┌─────────────────┐  ┌───────────────┐  │
+│  │  Session-Manager │   │  Lernpfad-Engine│  │ Coaching-     │  │
+│  │                  │◄──►                 │◄─►│ Modul         │  │
+│  │  Sitzungskontext,│   │  Adaptiver Pfad,│  │               │  │
+│  │  Gesprächsfluss  │   │  Verzweigungen, │  │  Motivation,  │  │
+│  └──────────────────┘   │  Meilensteine   │  │  Proaktivität │  │
+│                         └─────────────────┘  └───────────────┘  │
+└──────────┬──────────────────────┬────────────────────┬───────────┘
+           │                      │                    │
+┌──────────▼───────┐  ┌───────────▼────────┐  ┌───────▼──────────┐
+│   KI-Agenten     │  │  Content-Generator │  │  Profil-System   │
+│                  │  │                    │  │                  │
+│  Tutor-Agent     │  │  Aufgaben          │  │  Lernprofil      │
+│  Coach-Agent     │  │  Erklärungen       │  │  Stärken/Lücken  │
+│  Assessor-Agent  │  │  Szenarien         │  │  Lernhistorie    │
+│  Planner-Agent   │  │  Reflexionsfragen  │  │  Spaced-Rep.     │
+└──────────┬───────┘  └───────────┬────────┘  └───────┬──────────┘
+           │                      │                    │
+┌──────────▼──────────────────────▼────────────────────▼───────────┐
+│                        Persistenz-Schicht                        │
+│                                                                  │
+│  PostgreSQL                pgvector               Redis          │
+│  (Profile, Lernhistorie,   (Embeddings,           (Sessions,     │
+│   Fortschritt, Inhalte,     semantische Suche,     BullMQ-Queue, │
+│   Audit)                    Ähnlichkeitsmatching)  Cache)        │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Komponenten im Detail
+## Kernkomponenten
 
-### 1. API-Schicht
+### 1. Lernpfad-Engine
 
-**Technologie:** Fastify + `@fastify/websocket`
+Die Lernpfad-Engine ist das Herzstück des Systems. Sie bestimmt zu jedem Zeitpunkt,
+was als nächstes passiert – basierend auf dem Lernprofil, dem bisherigen Verlauf
+und dem aktuellen Zustand.
 
-- **REST-Endpunkte** für synchrone Anfragen (kurze Aufgaben, Statusabfragen)
-- **WebSocket-Endpunkte** für Streaming-Antworten und Echtzeit-Updates
-- **Middleware:** JWT-Authentifizierung, API-Key-Support, Zod-basierte Schema-Validierung
-- **Webhook-Receiver:** Verarbeitet eingehende Events von GitHub, Slack u.a.
+**Zustandsmodell einer Lernsitzung:**
 
 ```
-POST   /v1/tasks          – Neue Aufgabe erstellen
-GET    /v1/tasks/:id      – Aufgabenstatus abfragen
-DELETE /v1/tasks/:id      – Aufgabe abbrechen
-WS     /v1/stream         – Streaming-Kanal
-POST   /v1/webhooks/:src  – Webhook-Eingang
+[Start / Diagnose]
+        │
+        ▼
+[Wissenstand einschätzen] ──► Bekannt? ──► [Vertiefen / Verknüpfen]
+        │                                          │
+        ▼ Lücke erkannt                            ▼
+[Neues Konzept einführen]              [Anwendungsaufgabe]
+        │                                          │
+        ▼                                          ▼
+[Verständnis prüfen] ◄──────────────── [Reflexion]
+        │
+        ▼
+Bestanden? ── Nein ──► [Alternativer Erklärungsweg]
+        │
+       Ja
+        ▼
+[Fortschritt speichern] ──► [Nächster Schritt im Pfad]
 ```
+
+**Adaptivitätssignale** (steuern Verzweigungen):
+- Antwortqualität und Reaktionszeit
+- Anzahl der Wiederholungen bis zur korrekten Lösung
+- Emotionale Signale (Frustration, Stagnation, Flow)
+- Zeitpunkt der letzten Beschäftigung mit einem Thema (Vergessenskurve)
 
 ---
 
-### 2. Orchestrierungs-Schicht
+### 2. KI-Agenten
 
-#### Task-Manager (BullMQ)
+assist2 setzt auf spezialisierte Agenten, die zusammenarbeiten:
 
-- Nimmt Aufgaben entgegen und legt sie in eine persistente Redis-Queue
-- Unterstützt **Prioritäten**, **Wiederholungslogik** und **Timeouts**
-- Parallele Worker verarbeiten Aufgaben nebenläufig
-
-#### Agent-Runtime
-
-Der Kern von assist2. Implementiert den **ReAct-Loop** (Reason → Act → Observe):
-
-```
-┌─────────────────────────────────────────┐
-│              ReAct-Loop                 │
-│                                         │
-│  1. Aufgabe analysieren (Reason)        │
-│  2. Tool oder Antwort wählen (Act)      │
-│  3. Ergebnis auswerten (Observe)        │
-│  4. Schritt 1 wiederholen oder          │
-│     Aufgabe abschließen                 │
-└─────────────────────────────────────────┘
-```
-
-- **Planungsmodul:** Zerlegt komplexe Aufgaben in Teilschritte (Chain-of-Thought)
-- **Reflexionsmodul:** Erkennt Fehler und passt den Plan an
-- **Parallelisierung:** Unabhängige Teilaufgaben werden gleichzeitig ausgeführt
-
----
-
-### 3. KI-Provider-Adapter
-
-Ein einheitliches Interface abstrahiert alle KI-Backends:
-
-```typescript
-interface AIProvider {
-  complete(prompt: Message[], options: CompletionOptions): Promise<CompletionResult>;
-  stream(prompt: Message[], options: CompletionOptions): AsyncIterable<string>;
-  embed(text: string): Promise<number[]>;
-}
-```
-
-**Implementierungen:**
-- `AnthropicProvider` – Claude 3.x / Claude 4.x via Anthropic SDK
-- `OpenAIProvider` – GPT-4o, o1 via OpenAI SDK
-- `LocalProvider` – Lokale Modelle via Ollama-API
-
-Der Provider wird pro Aufgabe oder global konfiguriert.
-
----
-
-### 4. Tool-Registry
-
-Tools sind **eigenständige, testbare Module** mit einem standardisierten Interface:
-
-```typescript
-interface Tool {
-  name: string;
-  description: string;
-  inputSchema: ZodSchema;
-  execute(input: unknown, context: ToolContext): Promise<ToolResult>;
-}
-```
-
-| Tool | Funktion |
-|---|---|
-| `web_search` | DuckDuckGo / SerpAPI-Suche |
-| `read_file` | Lokale Dateien lesen |
-| `write_file` | Dateien erstellen / bearbeiten |
-| `run_code` | Python/JS in Sandbox ausführen |
-| `http_request` | Externe APIs aufrufen |
-| `github_*` | GitHub-Operationen (Issues, PRs, Code) |
-
-Neue Tools können als npm-Pakete eingebunden werden (Plugin-System).
-
----
-
-### 5. Memory-System
-
-Zwei Gedächtnisebenen:
-
-| Ebene | Speicher | Zweck |
+| Agent | Rolle | Modell |
 |---|---|---|
-| **Kurzzeitgedächtnis** | In-Memory / Redis | Aktueller Konversationsverlauf |
-| **Langzeitgedächtnis** | pgvector / Chroma | Vergangene Sitzungen, Wissensbasis |
+| **Tutor-Agent** | Erklärt, führt durch Konzepte, beantwortet Fragen | claude-sonnet-4-6 |
+| **Assessor-Agent** | Bewertet Antworten, erkennt Wissenslücken | claude-sonnet-4-6 |
+| **Coach-Agent** | Motiviert, gibt Feedback, passt Ton an | claude-haiku-4-5 |
+| **Planner-Agent** | Plant Lernpfade, setzt Meilensteine | claude-opus-4-6 |
+| **Content-Agent** | Generiert Aufgaben, Szenarien, Übungen | claude-sonnet-4-6 |
 
-- Inhalte werden beim Speichern automatisch **vektorisiert** (Embeddings)
-- Bei neuen Anfragen werden semantisch ähnliche Erinnerungen abgerufen (RAG)
+Alle Agenten kommunizieren über einen gemeinsamen **Kontext-Bus** und greifen
+auf dasselbe Lernprofil zu. Sie können sequenziell oder parallel agieren.
 
----
+**Agenten-Interface:**
 
-### 6. Persistenz-Schicht
-
-#### PostgreSQL
-- Aufgaben, Sitzungen, Nutzerkonten, Audit-Log
-- Schema-Migrationen mit `node-pg-migrate`
-
-#### pgvector / Chroma
-- Speicherung und Suche von Embeddings
-- Semantische Ähnlichkeitssuche (cosine similarity)
-
-#### Redis
-- Session-Cache
-- BullMQ-Queue-Backend
-- Rate-Limiting-Counter
-
----
-
-## Datenfluss – Beispiel
-
-```
-Nutzer sendet: "Erstelle ein GitHub-Issue für Bug #42"
-
-1. API nimmt POST /v1/tasks entgegen
-2. Task-Manager legt Aufgabe in Queue
-3. Worker startet Agent-Runtime
-4. Agent analysiert Aufgabe (Reason)
-5. Agent wählt Tool: github_create_issue (Act)
-6. Tool führt GitHub-API-Call aus
-7. Agent wertet Ergebnis aus (Observe)
-8. Aufgabe abgeschlossen → Antwort an Nutzer
+```typescript
+interface LearningAgent {
+  role: 'tutor' | 'assessor' | 'coach' | 'planner' | 'content';
+  act(
+    context: LearningContext,
+    profile: LearnerProfile,
+    input: AgentInput
+  ): Promise<AgentOutput>;
+}
 ```
 
 ---
 
-## Sicherheit
+### 3. Content-Generator
 
-- Alle externen Eingaben werden mit **Zod** validiert
-- Code-Ausführung in **isolierten Sandbox-Containern** (gVisor / Firecracker)
-- Secrets werden ausschließlich über Umgebungsvariablen übergeben (kein Hardcoding)
-- **Audit-Log** aller Aktionen in PostgreSQL
-- Rate-Limiting pro API-Key und IP
-- JWT mit kurzer Laufzeit + Refresh-Token-Rotation
+Alle Lerninhalte werden **zur Laufzeit generiert** – es gibt keine statische
+Content-Datenbank. Das ermöglicht maximale Personalisierung.
+
+**Generierungsparameter:**
+
+```typescript
+interface ContentRequest {
+  topic: string;
+  learnerLevel: 'beginner' | 'intermediate' | 'advanced';
+  learningStyle: 'visual' | 'analytical' | 'practical';
+  format: 'explanation' | 'exercise' | 'scenario' | 'quiz' | 'reflection';
+  availableMinutes: number;
+  previousErrors: ConceptGap[];
+  language: string;
+}
+```
+
+**Inhaltsformate:**
+- **Erklärungen** – mit Analogien, Beispielen, schrittweisen Herleitungen
+- **Übungsaufgaben** – mit gestuften Schwierigkeitsgraden
+- **Szenarien** – realitätsnahe Situationen, die Theorie in Praxis überführen
+- **Reflexionsfragen** – zur Aktivierung des Metakognition
+- **Lückentexte & Quizze** – zum Abrufen von Gelerntem (Retrieval Practice)
+
+---
+
+### 4. Persönliches Lernprofil
+
+Das Lernprofil ist der zentrale Wissensspeicher über eine Person.
+Es wird bei jeder Interaktion gelesen und aktualisiert.
+
+**Struktur:**
+
+```typescript
+interface LearnerProfile {
+  id: string;
+  goals: LearningGoal[];
+  knowledgeMap: Map<Concept, MasteryLevel>;   // 0.0 – 1.0
+  learningStyle: LearningStyleVector;
+  preferredPace: 'slow' | 'medium' | 'fast';
+  availableTimePerSession: number;            // Minuten
+  streakDays: number;
+  masteredConcepts: Concept[];
+  openGaps: ConceptGap[];
+  repetitionSchedule: SpacedRepEntry[];      // SM-2
+  sessionHistory: LearningSession[];
+  motivationProfile: MotivationProfile;
+}
+```
+
+**Masterly-Tracking** – jedes Konzept wird auf einer Skala 0–1 bewertet:
+
+```
+0.0 – unbekannt
+0.2 – erste Begegnung
+0.5 – verstanden, aber noch unsicher
+0.8 – sicher anwendbar
+1.0 – gefestigt, kann es erklären
+```
+
+---
+
+### 5. Spaced-Repetition-Engine
+
+Basiert auf dem **SM-2-Algorithmus** (SuperMemo 2), angepasst für
+gesprächsbasiertes Lernen.
+
+**Ablauf:**
+
+```
+Nach jeder Interaktion mit einem Konzept:
+  1. Bewertung der Antwortqualität (0–5)
+  2. Berechnung des nächsten Wiederholungszeitpunkts
+  3. Eintrag in den Repetitions-Schedule des Profils
+  4. Beim nächsten Session-Start: fällige Wiederholungen priorisieren
+```
+
+**Integration in den Lernpfad:**
+- Fällige Wiederholungen werden zu Beginn jeder Sitzung eingebaut
+- Vergessene Konzepte werden mit angepasstem Erkläransatz neu eingeführt
+- Visualisierung der Retention-Kurven im Nutzerdashboard
+
+---
+
+### 6. Coaching-Modul
+
+Das Coaching-Modul überwacht den Lernprozess auf einer Meta-Ebene und
+greift ein, wenn es nötig ist.
+
+**Erkannte Muster und Reaktionen:**
+
+| Muster | Reaktion |
+|---|---|
+| 3× gleicher Fehler | Alternativer Erklärungsweg, Perspektivwechsel |
+| Sitzung < 2 Min. abgebrochen | Beim nächsten Start: kurze Check-in-Frage |
+| 5 Tage keine Aktivität | Proaktive Erinnerung + niedrigschwelliger Einstieg |
+| Sehr schnelle korrekte Antworten | Schwierigkeitsgrad erhöhen |
+| Hohe Fehlerrate + lange Antwortzeiten | Tempo reduzieren, Aufmunterung |
+| Meilenstein erreicht | Explizite Würdigung, Zusammenfassung des Fortschritts |
+
+**Tonalität:** Der Coach-Agent passt Sprache und Ton dynamisch an –
+sachlich-präzise bei analytischen Lernenden, ermutigend-warm bei
+emotional orientierten.
+
+---
+
+### 7. Memory-System
+
+Zwei Ebenen des Gedächtnisses:
+
+| Ebene | Speicher | Inhalt | Lebensdauer |
+|---|---|---|---|
+| **Sitzungsgedächtnis** | Redis | Gesprächsverlauf, aktuelle Aufgabe | Sitzungsdauer |
+| **Langzeitgedächtnis** | PostgreSQL + pgvector | Lernprofil, Konzeptkarten, Lernhistorie | Dauerhaft |
+
+**Semantische Suche im Langzeitgedächtnis:**
+- Alle gespeicherten Konzepte und Lerninhalte werden als Embeddings gespeichert
+- Beim Start einer neuen Einheit: semantisch ähnliche frühere Interaktionen abrufen
+- Dadurch: Anknüpfen an bekannte Konzepte, Vermeidung von Wiederholungen
+
+---
+
+## Prozessfluss – Vollständige Lernsitzung
+
+```
+Nutzer startet Sitzung
+        │
+        ▼
+1. Profil laden
+   └── Letzter Stand, offene Lücken, fällige Wiederholungen
+        │
+        ▼
+2. Session-Planung (Planner-Agent)
+   └── Ziel der Sitzung festlegen (Wiederholung? Neues Thema? Freies Erkunden?)
+        │
+        ▼
+3. Einstieg
+   └── Kurzes Check-in: "Wo stehst du heute? Wieviel Zeit hast du?"
+        │
+        ▼
+4. Lernschleife (bis Sitzungsziel erreicht oder Zeit abgelaufen)
+   │
+   ├── Content-Agent generiert nächste Einheit
+   ├── Tutor-Agent präsentiert / erklärt
+   ├── Assessor-Agent wertet Antwort aus
+   ├── Coach-Agent beobachtet, greift bei Bedarf ein
+   └── Lernpfad-Engine entscheidet über nächsten Schritt
+        │
+        ▼
+5. Abschluss der Sitzung
+   ├── Reflexionsfrage ("Was war heute neu für dich?")
+   ├── Fortschritt sichtbar machen
+   ├── Nächsten Schritt ankündigen
+   └── Profil aktualisieren (Mastery-Werte, Repetition-Schedule)
+        │
+        ▼
+6. Post-Session
+   └── Hintergrundprozess plant proaktive Erinnerungen (BullMQ)
+```
+
+---
+
+## API-Endpunkte
+
+```
+POST   /v1/sessions              – Neue Lernsitzung starten
+GET    /v1/sessions/:id          – Sitzungsstatus & Verlauf
+POST   /v1/sessions/:id/message  – Nachricht senden, Antwort streamen
+DELETE /v1/sessions/:id          – Sitzung beenden
+
+GET    /v1/profile               – Eigenes Lernprofil abrufen
+PATCH  /v1/profile               – Ziele / Präferenzen aktualisieren
+GET    /v1/profile/progress      – Fortschrittsübersicht
+GET    /v1/profile/schedule      – Fällige Wiederholungen
+
+WS     /v1/stream                – Echtzeit-Streaming aller Agenten-Ausgaben
+POST   /v1/webhooks/reminder     – Externer Trigger für Erinnerungen
+```
+
+---
+
+## Sicherheit & Datenschutz
+
+- Lernprofile enthalten sensible persönliche Daten → strikte Zugriffskontrolle
+- Datensparsamkeit: nur was für den Lernprozess notwendig ist, wird gespeichert
+- Nutzer können ihr Profil jederzeit einsehen, exportieren und löschen (DSGVO)
+- Alle KI-Anfragen werden ohne Weiterleitung sensibler Profildaten an Dritte gestaltet
+- Audit-Log aller Profilzugriffe und -änderungen
 
 ---
 
@@ -219,36 +329,36 @@ Nutzer sendet: "Erstelle ein GitHub-Issue für Bug #42"
 ```
 assist2/
 ├── docker/
-│   ├── Dockerfile          # Multi-stage Build
-│   ├── docker-compose.yml  # Lokale Entwicklungsumgebung
+│   ├── Dockerfile
+│   ├── docker-compose.yml        # Lokal: App + PG + Redis + Chroma
 │   └── docker-compose.prod.yml
 └── .github/
     └── workflows/
-        ├── ci.yml          # Tests + Lint bei jedem Push
-        └── deploy.yml      # Deploy auf Merge in main
+        ├── ci.yml                # Test, Lint, Typecheck
+        └── deploy.yml
 ```
-
-### Empfohlene Produktionsumgebung
 
 ```
 [Load Balancer]
       │
   ┌───┴────┐
-  │ App x2 │  (assist2-Container, horizontal skalierbar)
+  │ App ×n │   (horizontal skalierbar; Sessions sind Redis-backed)
   └───┬────┘
       │
-  ┌───┴──────────────────────┐
-  │  PostgreSQL  │  Redis    │
-  └──────────────────────────┘
+  ┌───┴───────────────────────────────┐
+  │  PostgreSQL  │  Redis  │  Chroma  │
+  └───────────────────────────────────┘
 ```
 
 ---
 
-## Entscheidungsprotokoll (ADRs)
+## Architekturentscheidungen (ADRs)
 
 | # | Entscheidung | Begründung |
 |---|---|---|
-| 1 | Fastify statt Express | 3× höherer Durchsatz, natives TypeScript-Support |
-| 2 | BullMQ statt einfacher Async-Queue | Persistenz, Retry-Logik, Monitoring out-of-the-box |
-| 3 | pgvector statt separater Vektordatenbank | Weniger Infrastruktur, SQL-Joins über Daten und Vektoren möglich |
-| 4 | Zod für Schemas | Laufzeit-Validierung + TypeScript-Typen aus einer Quelle |
+| 1 | Spezialisierte Agenten statt einem Generalisten | Klare Verantwortlichkeiten, bessere Steuerbarkeit, testbar |
+| 2 | Rein generative Inhalte, keine statische Content-DB | Maximale Personalisierung, kein Content-Pflegeaufwand |
+| 3 | SM-2 für Spaced Repetition | Bewährt, einfach implementierbar, nachvollziehbar für Nutzer |
+| 4 | pgvector statt separater Vektordatenbank | SQL-Joins zwischen Profildaten und Embeddings; weniger Infrastruktur |
+| 5 | Claude als primäres Modell | Stärke in langen Kontexten, Instruktionstreue, Mehrsprachigkeit |
+| 6 | WebSocket-Streaming für alle Agenten-Ausgaben | Lernen fühlt sich lebendig an; kein Warten auf vollständige Antworten |
