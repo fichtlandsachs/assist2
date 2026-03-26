@@ -2,353 +2,530 @@
 
 ## Leitgedanke
 
-Die Architektur von assist2 ist um einen zentralen Gedanken herum gebaut:
-**Lernen ist kein einzelner Moment, sondern ein kontinuierlicher Prozess.**
+assist2 ist eine **regelbasierte Dokumentations-Engine**, keine generative KI-Anwendung.
+Der Unterschied ist architektonisch fundamental:
 
-Alle technischen Entscheidungen folgen daraus. Das System muss eine Person über
-Wochen und Monate kennen, verstehen und begleiten – nicht nur die letzte Anfrage
-beantworten. Daraus ergeben sich drei Kernanforderungen:
+- Generative KI-Anwendung: LLM → Freitext → Nutzer
+- assist2: Input → Normalisierung → Template-Matching → Regelprüfung → LLM (strukturiert) → Audit → Output
 
-1. **Persistentes Personenverständnis** – Das System muss wissen, wer jemand ist,
-   was er kann und wohin er will.
-2. **Generative Anpassungsfähigkeit** – Inhalte entstehen zur Laufzeit, nie statisch.
-3. **Proaktive Prozesssteuerung** – Das System wartet nicht, sondern begleitet aktiv.
+Das LLM ist ein **gesteuertes Werkzeug**, nicht der Entscheider.
+Jede Ausgabe ist auf ihren Input zurückführbar oder explizit als offen markiert.
 
 ---
 
 ## Systemübersicht
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                           Clients                                │
-│         Web-App │ Mobile │ Embed (LMS, Intranet)                 │
-└────────────────────────────┬─────────────────────────────────────┘
-                             │ HTTPS / WSS
-┌────────────────────────────▼─────────────────────────────────────┐
-│                        API-Schicht                               │
-│               Fastify (REST + WebSocket-Streaming)               │
-│         Auth │ Session │ Rate-Limiting │ Schema-Validierung       │
-└────────────────────────────┬─────────────────────────────────────┘
-                             │
-┌────────────────────────────▼─────────────────────────────────────┐
-│                    Lern-Orchestrierung                           │
-│                                                                  │
-│  ┌──────────────────┐   ┌─────────────────┐  ┌───────────────┐  │
-│  │  Session-Manager │   │  Lernpfad-Engine│  │ Coaching-     │  │
-│  │                  │◄──►                 │◄─►│ Modul         │  │
-│  │  Sitzungskontext,│   │  Adaptiver Pfad,│  │               │  │
-│  │  Gesprächsfluss  │   │  Verzweigungen, │  │  Motivation,  │  │
-│  └──────────────────┘   │  Meilensteine   │  │  Proaktivität │  │
-│                         └─────────────────┘  └───────────────┘  │
-└──────────┬──────────────────────┬────────────────────┬───────────┘
-           │                      │                    │
-┌──────────▼───────┐  ┌───────────▼────────┐  ┌───────▼──────────┐
-│   KI-Agenten     │  │  Content-Generator │  │  Profil-System   │
-│                  │  │                    │  │                  │
-│  Tutor-Agent     │  │  Aufgaben          │  │  Lernprofil      │
-│  Coach-Agent     │  │  Erklärungen       │  │  Stärken/Lücken  │
-│  Assessor-Agent  │  │  Szenarien         │  │  Lernhistorie    │
-│  Planner-Agent   │  │  Reflexionsfragen  │  │  Spaced-Rep.     │
-└──────────┬───────┘  └───────────┬────────┘  └───────┬──────────┘
-           │                      │                    │
-┌──────────▼──────────────────────▼────────────────────▼───────────┐
-│                        Persistenz-Schicht                        │
-│                                                                  │
-│  PostgreSQL                pgvector               Redis          │
-│  (Profile, Lernhistorie,   (Embeddings,           (Sessions,     │
-│   Fortschritt, Inhalte,     semantische Suche,     BullMQ-Queue, │
-│   Audit)                    Ähnlichkeitsmatching)  Cache)        │
-└──────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                          Clients                                │
+│    Next.js Web-App  │  REST API  │  Jira Webhook               │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ HTTPS
+┌───────────────────────────▼─────────────────────────────────────┐
+│                       FastAPI Backend                           │
+│           Auth (JWT/API-Key) │ Routing │ Validation             │
+└──────┬──────────────────────┬──────────────────────┬────────────┘
+       │                      │                      │
+┌──────▼──────┐   ┌───────────▼──────────┐  ┌───────▼───────────┐
+│ Integration │   │   Dokumentations-    │  │  Compliance &     │
+│   Layer     │   │      Engine          │  │  BCM Engine       │
+│             │   │                      │  │                   │
+│ Jira REST   │   │  Input Normalizer    │  │  NIS2 Mapper      │
+│ Confluence  │   │  Template Engine     │  │  KRITIS Mapper    │
+│ REST        │   │  SOP Generator       │  │  BIA Engine       │
+└──────┬──────┘   │  Runbook Generator   │  │  Risiko Engine    │
+       │          │  Diagram Generator   │  │  Recovery Engine  │
+       │          │  Output Renderer     │  └───────┬───────────┘
+       │          └───────────┬──────────┘          │
+       │                      │                     │
+┌──────▼──────────────────────▼─────────────────────▼────────────┐
+│                         LiteLLM Proxy                          │
+│         Provider-Router: Claude │ OpenAI │ Azure │ Lokal       │
+└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                      Persistenz-Schicht                        │
+│  PostgreSQL + pgvector   │   Redis (Cache + Celery Queue)      │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Kernkomponenten
+## Module im Detail
 
-### 1. Lernpfad-Engine
+### 1. Input Normalizer
 
-Die Lernpfad-Engine ist das Herzstück des Systems. Sie bestimmt zu jedem Zeitpunkt,
-was als nächstes passiert – basierend auf dem Lernprofil, dem bisherigen Verlauf
-und dem aktuellen Zustand.
-
-**Zustandsmodell einer Lernsitzung:**
-
-```
-[Start / Diagnose]
-        │
-        ▼
-[Wissenstand einschätzen] ──► Bekannt? ──► [Vertiefen / Verknüpfen]
-        │                                          │
-        ▼ Lücke erkannt                            ▼
-[Neues Konzept einführen]              [Anwendungsaufgabe]
-        │                                          │
-        ▼                                          ▼
-[Verständnis prüfen] ◄──────────────── [Reflexion]
-        │
-        ▼
-Bestanden? ── Nein ──► [Alternativer Erklärungsweg]
-        │
-       Ja
-        ▼
-[Fortschritt speichern] ──► [Nächster Schritt im Pfad]
-```
-
-**Adaptivitätssignale** (steuern Verzweigungen):
-- Antwortqualität und Reaktionszeit
-- Anzahl der Wiederholungen bis zur korrekten Lösung
-- Emotionale Signale (Frustration, Stagnation, Flow)
-- Zeitpunkt der letzten Beschäftigung mit einem Thema (Vergessenskurve)
-
----
-
-### 2. KI-Agenten
-
-assist2 setzt auf spezialisierte Agenten, die zusammenarbeiten:
-
-| Agent | Rolle | Modell |
-|---|---|---|
-| **Tutor-Agent** | Erklärt, führt durch Konzepte, beantwortet Fragen | claude-sonnet-4-6 |
-| **Assessor-Agent** | Bewertet Antworten, erkennt Wissenslücken | claude-sonnet-4-6 |
-| **Coach-Agent** | Motiviert, gibt Feedback, passt Ton an | claude-haiku-4-5 |
-| **Planner-Agent** | Plant Lernpfade, setzt Meilensteine | claude-opus-4-6 |
-| **Content-Agent** | Generiert Aufgaben, Szenarien, Übungen | claude-sonnet-4-6 |
-
-Alle Agenten kommunizieren über einen gemeinsamen **Kontext-Bus** und greifen
-auf dasselbe Lernprofil zu. Sie können sequenziell oder parallel agieren.
-
-**Agenten-Interface:**
-
-```typescript
-interface LearningAgent {
-  role: 'tutor' | 'assessor' | 'coach' | 'planner' | 'content';
-  act(
-    context: LearningContext,
-    profile: LearnerProfile,
-    input: AgentInput
-  ): Promise<AgentOutput>;
-}
-```
-
----
-
-### 3. Content-Generator
-
-Alle Lerninhalte werden **zur Laufzeit generiert** – es gibt keine statische
-Content-Datenbank. Das ermöglicht maximale Personalisierung.
-
-**Generierungsparameter:**
-
-```typescript
-interface ContentRequest {
-  topic: string;
-  learnerLevel: 'beginner' | 'intermediate' | 'advanced';
-  learningStyle: 'visual' | 'analytical' | 'practical';
-  format: 'explanation' | 'exercise' | 'scenario' | 'quiz' | 'reflection';
-  availableMinutes: number;
-  previousErrors: ConceptGap[];
-  language: string;
-}
-```
-
-**Inhaltsformate:**
-- **Erklärungen** – mit Analogien, Beispielen, schrittweisen Herleitungen
-- **Übungsaufgaben** – mit gestuften Schwierigkeitsgraden
-- **Szenarien** – realitätsnahe Situationen, die Theorie in Praxis überführen
-- **Reflexionsfragen** – zur Aktivierung des Metakognition
-- **Lückentexte & Quizze** – zum Abrufen von Gelerntem (Retrieval Practice)
-
----
-
-### 4. Persönliches Lernprofil
-
-Das Lernprofil ist der zentrale Wissensspeicher über eine Person.
-Es wird bei jeder Interaktion gelesen und aktualisiert.
-
-**Struktur:**
-
-```typescript
-interface LearnerProfile {
-  id: string;
-  goals: LearningGoal[];
-  knowledgeMap: Map<Concept, MasteryLevel>;   // 0.0 – 1.0
-  learningStyle: LearningStyleVector;
-  preferredPace: 'slow' | 'medium' | 'fast';
-  availableTimePerSession: number;            // Minuten
-  streakDays: number;
-  masteredConcepts: Concept[];
-  openGaps: ConceptGap[];
-  repetitionSchedule: SpacedRepEntry[];      // SM-2
-  sessionHistory: LearningSession[];
-  motivationProfile: MotivationProfile;
-}
-```
-
-**Masterly-Tracking** – jedes Konzept wird auf einer Skala 0–1 bewertet:
-
-```
-0.0 – unbekannt
-0.2 – erste Begegnung
-0.5 – verstanden, aber noch unsicher
-0.8 – sicher anwendbar
-1.0 – gefestigt, kann es erklären
-```
-
----
-
-### 5. Spaced-Repetition-Engine
-
-Basiert auf dem **SM-2-Algorithmus** (SuperMemo 2), angepasst für
-gesprächsbasiertes Lernen.
+**Zweck:** Beliebige Eingaben (User Stories, Epics, Freitext, Jira-Tickets)
+in ein einheitliches `ProcessModel` überführen.
 
 **Ablauf:**
-
 ```
-Nach jeder Interaktion mit einem Konzept:
-  1. Bewertung der Antwortqualität (0–5)
-  2. Berechnung des nächsten Wiederholungszeitpunkts
-  3. Eintrag in den Repetitions-Schedule des Profils
-  4. Beim nächsten Session-Start: fällige Wiederholungen priorisieren
+Rohtext / Jira-Ticket
+        │
+        ▼
+Vorverarbeitung (Bereinigung, Spracherkennung)
+        │
+        ▼
+LiteLLM → Claude (strukturierter Prompt mit JSON-Schema)
+        │
+        ▼
+Validierung gegen ProcessModel (Pydantic)
+        │
+        ├── Fehlende Pflichtfelder → open_points[] ergänzen
+        └── Confidence < 0.6      → derivation_status = INTERPRETED
 ```
 
-**Integration in den Lernpfad:**
-- Fällige Wiederholungen werden zu Beginn jeder Sitzung eingebaut
-- Vergessene Konzepte werden mit angepasstem Erkläransatz neu eingeführt
-- Visualisierung der Retention-Kurven im Nutzerdashboard
+**ProcessModel (Pydantic):**
+```python
+class ProcessModel(BaseModel):
+    process_name: str
+    actors: list[Actor]
+    steps: list[ProcessStep]
+    decisions: list[Decision]
+    inputs: list[str]
+    outputs: list[str]
+    risks: list[Risk]
+    controls: list[Control]
+    dependencies: list[Dependency]
+    open_points: list[OpenPoint]   # fehlende Infos, nie erfunden
+    sources: list[SourceRef]       # Quell-Referenzen je Feld
+```
+
+**Kritische Regel im LLM-Prompt:**
+```
+Du analysierst strukturierte Eingaben und extrahierst
+Prozessinformationen. Regel: Erfinde KEINE Informationen.
+Wenn ein Pflichtfeld nicht aus dem Input ableitbar ist,
+erzeuge einen open_point mit required=true.
+Antworte ausschließlich im vorgegebenen JSON-Schema.
+```
 
 ---
 
-### 6. Coaching-Modul
+### 2. Template Engine
 
-Das Coaching-Modul überwacht den Lernprozess auf einer Meta-Ebene und
-greift ein, wenn es nötig ist.
+**Zweck:** YAML-basierte Templates laden, gegen ProcessModel validieren,
+Sektionen befüllen, fehlende Pflichtkapitel markieren.
 
-**Erkannte Muster und Reaktionen:**
+**Template-Format (YAML):**
+```yaml
+id: sop_v1
+name: Standard Operating Procedure
+version: "1.0"
+required_sections:
+  - purpose
+  - scope
+  - roles
+  - process_flow
+  - exceptions
+  - risks
+  - controls
+  - compliance_mapping
+  - open_points
+optional_sections:
+  - background
+  - related_documents
+rules:
+  no_hallucination: true
+  mark_missing: true
+  require_source_refs: true
+  min_confidence: 0.5
+section_prompts:
+  purpose: "Leite den Zweck des Prozesses aus {process_name} und {outputs} ab."
+  risks: "Liste alle Risiken aus {risks}. Erfinde keine zusätzlichen."
+```
 
-| Muster | Reaktion |
+**Starter-Templates (MVP):**
+- `sop_v1.yaml` – Standard Operating Procedure
+- `runbook_v1.yaml` – Technisches Runbook
+- `incident_v1.yaml` – Incident Response Playbook
+
+---
+
+### 3. Dokumentations-Engine (Orchestrator)
+
+**Ablauf einer Dokumentgenerierung:**
+```
+POST /api/v1/documents/generate
+        │
+        ▼
+1. Input Normalizer → ProcessModel
+        │
+        ▼
+2. Template laden + Validierung
+   └── Fehlende Pflichtfelder? → open_points ergänzen
+        │
+        ▼
+3. Sektion für Sektion generieren (LiteLLM)
+   └── Jede Sektion: source_ref + confidence + derivation_status
+        │
+        ▼
+4. Compliance Engine → ComplianceMapping
+        │
+        ▼
+5. BCM Engine → BCMRecord (wenn bcm_required=true)
+        │
+        ▼
+6. Diagram Generator → draw.io XML
+        │
+        ▼
+7. Audit Layer → AuditEntries persistieren
+        │
+        ▼
+8. Output Renderer → Markdown / DOCX / PDF
+        │
+        ▼
+9. Optional: Confluence Export
+```
+
+---
+
+### 4. LiteLLM Proxy
+
+**Warum LiteLLM:**
+- Einheitliches API-Interface für alle LLM-Provider
+- Provider-Wechsel ohne Code-Änderung (nur `.env`)
+- Retry-Logik, Fallback-Provider, Rate-Limiting
+- Lokale Modelle (Ollama) über gleiche Schnittstelle
+
+**Konfiguration:**
+```yaml
+# litellm_config.yaml
+model_list:
+  - model_name: primary
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: fallback
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: local
+    litellm_params:
+      model: ollama/llama3.2
+      api_base: http://localhost:11434
+
+router_settings:
+  fallbacks: [{"primary": ["fallback"]}]
+  num_retries: 3
+```
+
+**Python-Client:**
+```python
+import litellm
+
+response = await litellm.acompletion(
+    model="primary",
+    messages=[...],
+    response_format={"type": "json_object"},
+    temperature=0.1,   # niedrig für deterministische Ausgaben
+)
+```
+
+---
+
+### 5. Compliance Engine
+
+**Aufgabe:** Mapping von ProcessModel auf NIS2/KRITIS-Anforderungen.
+
+**Bewertungslogik:**
+```
+Für jede Compliance-Anforderung:
+  1. Suche in controls[] und steps[] nach Evidence
+  2. Evidence gefunden + vollständig → MET
+  3. Evidence gefunden + lückenhaft  → PARTIAL
+  4. Keine Evidence                  → MISSING
+
+NIEMALS automatisch MET setzen ohne explizite Evidence.
+```
+
+**NIS2-Bereiche (MVP):**
+- Incident Handling (Art. 21 Abs. 2b)
+- Risk Management (Art. 21 Abs. 2a)
+- Access Control
+- Business Continuity (Art. 21 Abs. 2c)
+- Supply Chain Security (Art. 21 Abs. 2d)
+
+**Output:**
+```python
+class ComplianceResult(BaseModel):
+    framework: str               # "NIS2" | "KRITIS"
+    coverage_score: float        # 0.0 – 1.0
+    mappings: list[ComplianceMapping]
+    missing_controls: list[str]
+    audit_hints: list[str]
+```
+
+---
+
+### 6. BCM Engine
+
+**BIA-Berechnung:**
+```python
+class BIAResult(BaseModel):
+    rto_minutes: int             # Recovery Time Objective
+    rpo_minutes: int             # Recovery Point Objective
+    mtd_minutes: int             # Maximum Tolerable Downtime
+    operational_impact: str
+    financial_impact: str
+    regulatory_impact: str
+    recovery_strategy: str       # "COLD" | "WARM" | "HOT"
+    open_points: list[OpenPoint] # fehlende BIA-Daten
+```
+
+**Recovery-Flow-Generierung:**
+```
+Incident erkannt
+      │
+      ▼
+Diagnose (automatisch generierter Schritt aus steps[])
+      │
+      ▼
+Recovery-Strategie aktivieren (aus recovery_strategies[])
+      │
+      ▼
+Verifikation (aus controls[])
+      │
+      ▼
+Kommunikation (aus Kommunikationsplan)
+```
+
+---
+
+### 7. Diagram Generator
+
+**Mapping ProcessModel → draw.io XML:**
+
+| ProcessModel-Element | draw.io-Element |
 |---|---|
-| 3× gleicher Fehler | Alternativer Erklärungsweg, Perspektivwechsel |
-| Sitzung < 2 Min. abgebrochen | Beim nächsten Start: kurze Check-in-Frage |
-| 5 Tage keine Aktivität | Proaktive Erinnerung + niedrigschwelliger Einstieg |
-| Sehr schnelle korrekte Antworten | Schwierigkeitsgrad erhöhen |
-| Hohe Fehlerrate + lange Antwortzeiten | Tempo reduzieren, Aufmunterung |
-| Meilenstein erreicht | Explizite Würdigung, Zusammenfassung des Fortschritts |
+| `steps[]` | Rechteck-Node |
+| `decisions[]` | Rauten-Node (Diamond) |
+| `actors[]` | Swimlane |
+| `dependencies[]` | Edge mit Label |
+| `open_points[]` | Roter Rahmen, Warn-Icon |
 
-**Tonalität:** Der Coach-Agent passt Sprache und Ton dynamisch an –
-sachlich-präzise bei analytischen Lernenden, ermutigend-warm bei
-emotional orientierten.
-
----
-
-### 7. Memory-System
-
-Zwei Ebenen des Gedächtnisses:
-
-| Ebene | Speicher | Inhalt | Lebensdauer |
-|---|---|---|---|
-| **Sitzungsgedächtnis** | Redis | Gesprächsverlauf, aktuelle Aufgabe | Sitzungsdauer |
-| **Langzeitgedächtnis** | PostgreSQL + pgvector | Lernprofil, Konzeptkarten, Lernhistorie | Dauerhaft |
-
-**Semantische Suche im Langzeitgedächtnis:**
-- Alle gespeicherten Konzepte und Lerninhalte werden als Embeddings gespeichert
-- Beim Start einer neuen Einheit: semantisch ähnliche frühere Interaktionen abrufen
-- Dadurch: Anknüpfen an bekannte Konzepte, Vermeidung von Wiederholungen
-
----
-
-## Prozessfluss – Vollständige Lernsitzung
-
-```
-Nutzer startet Sitzung
-        │
-        ▼
-1. Profil laden
-   └── Letzter Stand, offene Lücken, fällige Wiederholungen
-        │
-        ▼
-2. Session-Planung (Planner-Agent)
-   └── Ziel der Sitzung festlegen (Wiederholung? Neues Thema? Freies Erkunden?)
-        │
-        ▼
-3. Einstieg
-   └── Kurzes Check-in: "Wo stehst du heute? Wieviel Zeit hast du?"
-        │
-        ▼
-4. Lernschleife (bis Sitzungsziel erreicht oder Zeit abgelaufen)
-   │
-   ├── Content-Agent generiert nächste Einheit
-   ├── Tutor-Agent präsentiert / erklärt
-   ├── Assessor-Agent wertet Antwort aus
-   ├── Coach-Agent beobachtet, greift bei Bedarf ein
-   └── Lernpfad-Engine entscheidet über nächsten Schritt
-        │
-        ▼
-5. Abschluss der Sitzung
-   ├── Reflexionsfrage ("Was war heute neu für dich?")
-   ├── Fortschritt sichtbar machen
-   ├── Nächsten Schritt ankündigen
-   └── Profil aktualisieren (Mastery-Werte, Repetition-Schedule)
-        │
-        ▼
-6. Post-Session
-   └── Hintergrundprozess plant proaktive Erinnerungen (BullMQ)
+**Ausgabe:**
+```xml
+<mxGraphModel>
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <!-- Swimlane pro Actor -->
+    <mxCell id="actor_1" value="IT-Operations" style="swimlane;" .../>
+    <!-- Step als Rechteck -->
+    <mxCell id="step_1" value="Incident erkennen" style="rounded=1;" .../>
+    <!-- Decision als Raute -->
+    <mxCell id="dec_1" value="Kritisch?" style="rhombus;" .../>
+    <!-- Edge -->
+    <mxCell id="edge_1" source="step_1" target="dec_1" .../>
+  </root>
+</mxGraphModel>
 ```
 
 ---
 
-## API-Endpunkte
+### 8. Jira & Confluence Integration
 
+**Jira (Import):**
+```python
+# Epics und Stories importieren
+GET /rest/api/3/search?jql=project=XY AND issuetype in (Epic, Story)
+
+# Mapping: Jira Issue → ProcessModel Input
+{
+    "summary":     → process_name
+    "description": → Rohtext für Normalizer
+    "assignee":    → actors[]
+    "labels":      → tags für Compliance-Mapping
+    "components":  → dependencies[]
+}
 ```
-POST   /v1/sessions              – Neue Lernsitzung starten
-GET    /v1/sessions/:id          – Sitzungsstatus & Verlauf
-POST   /v1/sessions/:id/message  – Nachricht senden, Antwort streamen
-DELETE /v1/sessions/:id          – Sitzung beenden
 
-GET    /v1/profile               – Eigenes Lernprofil abrufen
-PATCH  /v1/profile               – Ziele / Präferenzen aktualisieren
-GET    /v1/profile/progress      – Fortschrittsübersicht
-GET    /v1/profile/schedule      – Fällige Wiederholungen
-
-WS     /v1/stream                – Echtzeit-Streaming aller Agenten-Ausgaben
-POST   /v1/webhooks/reminder     – Externer Trigger für Erinnerungen
+**Confluence (Export):**
+```python
+# Fertige SOP als Confluence-Seite anlegen
+POST /rest/api/content
+{
+    "type": "page",
+    "title": "SOP: {process_name}",
+    "space": {"key": "COMPLIANCE"},
+    "body": {
+        "storage": {
+            "value": "<html>...</html>",  # aus Markdown konvertiert
+            "representation": "storage"
+        }
+    }
+}
 ```
 
 ---
 
-## Sicherheit & Datenschutz
+## Datenmodell (PostgreSQL)
 
-- Lernprofile enthalten sensible persönliche Daten → strikte Zugriffskontrolle
-- Datensparsamkeit: nur was für den Lernprozess notwendig ist, wird gespeichert
-- Nutzer können ihr Profil jederzeit einsehen, exportieren und löschen (DSGVO)
-- Alle KI-Anfragen werden ohne Weiterleitung sensibler Profildaten an Dritte gestaltet
-- Audit-Log aller Profilzugriffe und -änderungen
+```sql
+-- Kern-Dokument
+CREATE TABLE documents (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type        VARCHAR(50) NOT NULL,   -- 'sop'|'runbook'|'incident'
+    template_id VARCHAR(50) NOT NULL,
+    version     VARCHAR(20) NOT NULL DEFAULT '1.0',
+    status      VARCHAR(20) NOT NULL DEFAULT 'draft',
+                                        -- draft|review|approved
+    content     JSONB NOT NULL,
+    sources     JSONB NOT NULL DEFAULT '[]',
+    jira_key    VARCHAR(50),            -- z.B. "PROJ-123"
+    confluence_id VARCHAR(50),
+    created_at  TIMESTAMPTZ DEFAULT now(),
+    updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- Templates
+CREATE TABLE templates (
+    id          VARCHAR(50) PRIMARY KEY,
+    name        VARCHAR(200) NOT NULL,
+    schema      JSONB NOT NULL,
+    rules       JSONB NOT NULL,
+    version     VARCHAR(20) NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- Prozessmodell (normalisierter Input)
+CREATE TABLE processes (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id     UUID REFERENCES documents(id),
+    name            VARCHAR(200) NOT NULL,
+    actors          JSONB NOT NULL DEFAULT '[]',
+    steps           JSONB NOT NULL DEFAULT '[]',
+    decisions       JSONB NOT NULL DEFAULT '[]',
+    dependencies    JSONB NOT NULL DEFAULT '[]',
+    open_points     JSONB NOT NULL DEFAULT '[]'
+);
+
+-- BCM-Daten
+CREATE TABLE bcm_records (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    process_id          UUID REFERENCES processes(id),
+    rto_minutes         INTEGER,
+    rpo_minutes         INTEGER,
+    mtd_minutes         INTEGER,
+    operational_impact  TEXT,
+    financial_impact    TEXT,
+    regulatory_impact   TEXT,
+    recovery_strategy   VARCHAR(10),   -- COLD|WARM|HOT
+    risks               JSONB NOT NULL DEFAULT '[]',
+    recovery_strategies JSONB NOT NULL DEFAULT '[]',
+    open_points         JSONB NOT NULL DEFAULT '[]'
+);
+
+-- Compliance-Mapping
+CREATE TABLE compliance_mappings (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id     UUID REFERENCES documents(id),
+    framework       VARCHAR(20) NOT NULL,  -- NIS2|KRITIS
+    requirement     VARCHAR(200) NOT NULL,
+    status          VARCHAR(10) NOT NULL,  -- MET|PARTIAL|MISSING
+    evidence        TEXT,
+    gaps            JSONB NOT NULL DEFAULT '[]'
+);
+
+-- Audit & Traceability
+CREATE TABLE audit_entries (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id         UUID REFERENCES documents(id),
+    section             VARCHAR(100) NOT NULL,
+    source              TEXT NOT NULL,
+    derivation_status   VARCHAR(15) NOT NULL,  -- DIRECT|INTERPRETED|OPEN
+    confidence          NUMERIC(3,2) NOT NULL, -- 0.00 – 1.00
+    created_at          TIMESTAMPTZ DEFAULT now()
+);
+
+-- Diagramme
+CREATE TABLE diagrams (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id UUID REFERENCES documents(id),
+    type        VARCHAR(30) NOT NULL,  -- flowchart|swimlane|dependency
+    drawio_xml  TEXT NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT now()
+);
+```
 
 ---
 
-## Deployment
+## API-Design
 
 ```
-assist2/
-├── docker/
-│   ├── Dockerfile
-│   ├── docker-compose.yml        # Lokal: App + PG + Redis + Chroma
-│   └── docker-compose.prod.yml
-└── .github/
-    └── workflows/
-        ├── ci.yml                # Test, Lint, Typecheck
-        └── deploy.yml
+# Dokument-Generierung
+POST   /api/v1/documents/generate
+       Body: { input: str, template_id: str, jira_key?: str,
+               bcm_required?: bool, compliance_frameworks?: list[str] }
+       → { document_id, status, open_points_count, markdown_preview }
+
+GET    /api/v1/documents/{id}
+       → Vollständiges Dokument mit AuditEntries
+
+GET    /api/v1/documents/{id}/gaps
+       → Nur offene Punkte + fehlende Compliance-Anforderungen
+
+GET    /api/v1/documents/{id}/diagram
+       → draw.io XML + optional SVG
+
+POST   /api/v1/documents/{id}/export/confluence
+       → Dokument nach Confluence pushen
+
+# Templates
+GET    /api/v1/templates
+POST   /api/v1/templates
+PUT    /api/v1/templates/{id}
+
+# Jira Import
+GET    /api/v1/jira/projects
+GET    /api/v1/jira/issues?jql=...
+POST   /api/v1/jira/import/{issue_key}
+       → normalisiert Issue, legt Document an
+
+# Compliance
+GET    /api/v1/documents/{id}/compliance
+       → Coverage Score + fehlende Controls
+
+# BCM
+GET    /api/v1/documents/{id}/bcm
+       → BIA + Recovery-Strategien + Risiken
 ```
 
-```
-[Load Balancer]
-      │
-  ┌───┴────┐
-  │ App ×n │   (horizontal skalierbar; Sessions sind Redis-backed)
-  └───┬────┘
-      │
-  ┌───┴───────────────────────────────┐
-  │  PostgreSQL  │  Redis  │  Chroma  │
-  └───────────────────────────────────┘
-```
+---
+
+## Implementierungs-Roadmap
+
+### Phase 1 – Fundament
+1. Projektstruktur + Docker Compose
+2. PostgreSQL Schema + Alembic Migrationen
+3. LiteLLM Proxy konfigurieren
+4. Input Normalizer (Pydantic + LiteLLM)
+5. Template Engine (YAML-Loader + Validator)
+6. SOP Generator (Markdown-Output)
+7. FastAPI Basis-Routen
+
+### Phase 2 – Struktur & Visualisierung
+8. Runbook + Incident Generator
+9. Draw.io Generator (Flowchart + Swimlane)
+10. DOCX-Export (python-docx)
+11. PDF-Export (WeasyPrint)
+
+### Phase 3 – Compliance & BCM
+12. NIS2 Mapping Engine
+13. BCM Engine (BIA + Risiko + Recovery)
+14. Dependency Graph
+
+### Phase 4 – Integrationen
+15. Jira REST Client (Import)
+16. Confluence REST Client (Export)
+17. Webhook-Receiver (Jira-Trigger)
+
+### Phase 5 – Qualität & Governance
+18. Audit Traceability Layer (vollständig)
+19. Review-Workflow (draft → review → approved)
+20. Versionierung + Diff-Ansicht
 
 ---
 
@@ -356,9 +533,10 @@ assist2/
 
 | # | Entscheidung | Begründung |
 |---|---|---|
-| 1 | Spezialisierte Agenten statt einem Generalisten | Klare Verantwortlichkeiten, bessere Steuerbarkeit, testbar |
-| 2 | Rein generative Inhalte, keine statische Content-DB | Maximale Personalisierung, kein Content-Pflegeaufwand |
-| 3 | SM-2 für Spaced Repetition | Bewährt, einfach implementierbar, nachvollziehbar für Nutzer |
-| 4 | pgvector statt separater Vektordatenbank | SQL-Joins zwischen Profildaten und Embeddings; weniger Infrastruktur |
-| 5 | Claude als primäres Modell | Stärke in langen Kontexten, Instruktionstreue, Mehrsprachigkeit |
-| 6 | WebSocket-Streaming für alle Agenten-Ausgaben | Lernen fühlt sich lebendig an; kein Warten auf vollständige Antworten |
+| 1 | Python statt Node.js | Stärkeres Ökosystem für Dokumenten-Verarbeitung (python-docx, WeasyPrint, PyMuPDF) |
+| 2 | LiteLLM als Proxy | Provider-Unabhängigkeit; Wechsel von Claude auf OpenAI oder lokales Modell ohne Code-Änderung |
+| 3 | Niedriges Temperature (0.1) | Deterministische, strukturierte Ausgaben; weniger Halluzinationen |
+| 4 | YAML-Templates | Versionierbar in Git, von Compliance-Officers pflegbar ohne Code-Kenntnisse |
+| 5 | Jira/Confluence im MVP | Kern-Workflow der Zielgruppe: Anforderungen kommen aus Jira, Ergebnisse gehen nach Confluence |
+| 6 | JSONB für flexible Felder | Prozessmodelle variieren stark; JSONB ermöglicht Schema-Evolution ohne Migrationen |
+| 7 | Celery für Generierung | Dokumentenerstellung dauert 15–60s; asynchron per Task Queue verhindert API-Timeouts |
