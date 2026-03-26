@@ -82,6 +82,7 @@ class StoryDocsSave(BaseModel):
     technical_notes: str
     confluence_space_key: Optional[str] = None
     confluence_parent_page_id: Optional[str] = None
+    save_to_nextcloud: bool = False
 
 
 class StoryDocsRead(BaseModel):

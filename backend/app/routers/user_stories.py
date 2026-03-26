@@ -49,6 +49,7 @@ from app.schemas.feature import AIFeatureSuggestion, AIFeatureSuggestResponse
 from app.models.epic import Epic
 from app.services import confluence_service
 from app.services import org_integrations_service as integrations_svc
+from app.services.nextcloud_service import nextcloud_service
 from app.models.organization import Organization
 from app.core.exceptions import NotFoundException
 from app.tasks.pdf_tasks import generate_story_pdf
@@ -518,9 +519,21 @@ async def save_story_docs(
     await db.commit()
     await db.refresh(story)
 
+    # Upload docs as JSON to Nextcloud if requested
+    nextcloud_path: Optional[str] = None
+    if data.save_to_nextcloud and org:
+        try:
+            docs_content = json.dumps(docs_dict, ensure_ascii=False, indent=2).encode("utf-8")
+            nextcloud_path = await nextcloud_service.upload_story_docs(
+                org.slug, str(story_id), docs_content
+            )
+        except Exception as exc:
+            logger.warning(f"Nextcloud upload failed (non-fatal): {exc}")
+
     return StoryDocsRead(
         **docs_dict,
         confluence_page_url=story.confluence_page_url,
+        nextcloud_path=nextcloud_path,
     )
 
 

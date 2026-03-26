@@ -124,5 +124,43 @@ class NextcloudService:
         files = await self._list_at_path(f"Users/{user_email}")
         return NextcloudFileList(files=files, nextcloud_url=get_settings().NEXTCLOUD_URL)
 
+    async def upload_story_pdf(self, org_slug: str, story_id: str, pdf_bytes: bytes) -> str:
+        """Upload a PDF to Organizations/{org_slug}/Docs/{story_id}.pdf via WebDAV."""
+        settings = get_settings()
+        dav_base = (
+            f"{settings.NEXTCLOUD_INTERNAL_URL}/remote.php/dav/files/"
+            f"{settings.NEXTCLOUD_ADMIN_USER}"
+        )
+        auth = (settings.NEXTCLOUD_ADMIN_USER, settings.NEXTCLOUD_ADMIN_APP_PASSWORD)
+        dest_path = f"Organizations/{org_slug}/Docs/{story_id}.pdf"
+        url = f"{dav_base}/{dest_path}"
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            # Ensure Docs sub-folder exists (405 = already exists, that's fine)
+            docs_folder_url = f"{dav_base}/Organizations/{org_slug}/Docs/"
+            r = await client.request("MKCOL", docs_folder_url, auth=auth)
+            if r.status_code not in (201, 405):
+                pass  # folder may already exist
+
+            resp = await client.put(url, content=pdf_bytes, auth=auth)
+            resp.raise_for_status()
+
+        return dest_path
+
+    async def upload_story_docs(self, org_slug: str, story_id: str, content: bytes, ext: str = "json") -> str:
+        """Upload story documentation to Organizations/{org_slug}/Docs/{story_id}.{ext}"""
+        settings = get_settings()
+        dav_base = f"{settings.NEXTCLOUD_INTERNAL_URL}/remote.php/dav/files/{settings.NEXTCLOUD_ADMIN_USER}"
+        auth = (settings.NEXTCLOUD_ADMIN_USER, settings.NEXTCLOUD_ADMIN_APP_PASSWORD)
+        dest_path = f"Organizations/{org_slug}/Docs/{story_id}.{ext}"
+        url = f"{dav_base}/{dest_path}"
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            r = await client.request("MKCOL", f"{dav_base}/Organizations/{org_slug}/Docs/", auth=auth)
+            if r.status_code not in (201, 405):
+                pass
+            resp = await client.put(url, content=content, auth=auth)
+            resp.raise_for_status()
+        return dest_path
+
 
 nextcloud_service = NextcloudService()

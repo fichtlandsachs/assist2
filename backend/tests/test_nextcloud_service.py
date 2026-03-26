@@ -66,3 +66,32 @@ async def test_list_files_parses_webdav_response():
     assert result.files[0].name == "Projektplan.docx"
     assert "wordprocessingml" in result.files[0].content_type
     assert result.files[0].size == 12345
+
+
+@pytest.mark.asyncio
+async def test_upload_story_pdf_returns_path():
+    """upload_story_pdf PUTs to WebDAV and returns the path."""
+    from app.services.nextcloud_service import NextcloudService
+
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+
+    mock_client = AsyncMock()
+    mock_client.put = AsyncMock(return_value=mock_response)
+    mock_client.request = AsyncMock(return_value=MagicMock(status_code=201))
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    story_id = "abc123"
+    with patch("app.services.nextcloud_service.httpx.AsyncClient", return_value=mock_client), \
+         patch("app.services.nextcloud_service.get_settings") as mock_cfg:
+        mock_cfg.return_value.NEXTCLOUD_INTERNAL_URL = "http://nextcloud"
+        mock_cfg.return_value.NEXTCLOUD_ADMIN_USER = "admin"
+        mock_cfg.return_value.NEXTCLOUD_ADMIN_APP_PASSWORD = "secret"
+        mock_cfg.return_value.NEXTCLOUD_URL = "https://cloud.example.com"
+
+        svc = NextcloudService()
+        path = await svc.upload_story_pdf("my-org", story_id, b"%PDF-content")
+
+    assert path == f"Organizations/my-org/Docs/{story_id}.pdf"
+    mock_client.put.assert_called_once()
