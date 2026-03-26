@@ -173,6 +173,7 @@ services:
       AUTHENTIK_JWKS_URL: ${AUTHENTIK_JWKS_URL}
       AUTHENTIK_APP_SLUG: ${AUTHENTIK_APP_SLUG:-backend}
       STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
+      WHISPER_URL: ${WHISPER_URL:-http://assist2-whisper:9000}
       NEXTCLOUD_URL: ${NEXTCLOUD_URL:-https://nextcloud.fichtlworks.com}
       NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
       NEXTCLOUD_ADMIN_APP_PASSWORD: ${NEXTCLOUD_ADMIN_APP_PASSWORD}
@@ -209,6 +210,7 @@ services:
       N8N_API_KEY: ${N8N_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
+      WHISPER_URL: ${WHISPER_URL:-http://assist2-whisper:9000}
     networks:
       - internal
     healthcheck:
