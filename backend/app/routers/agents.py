@@ -11,6 +11,7 @@ from app.models.agent import Agent
 from app.models.user import User
 from app.schemas.agent import AgentCreate, AgentRead, AgentUpdate, InvokeRequest, InvokeResponse
 from app.core.exceptions import NotFoundException
+from app.tasks.agent_tasks import analyze_story_task
 
 router = APIRouter()
 
@@ -173,12 +174,8 @@ async def invoke_agent(
     # Generate invocation ID and enqueue via Celery
     invocation_id = str(uuid.uuid4())
 
-    # In a full implementation, this would enqueue a Celery task:
-    # invoke_agent_task.delay(
-    #     agent_id=str(agent_id),
-    #     invocation_id=invocation_id,
-    #     input_data=data.input,
-    #     user_id=str(current_user.id),
-    # )
+    story_id = data.input.get("story_id") if isinstance(data.input, dict) else None
+    if story_id and agent.role == "story_analyzer":
+        analyze_story_task.delay(str(story_id), str(agent.organization_id))
 
     return InvokeResponse(invocation_id=invocation_id, status="running")
