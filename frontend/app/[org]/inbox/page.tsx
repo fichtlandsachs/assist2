@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
-import { apiRequest, fetcher } from "@/lib/api/client";
+import { apiRequest, fetcher, getAccessToken } from "@/lib/api/client";
 import useSWR from "swr";
 import type { MailConnection, Message } from "@/types";
 import { RefreshCw, Mail, Archive, Eye, Search, ChevronRight, Inbox } from "lucide-react";
@@ -350,6 +350,33 @@ export default function InboxPage({ params }: { params: { org: string } }) {
                         <span className="text-sm text-slate-700">
                           {connectionMap[selectedMessage.connection_id].display_name ?? connectionMap[selectedMessage.connection_id].email_address}
                         </span>
+                      </div>
+                    )}
+                    {connectionMap[selectedMessage.connection_id] && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <label className="text-xs text-slate-500 whitespace-nowrap">Sync-Intervall:</label>
+                        <select
+                          defaultValue={connectionMap[selectedMessage.connection_id].sync_interval_minutes ?? 15}
+                          onChange={async (e) => {
+                            const conn = connectionMap[selectedMessage.connection_id];
+                            const interval = Number(e.target.value);
+                            const token = getAccessToken() ?? "";
+                            await fetch(`/api/v1/inbox/connections/${conn.id}`, {
+                              method: "PATCH",
+                              headers: {
+                                "Content-Type": "application/json",
+                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                              },
+                              body: JSON.stringify({ sync_interval_minutes: interval }),
+                            });
+                          }}
+                          className="text-xs border border-slate-200 rounded px-2 py-1 bg-white text-slate-700"
+                        >
+                          <option value={5}>5 Minuten</option>
+                          <option value={15}>15 Minuten</option>
+                          <option value={30}>30 Minuten</option>
+                          <option value={60}>60 Minuten</option>
+                        </select>
                       </div>
                     )}
                     {selectedMessage.received_at && (

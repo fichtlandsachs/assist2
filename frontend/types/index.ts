@@ -286,6 +286,7 @@ export interface MailConnection {
   is_active: boolean;
   last_sync_at: string | null;
   created_at: string;
+  sync_interval_minutes?: number;
 }
 export interface Message {
   id: string;
@@ -312,6 +313,7 @@ export interface CalendarConnection {
   display_name: string | null;
   is_active: boolean;
   last_sync_at: string | null;
+  sync_interval_minutes?: number;
   created_at: string;
 }
 export interface CalendarEvent {
