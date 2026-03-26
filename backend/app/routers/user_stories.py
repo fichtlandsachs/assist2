@@ -1,7 +1,12 @@
 import json
 import logging
+import re
 import uuid
+from pathlib import Path
+from types import SimpleNamespace
 from typing import List, Optional
+
+import httpx
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
@@ -47,6 +52,10 @@ from app.services import org_integrations_service as integrations_svc
 from app.models.organization import Organization
 from app.core.exceptions import NotFoundException
 from app.tasks.pdf_tasks import generate_story_pdf
+from app.models.pdf_settings import PdfSettings
+from app.models.feature import Feature
+from app.services.pdf_service import pdf_service
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -678,6 +687,100 @@ async def regenerate_story_docs(
         additional_info=story.doc_additional_info,
         workarounds=story.doc_workarounds,
     )
+
+
+@router.post(
+    "/user-stories/{story_id}/docs/pdf",
+    tags=["Documentation"],
+    summary="Generate PDF for a user story and upload to Nextcloud",
+)
+async def generate_and_upload_pdf(
+    story_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """
+    Generate a PDF for the user story using the org's PDF settings,
+    then upload it to Nextcloud under Organizations/{org_slug}/Dokumentation/.
+    Returns {"ok": True, "path": "<nextcloud path>"}.
+    """
+    stmt = select(UserStory).where(UserStory.id == story_id)
+    result = await db.execute(stmt)
+    story = result.scalar_one_or_none()
+    if story is None:
+        raise NotFoundException("User story not found")
+
+    # Resolve org
+    org_stmt = select(Organization).where(Organization.id == story.organization_id)
+    org_result = await db.execute(org_stmt)
+    org = org_result.scalar_one_or_none()
+    if org is None:
+        raise NotFoundException("Organisation nicht gefunden")
+
+    # Load PDF settings (fall back to defaults)
+    settings_result = await db.execute(
+        select(PdfSettings).where(PdfSettings.organization_id == story.organization_id)
+    )
+    pdf_settings = settings_result.scalar_one_or_none()
+    if pdf_settings is None:
+        pdf_settings = SimpleNamespace(
+            company_name=None, page_format="a4", language="de",
+            header_text=None, footer_text=None,
+            letterhead_filename=None, logo_filename=None,
+        )
+
+    # Load related data
+    tc_result = await db.execute(select(TestCase).where(TestCase.story_id == story.id))
+    test_cases = tc_result.scalars().all()
+
+    feat_result = await db.execute(select(Feature).where(Feature.story_id == story.id))
+    features = feat_result.scalars().all()
+
+    # Generate PDF → returns cache filename
+    filename = await pdf_service.generate_and_cache(story, pdf_settings, test_cases, features)
+
+    # Read cached PDF bytes
+    cfg = get_settings()
+    pdf_path = Path(cfg.PDF_CACHE_PATH) / filename
+    pdf_bytes = pdf_path.read_bytes()
+
+    # Sanitise story title for filename
+    safe_title = re.sub(r"[^\w\-äöüÄÖÜß ]", "", story.title).strip().replace(" ", "_")
+    safe_title = safe_title[:80] or str(story_id)
+    pdf_filename = f"{safe_title}.pdf"
+
+    dest_path = f"Organizations/{org.slug}/{pdf_filename}"
+    auth = (cfg.NEXTCLOUD_ADMIN_USER, cfg.NEXTCLOUD_ADMIN_APP_PASSWORD)
+
+    dav_base = f"{cfg.NEXTCLOUD_INTERNAL_URL}/remote.php/dav/files/{cfg.NEXTCLOUD_ADMIN_USER}"
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        # Ensure org folder exists
+        for segment in ["Organizations", f"Organizations/{org.slug}"]:
+            r = await client.request("MKCOL", f"{dav_base}/{segment}/", auth=auth)
+            if r.status_code not in (201, 405):
+                logger.warning(f"MKCOL /{segment}/ → {r.status_code}")
+
+        # Upload PDF
+        resp = await client.put(
+            f"{dav_base}/{dest_path}", content=pdf_bytes, auth=auth,
+            headers={"Content-Type": "application/pdf"},
+        )
+        resp.raise_for_status()
+
+    # Persist Nextcloud path in story's generated_docs
+    docs: dict = {}
+    if story.generated_docs:
+        try:
+            docs = json.loads(story.generated_docs)
+        except (json.JSONDecodeError, TypeError):
+            docs = {}
+    docs["nextcloud_path"] = dest_path
+    story.generated_docs = json.dumps(docs, ensure_ascii=False)
+    await db.commit()
+
+    logger.info(f"PDF uploaded to Nextcloud: {dest_path}")
+    return {"ok": True, "path": dest_path, "filename": pdf_filename}
 
 
 @router.post(

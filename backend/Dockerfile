@@ -36,7 +36,7 @@ WORKDIR /app
 COPY --chown=appuser:appuser . .
 
 # Create necessary directories
-RUN mkdir -p /app/logs && chown appuser:appuser /app/logs
+RUN mkdir -p /app/logs /app/pdf_cache /app/pdf_templates && chown appuser:appuser /app/logs /app/pdf_cache /app/pdf_templates
 
 USER appuser
 

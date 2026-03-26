@@ -286,6 +286,7 @@ services:
     restart: unless-stopped
     environment:
       DOCKER_ENABLE_SECURITY: "false"
+      SECURITY_ENABLELOGIN: "false"
       INSTALL_BOOK_AND_ADVANCED_HTML_OPS: "true"
     volumes:
       - assist2_pdf_templates:/app/pdf_templates
@@ -321,6 +322,7 @@ services:
       NEXTCLOUD_TRUSTED_DOMAINS: nextcloud.${DOMAIN}
       NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER}
       NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
+      NEXTCLOUD_TRUSTED_PROXIES: "172.16.0.0/12 10.0.0.0/8"
       MYSQL_HOST: nextcloud-db
       MYSQL_DATABASE: nextcloud
       MYSQL_USER: nextcloud

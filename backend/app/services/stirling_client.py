@@ -12,7 +12,9 @@ class StirlingPDFClient:
     """Wraps Stirling PDF REST API calls."""
 
     def __init__(self) -> None:
-        self._base_url = get_settings().STIRLING_PDF_URL
+        cfg = get_settings()
+        self._base_url = cfg.STIRLING_PDF_URL
+        self._auth = (cfg.STIRLING_PDF_USERNAME, cfg.STIRLING_PDF_PASSWORD) if cfg.STIRLING_PDF_PASSWORD else None
 
     async def html_to_pdf(self, html: str) -> bytes:
         """
@@ -20,13 +22,14 @@ class StirlingPDFClient:
         POST /api/v1/misc/html-to-pdf (multipart: fileInput = HTML file)
         Returns raw PDF bytes.
         """
-        url = f"{self._base_url}/api/v1/misc/html-to-pdf"
+        url = f"{self._base_url}/api/v1/convert/html/pdf"
         html_bytes = html.encode("utf-8")
         async with httpx.AsyncClient(timeout=60.0) as client:
             try:
                 response = await client.post(
                     url,
                     files={"fileInput": ("input.html", html_bytes, "text/html")},
+                    auth=self._auth,
                 )
                 response.raise_for_status()
                 return response.content
@@ -52,6 +55,7 @@ class StirlingPDFClient:
                         "fileInput": ("base.pdf", base_pdf, "application/pdf"),
                         "fileInput2": ("overlay.pdf", overlay_pdf, "application/pdf"),
                     },
+                    auth=self._auth,
                 )
                 response.raise_for_status()
                 return response.content

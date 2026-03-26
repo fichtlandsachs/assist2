@@ -84,7 +84,7 @@
   {% for tc in test_cases %}
   <tr>
     <td>{{ tc.title }}</td>
-    <td>{{ tc.status.value }}</td>
+    <td>{{ tc.result.value }}</td>
     <td>{{ tc.expected_result or '—' }}</td>
   </tr>
   {% endfor %}

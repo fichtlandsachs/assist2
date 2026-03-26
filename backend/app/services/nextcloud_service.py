@@ -88,34 +88,41 @@ def _parse_webdav_response(xml_text: str, org_slug: str) -> List[NextcloudFile]:
 
 
 class NextcloudService:
+    async def _list_at_path(self, dav_path: str) -> List[NextcloudFile]:
+        """PROPFIND a given DAV path (depth 1). Returns empty list on error."""
+        settings = get_settings()
+        url = (
+            f"{settings.NEXTCLOUD_INTERNAL_URL}/remote.php/dav/files/"
+            f"{settings.NEXTCLOUD_ADMIN_USER}/{dav_path.strip('/')}/"
+        )
+        auth = (settings.NEXTCLOUD_ADMIN_USER, settings.NEXTCLOUD_ADMIN_APP_PASSWORD)
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.request(
+                    "PROPFIND", url, auth=auth,
+                    headers={"Depth": "1", "Content-Type": "application/xml"},
+                    content=_PROPFIND_BODY,
+                )
+                resp.raise_for_status()
+                # Use last path segment as slug for directory-skip logic
+                slug = dav_path.strip("/").split("/")[-1]
+                return _parse_webdav_response(resp.text, slug)
+        except Exception as e:
+            logger.warning(f"Nextcloud WebDAV failed for path '{dav_path}': {e}")
+            return []
+
     async def list_files(self, org_slug: str) -> NextcloudFileList:
         """
         PROPFIND /remote.php/dav/files/admin/Organizations/{org_slug}/
         Returns up to 10 most recent files. Returns empty list on any error.
         """
-        settings = get_settings()
-        url = (
-            f"{settings.NEXTCLOUD_INTERNAL_URL}/remote.php/dav/files/"
-            f"{settings.NEXTCLOUD_ADMIN_USER}/Organizations/{org_slug}/"
-        )
-        auth = (settings.NEXTCLOUD_ADMIN_USER, settings.NEXTCLOUD_ADMIN_APP_PASSWORD)
+        files = await self._list_at_path(f"Organizations/{org_slug}")
+        return NextcloudFileList(files=files, nextcloud_url=get_settings().NEXTCLOUD_URL)
 
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.request(
-                    "PROPFIND",
-                    url,
-                    auth=auth,
-                    headers={"Depth": "1", "Content-Type": "application/xml"},
-                    content=_PROPFIND_BODY,
-                )
-                resp.raise_for_status()
-                files = _parse_webdav_response(resp.text, org_slug)
-        except Exception as e:
-            logger.warning(f"Nextcloud WebDAV failed for org '{org_slug}': {e}")
-            files = []
-
-        return NextcloudFileList(files=files, nextcloud_url=settings.NEXTCLOUD_URL)
+    async def list_personal_files(self, user_email: str) -> NextcloudFileList:
+        """List files from Users/{user_email}/ personal folder."""
+        files = await self._list_at_path(f"Users/{user_email}")
+        return NextcloudFileList(files=files, nextcloud_url=get_settings().NEXTCLOUD_URL)
 
 
 nextcloud_service = NextcloudService()

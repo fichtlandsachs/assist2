@@ -5,7 +5,7 @@ import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
 import type { UserStory } from "@/types";
-import { Copy, FileText, Sparkles, Save, ExternalLink, CheckCircle } from "lucide-react";
+import { Copy, FileText, Sparkles, Save, ExternalLink, CheckCircle, FileDown, Folder } from "lucide-react";
 
 interface DocsResult {
   changelog_entry: string;
@@ -13,6 +13,7 @@ interface DocsResult {
   summary: string;
   technical_notes: string;
   confluence_page_url?: string | null;
+  nextcloud_path?: string | null;
 }
 
 interface ConfluenceConfig {
@@ -59,11 +60,34 @@ export default function DocsPage({ params }: { params: { org: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // PDF generation state
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [pdfPath, setPdfPath] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
   // Confluence publish options
   const [confluenceSpaceKey, setConfluenceSpaceKey] = useState<string>("");
   const [confluenceParentPageId, setConfluenceParentPageId] = useState<string>("");
 
   const selectedStory = stories?.find((s) => s.id === selectedStoryId);
+
+  const handleGeneratePdf = async () => {
+    if (!selectedStoryId) return;
+    setPdfGenerating(true);
+    setPdfError(null);
+    setPdfPath(null);
+    try {
+      const res = await apiRequest<{ ok: boolean; path: string; filename: string }>(
+        `/api/v1/user-stories/${selectedStoryId}/docs/pdf`,
+        { method: "POST" }
+      );
+      setPdfPath(res.filename);
+    } catch (err: unknown) {
+      setPdfError((err as { error?: string })?.error ?? "PDF-Erstellung fehlgeschlagen.");
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
 
   // Load previously saved docs when story is selected
   useEffect(() => {
@@ -168,6 +192,8 @@ export default function DocsPage({ params }: { params: { org: string } }) {
                 setResult(null);
                 setSaved(false);
                 setError(null);
+                setPdfPath(null);
+                setPdfError(null);
               }}
               className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
@@ -335,6 +361,13 @@ export default function DocsPage({ params }: { params: { org: string } }) {
               </div>
             )}
 
+            {result.nextcloud_path && (
+              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
+                <Folder size={16} className="shrink-0" />
+                <span className="flex-1">PDF in Nextcloud: <span className="font-mono text-xs">{result.nextcloud_path.split("/").pop()}</span></span>
+              </div>
+            )}
+
             {saved && result.confluence_page_url && (
               <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
                 <CheckCircle size={16} className="shrink-0" />
@@ -357,6 +390,19 @@ export default function DocsPage({ params }: { params: { org: string } }) {
               </div>
             )}
 
+            {pdfError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {pdfError}
+              </div>
+            )}
+
+            {pdfPath && (
+              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                <CheckCircle size={16} className="shrink-0" />
+                <span>PDF gespeichert in Nextcloud: <span className="font-mono text-xs">{pdfPath}</span></span>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 onClick={() => void handleSave()}
@@ -369,6 +415,18 @@ export default function DocsPage({ params }: { params: { org: string } }) {
                   <Save size={16} />
                 )}
                 {confluenceSpaceKey ? "Speichern & in Confluence veröffentlichen" : "Speichern"}
+              </button>
+              <button
+                onClick={() => void handleGeneratePdf()}
+                disabled={pdfGenerating}
+                className="flex items-center gap-2 px-5 py-2.5 bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                {pdfGenerating ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                ) : (
+                  <FileDown size={16} />
+                )}
+                {pdfGenerating ? "PDF wird erstellt…" : "PDF erstellen"}
               </button>
             </div>
           </div>

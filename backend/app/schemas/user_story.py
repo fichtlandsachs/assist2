@@ -92,6 +92,7 @@ class StoryDocsRead(BaseModel):
     confluence_page_url: Optional[str] = None
     additional_info: Optional[str] = None
     workarounds: Optional[str] = None
+    nextcloud_path: Optional[str] = None
 
 
 class EpicCreate(BaseModel):

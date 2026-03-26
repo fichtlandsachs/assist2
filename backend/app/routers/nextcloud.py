@@ -97,6 +97,71 @@ async def download_nextcloud_file(
     )
 
 
+@router.get(
+    "/organizations/{org_id}/nextcloud/files/personal",
+    response_model=NextcloudFileList,
+    tags=["Nextcloud"],
+)
+async def get_personal_files(
+    org_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> NextcloudFileList:
+    """List files from the current user's personal Nextcloud folder."""
+    membership_result = await db.execute(
+        select(Membership).where(
+            Membership.user_id == current_user.id,
+            Membership.organization_id == org_id,
+            Membership.status == "active",
+        )
+    )
+    if not membership_result.scalar_one_or_none():
+        raise ForbiddenException()
+
+    return await nextcloud_service.list_personal_files(current_user.email)
+
+
+@router.post(
+    "/organizations/{org_id}/nextcloud/files/personal/upload",
+    response_model=NextcloudUploadResult,
+    tags=["Nextcloud"],
+)
+async def upload_personal_file(
+    org_id: uuid.UUID,
+    file: UploadFile,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> NextcloudUploadResult:
+    """Upload a file to the current user's personal Nextcloud folder."""
+    membership_result = await db.execute(
+        select(Membership).where(
+            Membership.user_id == current_user.id,
+            Membership.organization_id == org_id,
+            Membership.status == "active",
+        )
+    )
+    if not membership_result.scalar_one_or_none():
+        raise ForbiddenException()
+
+    settings = get_settings()
+    auth = (settings.NEXTCLOUD_ADMIN_USER, settings.NEXTCLOUD_ADMIN_APP_PASSWORD)
+    dav_base = f"{settings.NEXTCLOUD_INTERNAL_URL}/remote.php/dav/files/{settings.NEXTCLOUD_ADMIN_USER}"
+
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        # Ensure personal folder exists
+        for segment in ["Users", f"Users/{current_user.email}"]:
+            r = await client.request("MKCOL", f"{dav_base}/{segment}/", auth=auth)
+            if r.status_code not in (201, 405):
+                pass  # May already exist
+
+        dest_path = f"Users/{current_user.email}/{file.filename}"
+        content = await file.read()
+        resp = await client.put(f"{dav_base}/{dest_path}", content=content, auth=auth)
+        resp.raise_for_status()
+
+    return NextcloudUploadResult(ok=True, path=dest_path)
+
+
 @router.post(
     "/organizations/{org_id}/nextcloud/files/upload",
     response_model=NextcloudUploadResult,
