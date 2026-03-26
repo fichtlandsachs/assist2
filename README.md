@@ -1,73 +1,92 @@
 # assist2
 
-Eine KI-gestützte Plattform für generatives Lernen und maximale persönliche Unterstützung.
+**Compliance-fähiges Prozessdokumentationssystem mit BCM-Fokus**
+
+Automatisierte Generierung strukturierter Prozessdokumentation, Draw.io-Diagramme
+und Compliance-Analysen (NIS2 / KRITIS / BCM) aus User Stories, Anforderungen
+und technischen Artefakten.
+
+assist2 ist kein generischer Textgenerator – sondern eine **regelbasierte,
+templategetriebene, auditierbare Dokumentations-Engine**.
 
 ---
 
 ## Was ist assist2?
 
-**assist2** begleitet Menschen in Lern- und Entwicklungsprozessen – individuell, adaptiv
-und kontinuierlich. Das System versteht nicht nur Aufgaben, sondern auch die Person dahinter:
-ihren Wissensstand, ihre Lernweise, ihre Ziele und ihren Fortschritt.
+Compliance-Dokumentation entsteht heute durch manuelle, fehleranfällige Arbeit:
+Consultants lesen User Stories, leiten Prozesse ab, füllen Templates aus,
+prüfen gegen NIS2/KRITIS-Anforderungen und pflegen Draw.io-Diagramme.
 
-Anders als klassische Assistenzsysteme liegt der Schwerpunkt nicht auf der einmaligen
-Beantwortung von Fragen, sondern auf dem **Aufbau nachhaltigen Verständnisses** durch
-generative Lernprozesse. assist2 begleitet aktiv, erkennt Wissenslücken, passt Inhalte
-an und entwickelt sich gemeinsam mit dem Lernenden weiter.
-
----
-
-## Leitprinzipien
-
-### 1. Prozessorientierung vor Ergebnisorientierung
-Nicht die schnelle Antwort steht im Vordergrund, sondern der Weg dorthin.
-assist2 führt Lernende durch strukturierte Prozesse: Verstehen → Anwenden →
-Reflektieren → Vertiefen. Jede Interaktion ist Teil einer langen Lernkette.
-
-### 2. Generatives Lernen
-Wissen entsteht durch aktive Auseinandersetzung. assist2 stellt Fragen statt
-Antworten zu liefern, fordert zur Eigenproduktion auf, gibt gezielte Impulse
-und generiert maßgeschneiderte Übungen, Szenarien und Erklärungen – individuell
-für jede Person und jeden Kontext.
-
-### 3. Maximale persönliche Unterstützung
-Das System kennt seinen Nutzer. Es führt ein dynamisches Lernprofil, erkennt
-Muster (Motivationstiefs, Blockaden, Stärken) und passt Ton, Tempo und
-Schwierigkeitsgrad jederzeit an. Unterstützung bedeutet hier: zur richtigen Zeit
-das Richtige – weder zu viel noch zu wenig.
+assist2 automatisiert genau diesen Prozess – mit einem entscheidenden Unterschied
+zu generischen KI-Tools: **Das System erfindet keine Informationen.**
+Fehlende Daten werden explizit markiert, Compliance wird nie automatisch bestätigt,
+jede Ableitung ist auf ihre Quelle zurückführbar.
 
 ---
 
 ## Kernfunktionen
 
-### Adaptiver Lernpfad
-- Automatische Einschätzung des aktuellen Wissensstands (Onboarding-Diagnose)
-- Dynamische Anpassung von Inhalten, Tempo und Schwierigkeitsgrad
-- Lernziele werden gemeinsam definiert und laufend überprüft
-- Verzweigungen im Lernpfad basierend auf Antwortqualität und Verhalten
+### Prozessdokumentation
+Generiert vollständige, strukturierte Dokumente aus Roheingaben:
+- **SOP** (Standard Operating Procedures)
+- **Runbooks**
+- **Incident Response Playbooks**
+- **Change-Management-Prozesse**
+- **Backup & Recovery Prozesse**
 
-### Generative Inhaltsproduktion
-- Aufgaben, Übungen und Erklärungen werden in Echtzeit erzeugt – nie von der Stange
-- Anpassung an Fachgebiet, Sprachniveau, Lernstil und verfügbare Zeit
-- Szenario-basiertes Lernen: realitätsnahe Situationen statt abstrakter Theorie
-- Lückentexte, Quizze, Reflexionsfragen, Fallstudien – alle generativ erstellt
+Jedes Dokument enthält: Zweck, Scope, Rollen, Ablauf, Ausnahmen,
+Risiken, Controls, Abhängigkeiten und explizit markierte offene Punkte.
 
-### Persönliches Lernprofil
-- Langzeitgedächtnis über alle Sitzungen hinweg
-- Tracking von Stärken, Schwächen, Interessen und Lernhistorie
-- Erkennung von Wiederholungsbedarfen (Spaced Repetition)
-- Sichtbarmachen des eigenen Fortschritts (Lernkurven, Meilensteine)
+### Template Engine
+Regelbasierte Templates mit Pflichtkapiteln, optionalen Sektionen
+und Qualitätsregeln. Templates sind als YAML-Dateien versionierbar.
 
-### Aktive Begleitung & Coaching
-- Proaktive Erinnerungen und Lernimpulse
-- Motivation durch Anerkennung von Fortschritten
-- Erkennung von Frustration oder Stagnation → automatische Kursanpassung
-- Reflexionsgespräche nach abgeschlossenen Einheiten
+### Draw.io Diagramm-Generierung
+Automatische Erzeugung von:
+- Flowcharts
+- Swimlane-Diagrammen (rollenbasiert)
+- Entscheidungsbäumen
+- Recovery-Flows
+- Dependency Graphs
 
-### Prozess-Transparenz
-- Jeder Schritt im Lernprozess ist nachvollziehbar dokumentiert
-- Lernende sehen, warum welche Inhalte vorgeschlagen werden
-- Lehrende / Coaches erhalten Einblick in Lernverläufe und können eingreifen
+Output: draw.io XML (mxGraphModel), optional SVG/PNG.
+
+### Compliance Layer (NIS2 / KRITIS)
+Mapping von Prozessen auf regulatorische Anforderungen mit
+ehrlicher Bewertung: **erfüllt / teilweise / nicht vorhanden** –
+niemals automatische Compliance-Bestätigung.
+
+### Business Continuity Management (BCM)
+- Business Impact Analysis (RTO, RPO, MTD)
+- Risikoanalyse mit Wahrscheinlichkeit und Impact
+- Recovery-Strategien (Cold / Warm / Hot)
+- Notfallprozesse und Kommunikationspläne
+- Testszenarien für Failover und Recovery
+
+### Audit & Traceability
+Jeder generierte Abschnitt trägt:
+- Quell-Referenz (Story / Requirement)
+- Ableitungsstatus: `DIRECT` | `INTERPRETED` | `OPEN`
+- Confidence Level (0.0 – 1.0)
+
+### Jira & Confluence Integration (MVP)
+- User Stories und Epics direkt aus Jira importieren
+- Fertige Dokumente nach Confluence exportieren
+- Bidirektionales Linking zwischen Dokumenten und Tickets
+
+---
+
+## Qualitätsregeln (nicht verhandelbar)
+
+Das System darf **NICHT**:
+- Inhalte halluzinieren
+- fehlende Daten erfinden
+- Compliance automatisch bestätigen
+
+Stattdessen:
+- fehlende Informationen als `[OFFEN]` markieren
+- Annahmen explizit kennzeichnen
+- offene Punkte in dediziertem Abschnitt ausweisen
 
 ---
 
@@ -75,11 +94,11 @@ das Richtige – weder zu viel noch zu wenig.
 
 | Zielgruppe | Anwendungsfall |
 |---|---|
-| Einzelpersonen | Selbstgesteuertes Lernen eines neuen Fachgebiets |
-| Berufseinsteiger | Onboarding und Kompetenzaufbau im Job |
-| Unternehmen | Mitarbeiterentwicklung, interne Weiterbildung |
-| Bildungseinrichtungen | Digitale Lernbegleitung für Schüler/Studierende |
-| Coaches & Trainer | KI-gestützte Begleitung ihrer Klientel |
+| IT-Security-Teams | NIS2/KRITIS-Dokumentation automatisieren |
+| BCM-Verantwortliche | BIA, Recovery-Pläne, Testszenarien erstellen |
+| Compliance-Officers | Audit-fähige Nachweise erzeugen |
+| IT-Betrieb | SOPs und Runbooks aus Ticket-Daten generieren |
+| Berater | Kundendokumentation strukturiert und nachvollziehbar liefern |
 
 ---
 
@@ -87,17 +106,34 @@ das Richtige – weder zu viel noch zu wenig.
 
 | Schicht | Technologie |
 |---|---|
-| Laufzeit | Node.js 22 (TypeScript) |
-| API-Server | Fastify |
-| KI-Core | Anthropic Claude (claude-opus-4-6 / claude-sonnet-4-6) |
-| Lernprofil-Speicher | PostgreSQL + pgvector |
-| Spaced-Repetition-Engine | Eigene Implementierung (SM-2-Algorithmus) |
-| Cache & Sessions | Redis |
-| Hintergrundprozesse | BullMQ |
-| Echtzeit-Kommunikation | WebSocket (Streaming) |
+| Backend | Python 3.12, FastAPI |
+| LLM-Proxy | LiteLLM (Provider-agnostisch: Claude, OpenAI, Azure, lokal) |
+| KI-Primärmodell | Anthropic Claude (claude-sonnet-4-6) |
+| Datenbank | PostgreSQL 16 + pgvector |
+| Migrationen | Alembic |
+| ORM | SQLAlchemy 2.0 |
+| Task Queue | Celery + Redis |
+| Frontend | Next.js 15 (App Router), shadcn/ui, Tailwind CSS |
+| Diagramme | draw.io XML-Generierung (mxGraphModel) |
+| Export | Markdown, DOCX (python-docx), PDF (WeasyPrint) |
+| Integrationen | Jira REST API, Confluence REST API |
 | Containerisierung | Docker / Docker Compose |
-| Tests | Vitest |
+| Tests | pytest, httpx |
 | CI/CD | GitHub Actions |
+
+---
+
+## MVP Scope
+
+Phase 1 (implementiert zuerst):
+- SOP Generator
+- Runbook Generator
+- Draw.io Export (Flowchart + Swimlane)
+- Basis NIS2 Mapping
+- Einfache BIA (RTO/RPO)
+- Markdown + DOCX Export
+- Jira Import / Confluence Export
+- Offene Punkte Kennzeichnung
 
 ---
 
@@ -106,10 +142,10 @@ das Richtige – weder zu viel noch zu wenig.
 ```bash
 git clone https://github.com/fichtlandsachs/assist2.git
 cd assist2
-npm install
 cp .env.example .env
-# ANTHROPIC_API_KEY und Datenbankverbindung in .env eintragen
-npm run dev
+# LITELLM_API_BASE, ANTHROPIC_API_KEY, DB-URL,
+# JIRA_URL, JIRA_TOKEN, CONFLUENCE_URL eintragen
+docker compose up
 ```
 
 ---
@@ -118,26 +154,41 @@ npm run dev
 
 ```
 assist2/
-├── src/
-│   ├── api/                # HTTP- und WebSocket-Endpunkte
-│   ├── learning/
-│   │   ├── profile/        # Lernprofil-Verwaltung
-│   │   ├── path/           # Adaptiver Lernpfad
-│   │   ├── content/        # Generative Inhaltserzeugung
-│   │   ├── repetition/     # Spaced-Repetition-Engine
-│   │   └── coaching/       # Coaching- und Motivationslogik
-│   ├── agents/             # KI-Agenten (Tutor, Coach, Assessor)
-│   ├── memory/             # Langzeit- und Kurzzeit-Gedächtnis
-│   ├── providers/          # KI-Provider-Adapter
-│   ├── queue/              # Hintergrundaufgaben
-│   ├── db/                 # Datenbankmodelle und Migrationen
-│   └── config/
-├── tests/
-├── docker/
-├── docs/
-├── ARCHITECTURE.md
-└── README.md
+├── backend/
+│   ├── app/
+│   │   ├── api/              # FastAPI Routen
+│   │   ├── engine/
+│   │   │   ├── normalizer/   # Input Normalisierung
+│   │   │   ├── templates/    # Template Engine + YAML-Templates
+│   │   │   ├── generators/   # SOP, Runbook, Incident Generator
+│   │   │   ├── compliance/   # NIS2/KRITIS Mapping Engine
+│   │   │   ├── bcm/          # BIA, Risiko, Recovery Engine
+│   │   │   └── diagrams/     # Draw.io XML Generator
+│   │   ├── integrations/
+│   │   │   ├── jira/         # Jira REST Client
+│   │   │   └── confluence/   # Confluence REST Client
+│   │   ├── models/           # SQLAlchemy Modelle
+│   │   ├── schemas/          # Pydantic Schemas
+│   │   └── audit/            # Traceability Layer
+│   ├── alembic/              # Datenbankmigrationen
+│   └── tests/
+├── frontend/
+│   ├── app/                  # Next.js App Router
+│   └── components/
+│       └── ui/               # shadcn/ui Komponenten
+├── templates/                # YAML Template-Definitionen
+├── docker-compose.yml
+└── .env.example
 ```
+
+---
+
+## Nicht-Ziele
+
+- Freie Textgenerierung ohne Struktur
+- Ungeprüfte technische Aussagen
+- Fehlende Traceability
+- „Fake Compliance"
 
 ---
 
