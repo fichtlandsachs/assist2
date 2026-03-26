@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
-import type { CalendarEvent, CalendarProvider } from "@/types";
+import type { CalendarConnection, CalendarEvent, CalendarProvider } from "@/types";
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from "lucide-react";
 
 const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -80,6 +80,11 @@ export default function CalendarPage({ params }: { params: { org: string } }) {
     org
       ? `/api/v1/calendar/events?org_id=${org.id}&from=${monthStart.toISOString()}&to=${monthEnd.toISOString()}`
       : null,
+    fetcher
+  );
+
+  const { data: connections } = useSWR<CalendarConnection[]>(
+    org ? `/api/v1/calendar/connections?org_id=${org.id}` : null,
     fetcher
   );
 
@@ -292,6 +297,49 @@ export default function CalendarPage({ params }: { params: { org: string } }) {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Connected Calendars */}
+      {connections && connections.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3">Verbundene Kalender</h3>
+          <div className="space-y-3">
+            {connections.map((conn) => (
+              <div key={conn.id} className="flex flex-col gap-1 pb-3 border-b border-slate-100 last:border-0 last:pb-0">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${conn.is_active ? "bg-green-500" : "bg-slate-300"}`} />
+                  <span className="text-sm font-medium text-slate-800">
+                    {conn.display_name ?? conn.email_address}
+                  </span>
+                  <span className="text-xs text-slate-400 capitalize">{conn.provider}</span>
+                </div>
+                {conn.display_name && (
+                  <p className="text-xs text-slate-500 pl-4">{conn.email_address}</p>
+                )}
+                {/* Sync Interval */}
+                <div className="flex items-center gap-2 mt-2 pl-4">
+                  <label className="text-xs text-slate-500 whitespace-nowrap">Sync-Intervall:</label>
+                  <select
+                    defaultValue={conn.sync_interval_minutes ?? 30}
+                    onChange={async (e) => {
+                      const interval = Number(e.target.value);
+                      await apiRequest(`/api/v1/calendar/connections/${conn.id}`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ sync_interval_minutes: interval }),
+                      });
+                    }}
+                    className="text-xs border border-slate-200 rounded px-2 py-1 bg-white text-slate-700"
+                  >
+                    <option value={15}>15 Minuten</option>
+                    <option value={30}>30 Minuten</option>
+                    <option value={60}>60 Minuten</option>
+                    <option value={120}>2 Stunden</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
