@@ -64,6 +64,7 @@ async def retrieve(query: str, org_id: uuid.UUID, db: AsyncSession) -> RagResult
             SELECT chunk_text, 1 - (embedding <=> :embedding ::vector) AS score
             FROM document_chunks
             WHERE org_id = :org_id
+              AND embedding IS NOT NULL
             ORDER BY score DESC
             LIMIT 5
         """)

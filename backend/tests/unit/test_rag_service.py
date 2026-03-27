@@ -117,3 +117,84 @@ async def test_retrieve_db_error_fallback():
         result = await retrieve("test query", uuid.uuid4(), mock_db)
 
     assert result.mode == "none"
+
+
+@pytest.mark.asyncio
+async def test_retrieve_direct_mode_at_boundary():
+    """Score exactly 0.92 → mode='direct' (boundary is inclusive)."""
+    from app.services.rag_service import retrieve
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock()
+    mock_db.execute.return_value.fetchall = MagicMock(
+        return_value=[make_db_row("Grenzwert Text", 0.92)]
+    )
+
+    with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
+        mock_embed.return_value = [0.1] * 1536
+        result = await retrieve("test query", uuid.uuid4(), mock_db)
+
+    assert result.mode == "direct"
+    assert result.direct_answer == "Grenzwert Text"
+
+
+@pytest.mark.asyncio
+async def test_retrieve_context_mode_at_boundary():
+    """Score exactly 0.50 → mode='context' (boundary is inclusive)."""
+    from app.services.rag_service import retrieve
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock()
+    mock_db.execute.return_value.fetchall = MagicMock(
+        return_value=[make_db_row("Kontext Text", 0.50)]
+    )
+
+    with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
+        mock_embed.return_value = [0.1] * 1536
+        result = await retrieve("test query", uuid.uuid4(), mock_db)
+
+    assert result.mode == "context"
+    assert len(result.chunks) == 1
+
+
+@pytest.mark.asyncio
+async def test_retrieve_none_just_below_context_threshold():
+    """Score just below 0.50 → mode='none'."""
+    from app.services.rag_service import retrieve
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock()
+    mock_db.execute.return_value.fetchall = MagicMock(
+        return_value=[make_db_row("Irrelevant", 0.499)]
+    )
+
+    with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
+        mock_embed.return_value = [0.1] * 1536
+        result = await retrieve("test query", uuid.uuid4(), mock_db)
+
+    assert result.mode == "none"
+
+
+@pytest.mark.asyncio
+async def test_retrieve_context_truncates_to_max_chunks():
+    """5 qualifying context-range rows → only MAX_CHUNKS (3) returned."""
+    from app.services.rag_service import retrieve
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock()
+    mock_db.execute.return_value.fetchall = MagicMock(
+        return_value=[
+            make_db_row("Chunk 1", 0.80),
+            make_db_row("Chunk 2", 0.75),
+            make_db_row("Chunk 3", 0.70),
+            make_db_row("Chunk 4", 0.65),
+            make_db_row("Chunk 5", 0.60),
+        ]
+    )
+
+    with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
+        mock_embed.return_value = [0.1] * 1536
+        result = await retrieve("test query", uuid.uuid4(), mock_db)
+
+    assert result.mode == "context"
+    assert len(result.chunks) == 3
