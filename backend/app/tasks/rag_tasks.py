@@ -111,6 +111,9 @@ async def _list_org_files(org_slug: str) -> list[dict]:
         if not href.startswith(expected_prefix):
             logger.warning("Skipping href with unexpected prefix (possible path traversal): %s", href)
             continue
+        if "/../" in href or href.endswith("/.."):
+            logger.warning("Skipping href with traversal segments: %s", href)
+            continue
         propstat = response.find(f"{{{DAV}}}propstat")
         if propstat is None:
             continue
@@ -138,6 +141,8 @@ async def _download_file(href: str) -> bytes:
 
 async def _embed_chunks(chunks: list[str]) -> list[list[float]]:
     """Embed a list of text chunks via LiteLLM in a single batch call."""
+    if not chunks:
+        return []
     from app.config import get_settings
     settings = get_settings()
     headers = {"Content-Type": "application/json"}
@@ -237,8 +242,8 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
             logger.info("Indexed %d chunks for %s", len(chunks), href)
         except Exception as e:
             await db.rollback()
-            logger.warning("Failed to commit chunks for %s: %s", href, e)
-            continue
+            logger.error("Failed to commit chunks for %s: %s", href, e)
+            raise
 
 
 @celery.task(name="rag_tasks.index_org_documents", bind=True, max_retries=3)

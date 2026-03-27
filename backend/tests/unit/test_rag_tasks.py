@@ -1,4 +1,5 @@
 """Unit tests for rag_tasks.index_org_documents — all IO mocked."""
+import hashlib
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import uuid
@@ -11,22 +12,22 @@ async def test_index_skips_unchanged_file():
 
     org_id = str(uuid.uuid4())
     org_slug = "test-org"
+    pdf_bytes = b"pdf-bytes"
+    real_hash = hashlib.sha256(pdf_bytes).hexdigest()
 
     mock_db = AsyncMock()
-    # Simulate existing hash match
     mock_db.execute = AsyncMock()
-    mock_db.execute.return_value.scalar_one_or_none = MagicMock(return_value="abc123")
+    mock_db.execute.return_value.scalar_one_or_none = MagicMock(return_value=real_hash)
 
-    file_list = [{"href": f"/remote.php/dav/files/admin/Organizations/{org_slug}/doc.pdf",
-                  "content_type": "application/pdf"}]
+    prefix = f"/remote.php/dav/files/admin/Organizations/{org_slug}/"
+    file_list = [{"href": f"{prefix}doc.pdf", "content_type": "application/pdf"}]
 
     with patch("app.tasks.rag_tasks._list_org_files", new_callable=AsyncMock) as mock_list, \
          patch("app.tasks.rag_tasks._download_file", new_callable=AsyncMock) as mock_dl, \
-         patch("app.tasks.rag_tasks._sha256", return_value="abc123"), \
          patch("app.tasks.rag_tasks._embed_chunks", new_callable=AsyncMock) as mock_embed:
 
         mock_list.return_value = file_list
-        mock_dl.return_value = b"pdf-bytes"
+        mock_dl.return_value = pdf_bytes
 
         await _index_org_documents_async(org_id, org_slug, mock_db)
 
@@ -166,9 +167,11 @@ async def test_index_deletes_old_chunks_before_insert():
 
         await _index_org_documents_async(org_id, org_slug, mock_db)
 
-    # delete was called (for old chunks) and commit was called (for new chunks)
-    mock_db.execute.assert_called()
+    # Verify the delete statement was executed (second execute call, after SELECT)
+    assert mock_db.execute.call_count >= 2  # SELECT + DELETE
     mock_db.commit.assert_called_once()
+    # Verify db.add was called for new chunks
+    mock_db.add.assert_called_once()
 
 
 @pytest.mark.asyncio
