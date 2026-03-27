@@ -1,9 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { Mic, Square } from "lucide-react";
-import { getAccessToken } from "@/lib/api/client";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { getAccessToken, API_BASE } from "@/lib/api/client";
 
 interface VoiceRecorderProps {
   onTranscription: (text: string) => void;

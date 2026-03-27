@@ -354,4 +354,6 @@ services:
     networks:
       - internal
       - proxy
+    labels:
+      - "traefik.enable=false"
 
