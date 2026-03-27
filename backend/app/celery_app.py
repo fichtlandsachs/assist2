@@ -13,6 +13,7 @@ celery = Celery(
         "app.tasks.agent_tasks",
         "app.tasks.pdf_tasks",
         "app.tasks.sync_dispatcher",
+        "app.tasks.rag_tasks",
     ]
 )
 
@@ -30,10 +31,14 @@ celery.conf.update(
 celery.conf.beat_schedule = {
     "dispatch-mail-sync": {
         "task": "sync_dispatcher.dispatch_mail_sync",
-        "schedule": 60.0,  # every 60 seconds
+        "schedule": 60.0,
     },
     "dispatch-calendar-sync": {
         "task": "sync_dispatcher.dispatch_calendar_sync",
-        "schedule": 60.0,  # every 60 seconds
+        "schedule": 60.0,
+    },
+    "dispatch-rag-index": {
+        "task": "sync_dispatcher.dispatch_rag_index",
+        "schedule": 86400.0,  # once per day
     },
 }
