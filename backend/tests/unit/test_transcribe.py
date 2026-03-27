@@ -2,7 +2,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import UploadFile
-from io import BytesIO
 
 
 def make_whisper_response(status_code: int, text: str = "Hallo Welt") -> MagicMock:

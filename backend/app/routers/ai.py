@@ -28,7 +28,7 @@ async def transcribe(
                 data={"model": "whisper-1", "language": "de"},
             )
             resp.raise_for_status()
-        return {"text": resp.json()["text"]}
+            return {"text": resp.json().get("text", "")}
     except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
         logger.warning("Whisper service error: %s", e)
         raise HTTPException(status_code=503, detail="Transkriptions-Service nicht erreichbar")
