@@ -306,7 +306,10 @@ async def ai_suggest(
     if story_obj:
         await _check_llm_allowed(story_obj.organization_id, db)
 
-    suggestion = await get_story_suggestions(data, ai_settings=ai_settings)
+    org_id_for_rag = story_obj.organization_id if story_obj else None
+    suggestion = await get_story_suggestions(
+        data, ai_settings=ai_settings, org_id=org_id_for_rag, db=db
+    )
 
     # Persist quality_score (and full suggestion JSON) on the story when story_id given
     if story_obj:

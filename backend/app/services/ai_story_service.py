@@ -10,6 +10,10 @@ from __future__ import annotations
 import json
 import logging
 import time
+import uuid
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 import anthropic
 from pydantic import BaseModel
@@ -167,7 +171,10 @@ def _recover_truncated_json(text: str) -> dict | None:
 # ---------------------------------------------------------------------------
 
 async def get_story_suggestions(
-    data: AISuggestRequest, ai_settings: dict | None = None
+    data: AISuggestRequest,
+    ai_settings: dict | None = None,
+    org_id: uuid.UUID | None = None,
+    db: "AsyncSession | None" = None,
 ) -> AISuggestion:
     """
     Analyze a User Story draft and return improvement suggestions.
@@ -187,8 +194,30 @@ async def get_story_suggestions(
 
     logger.debug("get_story_suggestions context=%s score=%s", ctx, complexity)
 
+    # 0. RAG retrieval (org-scoped, optional)
+    rag_context_block: str | None = None
+    if org_id is not None and db is not None:
+        try:
+            from app.services.rag_service import retrieve
+            rag = await retrieve(f"{data.title} {data.description}", org_id, db)
+            if rag.mode == "direct" and rag.direct_answer:
+                return AISuggestion(
+                    title=None,
+                    description=None,
+                    acceptance_criteria=None,
+                    explanation=f"Aus Org-Wissensbank: {rag.direct_answer}",
+                    dor_issues=[],
+                    quality_score=None,
+                )
+            if rag.mode == "context" and rag.chunks:
+                rag_context_block = "\n".join(
+                    [f"[Kontext]\n{c}" for c in rag.chunks]
+                )
+        except Exception as e:
+            logger.warning("RAG retrieval error (skipping): %s", e)
+
     # 2. Build prompt
-    prompt = _build_suggest_prompt(data)
+    prompt = _build_suggest_prompt(data, rag_context=rag_context_block)
 
     # 3. Execute via pipeline (single or multi)
     t0 = time.monotonic()
@@ -202,8 +231,15 @@ async def get_story_suggestions(
     return AISuggestion(**parsed)
 
 
-def _build_suggest_prompt(data: AISuggestRequest) -> str:
-    return f"""Analysiere diese User Story und gib Verbesserungsvorschläge zurück.
+def _build_suggest_prompt(data: AISuggestRequest, rag_context: str | None = None) -> str:
+    context_section = ""
+    if rag_context:
+        context_section = f"""--- Org-Wissen (aus Nextcloud) ---
+{rag_context}
+---------------------------------
+
+"""
+    return f"""{context_section}Analysiere diese User Story und gib Verbesserungsvorschläge zurück.
 
 Aktuelle Story:
 Titel: {data.title or "(leer)"}
