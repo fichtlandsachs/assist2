@@ -316,7 +316,7 @@ async def ai_suggest(
         story_obj.quality_score = suggestion.quality_score
         story_obj.ai_suggestions = json.dumps(suggestion.model_dump(), ensure_ascii=False)
         await db.commit()
-        logger.info("quality_score=%d persisted for story %s", suggestion.quality_score, data.story_id)
+        logger.info("quality_score=%s persisted for story %s", suggestion.quality_score, data.story_id)
 
     return AISuggestResponse(suggestions=suggestion)
 

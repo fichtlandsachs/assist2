@@ -68,7 +68,7 @@ class AISuggestion(BaseModel):
     acceptance_criteria: Optional[str] = None
     explanation: str
     dor_issues: list[str] = []
-    quality_score: int  # 0-100
+    quality_score: Optional[int] = None  # 0-100; None when answered from RAG knowledge base
 
 
 class AISuggestResponse(BaseModel):

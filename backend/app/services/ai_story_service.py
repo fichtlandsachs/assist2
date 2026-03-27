@@ -186,7 +186,7 @@ async def get_story_suggestions(
     """
     model_override = (ai_settings or {}).get("model_override", "")
 
-    # 1. Context analysis (heuristic, no LLM)
+    # 0. Context analysis (heuristic, no LLM)
     ctx = analyze_context(data.title, data.description, data.acceptance_criteria)
     complexity = score_complexity(ctx)
     client, provider = _make_client("story", ai_settings)
@@ -194,7 +194,7 @@ async def get_story_suggestions(
 
     logger.debug("get_story_suggestions context=%s score=%s", ctx, complexity)
 
-    # 0. RAG retrieval (org-scoped, optional)
+    # 1. RAG retrieval (org-scoped, optional)
     rag_context_block: str | None = None
     if org_id is not None and db is not None:
         try:
@@ -216,7 +216,7 @@ async def get_story_suggestions(
         except Exception as e:
             logger.warning("RAG retrieval error (skipping): %s", e)
 
-    # 2. Build prompt
+    # 2. Build prompt (with optional RAG context)
     prompt = _build_suggest_prompt(data, rag_context=rag_context_block)
 
     # 3. Execute via pipeline (single or multi)
