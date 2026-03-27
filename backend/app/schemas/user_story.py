@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Literal, Optional
 from datetime import datetime
 import uuid
 from app.models.user_story import StoryStatus, StoryPriority
@@ -69,6 +69,7 @@ class AISuggestion(BaseModel):
     explanation: str
     dor_issues: list[str] = []
     quality_score: Optional[int] = None  # 0-100; None when answered from RAG knowledge base
+    source: Literal["rag_direct", "rag_context", "llm"] = "llm"
 
 
 class AISuggestResponse(BaseModel):

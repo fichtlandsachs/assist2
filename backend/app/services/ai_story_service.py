@@ -196,6 +196,7 @@ async def get_story_suggestions(
 
     # 1. RAG retrieval (org-scoped, optional)
     rag_context_block: str | None = None
+    rag_source: str = "llm"
     if org_id is not None and db is not None:
         try:
             from app.services.rag_service import retrieve
@@ -205,14 +206,16 @@ async def get_story_suggestions(
                     title=None,
                     description=None,
                     acceptance_criteria=None,
-                    explanation=f"Aus Org-Wissensbank: {rag.direct_answer}",
+                    explanation=rag.direct_answer,
                     dor_issues=[],
                     quality_score=None,
+                    source="rag_direct",
                 )
             if rag.mode == "context" and rag.chunks:
                 rag_context_block = "\n".join(
                     [f"[Kontext]\n{c}" for c in rag.chunks]
                 )
+                rag_source = "rag_context"
         except Exception as e:
             logger.warning("RAG retrieval error (skipping): %s", e)
 
@@ -228,7 +231,7 @@ async def get_story_suggestions(
 
     # 4. Parse and return
     parsed = _parse_json(raw)
-    return AISuggestion(**parsed)
+    return AISuggestion(**parsed, source=rag_source)
 
 
 def _build_suggest_prompt(data: AISuggestRequest, rag_context: str | None = None) -> str:
