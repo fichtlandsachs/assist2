@@ -5,7 +5,7 @@ import asyncio
 import hashlib
 import logging
 import uuid
-from typing import Any
+import xml.etree.ElementTree as ET
 
 import httpx
 from sqlalchemy import delete, select
@@ -73,6 +73,10 @@ async def _list_org_files(org_slug: str) -> list[dict]:
     from app.config import get_settings
     settings = get_settings()
 
+    expected_prefix = (
+        f"/remote.php/dav/files/{settings.NEXTCLOUD_ADMIN_USER}/Organizations/{org_slug}/"
+    )
+
     propfind_body = b"""<?xml version="1.0"?>
 <d:propfind xmlns:d="DAV:">
   <d:prop><d:getcontenttype/></d:prop>
@@ -92,7 +96,6 @@ async def _list_org_files(org_slug: str) -> list[dict]:
         )
         resp.raise_for_status()
 
-    import xml.etree.ElementTree as ET
     root = ET.fromstring(resp.text)
     DAV = "DAV:"
     files = []
@@ -103,6 +106,10 @@ async def _list_org_files(org_slug: str) -> list[dict]:
         href = href_el.text or ""
         # Skip root folder itself
         if href.rstrip("/").endswith(f"Organizations/{org_slug}"):
+            continue
+        # Validate href prefix to prevent path traversal
+        if not href.startswith(expected_prefix):
+            logger.warning("Skipping href with unexpected prefix (possible path traversal): %s", href)
             continue
         propstat = response.find(f"{{{DAV}}}propstat")
         if propstat is None:
@@ -130,30 +137,31 @@ async def _download_file(href: str) -> bytes:
 
 
 async def _embed_chunks(chunks: list[str]) -> list[list[float]]:
-    """Embed a list of text chunks via LiteLLM. Returns list of vectors."""
+    """Embed a list of text chunks via LiteLLM in a single batch call."""
     from app.config import get_settings
     settings = get_settings()
     headers = {"Content-Type": "application/json"}
     if settings.LITELLM_API_KEY:
         headers["Authorization"] = f"Bearer {settings.LITELLM_API_KEY}"
 
-    embeddings = []
     async with httpx.AsyncClient(timeout=60.0) as client:
-        for chunk in chunks:
-            resp = await client.post(
-                f"{settings.LITELLM_URL}/embeddings",
-                headers=headers,
-                json={"model": "text-embedding-3-small", "input": chunk},
-            )
-            resp.raise_for_status()
-            embeddings.append(resp.json()["data"][0]["embedding"])
-    return embeddings
+        resp = await client.post(
+            f"{settings.LITELLM_URL}/embeddings",
+            headers=headers,
+            json={"model": "text-embedding-3-small", "input": chunks},
+        )
+        resp.raise_for_status()
+    data = resp.json()["data"]
+    # API returns items sorted by index — sort defensively
+    data.sort(key=lambda x: x["index"])
+    return [item["embedding"] for item in data]
 
 
 async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSession) -> None:
     """Core indexing logic — separated for testability."""
     from app.models.document_chunk import DocumentChunk
 
+    org_uuid = uuid.UUID(org_id)
     files = await _list_org_files(org_slug)
 
     for file_info in files:
@@ -177,7 +185,7 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
         existing_hash_result = await db.execute(
             select(DocumentChunk.file_hash)
             .where(
-                DocumentChunk.org_id == uuid.UUID(org_id),
+                DocumentChunk.org_id == org_uuid,
                 DocumentChunk.file_path == href,
             )
             .limit(1)
@@ -206,7 +214,7 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
         # Delete old chunks for this file
         await db.execute(
             delete(DocumentChunk).where(
-                DocumentChunk.org_id == uuid.UUID(org_id),
+                DocumentChunk.org_id == org_uuid,
                 DocumentChunk.file_path == href,
             )
         )
@@ -215,7 +223,7 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
         for i, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
             embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
             chunk = DocumentChunk(
-                org_id=uuid.UUID(org_id),
+                org_id=org_uuid,
                 file_path=href,
                 file_hash=file_hash,
                 chunk_index=i,
@@ -224,8 +232,13 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
             )
             db.add(chunk)
 
-        await db.commit()
-        logger.info("Indexed %d chunks for %s", len(chunks), href)
+        try:
+            await db.commit()
+            logger.info("Indexed %d chunks for %s", len(chunks), href)
+        except Exception as e:
+            await db.rollback()
+            logger.warning("Failed to commit chunks for %s: %s", href, e)
+            continue
 
 
 @celery.task(name="rag_tasks.index_org_documents", bind=True, max_retries=3)
