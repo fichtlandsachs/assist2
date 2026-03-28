@@ -2,7 +2,13 @@ import type { ReactNode } from "react";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-brand-900 to-slate-800 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background:
+          "repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(0,0,0,.04) 27px, rgba(0,0,0,.04) 28px), #f7f4ee",
+      }}
+    >
       {children}
     </div>
   );
