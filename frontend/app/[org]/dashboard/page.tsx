@@ -12,11 +12,11 @@ import { LayoutList, Inbox, Layers, CheckCircle2, Clock, Archive, CircleDot } fr
 
 const STATUS_META: { status: StoryStatus; label: string; color: string; dot: string }[] = [
   { status: "draft",       label: "Entwurf",         color: "bg-[#f7f4ee] text-[#5a5040]",              dot: "bg-[#e2ddd4]" },
-  { status: "in_review",   label: "Überarbeitung",   color: "bg-[rgba(90,58,122,.08)] text-[#5a3a7a]",  dot: "bg-[#5a3a7a]" },
-  { status: "ready",       label: "Bereit",          color: "bg-[rgba(30,58,95,.06)] text-[#1e3a5f]",   dot: "bg-[#1e3a5f]" },
-  { status: "in_progress", label: "In Arbeit",       color: "bg-[rgba(139,69,19,.1)] text-[#8b4513]",   dot: "bg-[#8b4513]" },
-  { status: "testing",     label: "Test",            color: "bg-[rgba(192,57,43,.08)] text-[#c0392b]",  dot: "bg-[#c0392b]" },
-  { status: "done",        label: "Fertig",          color: "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]",   dot: "bg-[#2d6a4f]" },
+  { status: "in_review",   label: "Überarbeitung",   color: "bg-[rgba(90,80,104,.08)] text-[#5a5068]",  dot: "bg-[#5a5068]" },
+  { status: "ready",       label: "Bereit",          color: "bg-[rgba(74,85,104,.06)] text-[#4a5568]",   dot: "bg-[#4a5568]" },
+  { status: "in_progress", label: "In Arbeit",       color: "bg-[rgba(122,100,80,.1)] text-[#7a6450]",   dot: "bg-[#7a6450]" },
+  { status: "testing",     label: "Test",            color: "bg-[rgba(139,94,82,.08)] text-[#8b5e52]",  dot: "bg-[#8b5e52]" },
+  { status: "done",        label: "Fertig",          color: "bg-[rgba(82,107,94,.1)] text-[#526b5e]",   dot: "bg-[#526b5e]" },
   { status: "archived",    label: "Archiviert",      color: "bg-[#f7f4ee] text-[#a09080]",              dot: "bg-[#e2ddd4]" },
 ];
 
@@ -74,7 +74,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Link
             href={`/${resolvedParams.org}/inbox`}
-            className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-5 hover:border-[rgba(192,57,43,.3)] transition-all group"
+            className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-5 hover:border-[rgba(139,94,82,.3)] transition-all group"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -83,7 +83,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
                   {inboxStats ? inboxStats.topics : <span className="text-[#cec8bc]">—</span>}
                 </p>
               </div>
-              <span className="p-2 bg-[rgba(192,57,43,.08)] rounded-sm text-[#c0392b] group-hover:bg-[rgba(192,57,43,.08)] transition-colors">
+              <span className="p-2 bg-[rgba(139,94,82,.08)] rounded-sm text-[#8b5e52] group-hover:bg-[rgba(139,94,82,.08)] transition-colors">
                 <Layers size={18} />
               </span>
             </div>
@@ -92,14 +92,14 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
 
           <Link
             href={`/${resolvedParams.org}/inbox`}
-            className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-5 hover:border-[rgba(192,57,43,.3)] transition-all group"
+            className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-5 hover:border-[rgba(139,94,82,.3)] transition-all group"
           >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-[#a09080] mb-1">Ungelesene Nachrichten</p>
                 <p className="text-3xl font-bold text-[#1c1810]">
                   {inboxStats ? (
-                    <span className={inboxStats.unread > 0 ? "text-[#c0392b]" : ""}>
+                    <span className={inboxStats.unread > 0 ? "text-[#8b5e52]" : ""}>
                       {inboxStats.unread}
                     </span>
                   ) : (
@@ -130,7 +130,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
                 <span className="text-sm font-medium text-[#5a5040]">Gesamt: {stories.length}</span>
                 <Link
                   href={`/${resolvedParams.org}/stories/board`}
-                  className="text-xs text-[#c0392b] hover:text-[#c0392b] font-medium"
+                  className="text-xs text-[#8b5e52] hover:text-[#8b5e52] font-medium"
                 >
                   Board öffnen →
                 </Link>
@@ -171,7 +171,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
 
           {!stories && (
             <div className="flex items-center justify-center py-10">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#c0392b]" />
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#8b5e52]" />
             </div>
           )}
 
@@ -180,7 +180,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
               <p className="text-sm text-[#a09080] mb-3">Noch keine User Stories vorhanden.</p>
               <Link
                 href={`/${resolvedParams.org}/stories/new`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#5a3a7a] text-white rounded-sm text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a5068] hover:bg-[#5a5068] text-white rounded-sm text-sm font-medium transition-colors"
               >
                 Erste Story erstellen
               </Link>

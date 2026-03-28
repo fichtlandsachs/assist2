@@ -14,8 +14,8 @@ const MONTHS = [
 ];
 
 const EVENT_COLORS = [
-  "bg-[#c0392b]", "bg-[#1e3a5f]", "bg-[#2d6a4f]", "bg-[#8b4513]",
-  "bg-[#5a3a7a]", "bg-[#c0392b]", "bg-[#c0392b]", "bg-[#2d6a4f]",
+  "bg-[#8b5e52]", "bg-[#4a5568]", "bg-[#526b5e]", "bg-[#7a6450]",
+  "bg-[#5a5068]", "bg-[#8b5e52]", "bg-[#8b5e52]", "bg-[#526b5e]",
 ];
 
 function getMonthStart(year: number, month: number): Date {
@@ -178,7 +178,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
           </button>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#a93226] text-white rounded-sm text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#7a5248] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
             Termin erstellen
@@ -219,7 +219,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
         {/* Calendar grid */}
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c0392b]" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8b5e52]" />
           </div>
         ) : (
           <div className="grid grid-cols-7">
@@ -233,13 +233,13 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                   onClick={() => date && setSelectedDay(date)}
                   className={`min-h-[90px] p-2 border-r border-b border-[#e2ddd4] last:border-r-0 transition-colors ${
                     date ? "cursor-pointer hover:bg-[#f7f4ee]" : "bg-[#f7f4ee]/50"
-                  } ${isSelected ? "bg-[rgba(192,57,43,.08)]" : ""}`}
+                  } ${isSelected ? "bg-[rgba(139,94,82,.08)]" : ""}`}
                 >
                   {date && (
                     <>
                       <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium mb-1 ${
                         isToday
-                          ? "bg-[#c0392b] text-white"
+                          ? "bg-[#8b5e52] text-white"
                           : "text-[#5a5040]"
                       }`}>
                         {date.getDate()}
@@ -309,7 +309,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
             {connections.map((conn) => (
               <div key={conn.id} className="flex flex-col gap-1 pb-3 border-b border-[#e2ddd4] last:border-0 last:pb-0">
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${conn.is_active ? "bg-[#2d6a4f]" : "bg-[#e2ddd4]"}`} />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${conn.is_active ? "bg-[#526b5e]" : "bg-[#e2ddd4]"}`} />
                   <span className="text-sm font-medium text-[#1c1810]">
                     {conn.display_name ?? conn.email_address}
                   </span>
@@ -357,26 +357,26 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
             <form onSubmit={(e) => void handleCreateEvent(e)} className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[#5a5040] mb-1.5">
-                  Titel <span className="text-[#c0392b]">*</span>
+                  Titel <span className="text-[#8b5e52]">*</span>
                 </label>
                 <input
                   type="text"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="Termin Titel"
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]"
+                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#5a5040] mb-1.5">
-                  Datum <span className="text-[#c0392b]">*</span>
+                  Datum <span className="text-[#8b5e52]">*</span>
                 </label>
                 <input
                   type="date"
                   value={formDate}
                   onChange={(e) => setFormDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]"
+                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
                   required
                 />
               </div>
@@ -387,7 +387,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                     type="time"
                     value={formTime}
                     onChange={(e) => setFormTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]"
+                    className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
                   />
                 </div>
                 <div>
@@ -396,7 +396,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                     type="time"
                     value={formEndTime}
                     onChange={(e) => setFormEndTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]"
+                    className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
                   />
                 </div>
               </div>
@@ -407,14 +407,14 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="Optionale Beschreibung..."
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6] resize-none"
+                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6] resize-none"
                 />
               </div>
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
                   disabled={saving || !formTitle.trim() || !formDate}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[rgba(192,57,43,.08)] text-white rounded-sm text-sm font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[rgba(139,94,82,.08)] text-white rounded-sm text-sm font-medium transition-colors"
                 >
                   {saving ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -453,7 +453,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                     onClick={() => setConnectProvider("google")}
                     className={`flex-1 py-2 rounded-sm border text-sm font-medium transition-colors ${
                       connectProvider === "google"
-                        ? "border-[#c0392b] bg-[rgba(192,57,43,.08)] text-[#c0392b]"
+                        ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
                         : "border-[#e2ddd4] hover:bg-[#f7f4ee] text-[#5a5040]"
                     }`}
                   >
@@ -464,7 +464,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                     onClick={() => setConnectProvider("outlook")}
                     className={`flex-1 py-2 rounded-sm border text-sm font-medium transition-colors ${
                       connectProvider === "outlook"
-                        ? "border-[#c0392b] bg-[rgba(192,57,43,.08)] text-[#c0392b]"
+                        ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
                         : "border-[#e2ddd4] hover:bg-[#f7f4ee] text-[#5a5040]"
                     }`}
                   >
@@ -474,14 +474,14 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#5a5040] mb-1.5">
-                  E-Mail-Adresse <span className="text-[#c0392b]">*</span>
+                  E-Mail-Adresse <span className="text-[#8b5e52]">*</span>
                 </label>
                 <input
                   type="email"
                   value={connectEmail}
                   onChange={(e) => setConnectEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]"
+                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
                   required
                 />
               </div>
@@ -489,7 +489,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                 <button
                   type="submit"
                   disabled={connecting || !connectEmail.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[rgba(192,57,43,.08)] text-white rounded-sm text-sm font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[rgba(139,94,82,.08)] text-white rounded-sm text-sm font-medium transition-colors"
                 >
                   {connecting ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />

@@ -48,7 +48,7 @@ function Toggle({
     <label className="flex items-center gap-3 cursor-pointer select-none">
       <div
         onClick={() => onChange(!checked)}
-        className={`relative w-11 h-6 rounded-full transition-colors ${checked ? "bg-[#5a3a7a]" : "bg-[#e2ddd4]"}`}
+        className={`relative w-11 h-6 rounded-full transition-colors ${checked ? "bg-[#5a5068]" : "bg-[#e2ddd4]"}`}
       >
         <span
           className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${checked ? "translate-x-5" : ""}`}
@@ -75,7 +75,7 @@ function Slider({
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(parseFloat(e.target.value))}
-        className="w-full accent-[#5a3a7a]"
+        className="w-full accent-[#5a5068]"
       />
     </div>
   );
@@ -90,7 +90,7 @@ function SectionHeader({
   return (
     <div className="flex items-center justify-between mb-5">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-[rgba(192,57,43,.08)] rounded-sm"><Icon size={18} className="text-[#c0392b]" /></div>
+        <div className="p-2 bg-[rgba(139,94,82,.08)] rounded-sm"><Icon size={18} className="text-[#8b5e52]" /></div>
         <div>
           <h2 className="text-base font-semibold text-[#1c1810]">{title}</h2>
           {version > 0 && (
@@ -101,7 +101,7 @@ function SectionHeader({
       <button
         onClick={onSave}
         disabled={saving}
-        className="flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#5a3a7a] disabled:opacity-50 text-white rounded-sm text-sm font-medium transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-[#5a5068] hover:bg-[#5a5068] disabled:opacity-50 text-white rounded-sm text-sm font-medium transition-colors"
       >
         <Save size={14} />
         {saving ? "Speichern…" : "Speichern"}
@@ -146,7 +146,7 @@ function LearningSensitivitySection({
           <select
             value={mode}
             onChange={e => setMode(e.target.value)}
-            className="w-full max-w-xs border border-[#cec8bc] rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c0392b]"
+            className="w-full max-w-xs border border-[#cec8bc] rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b5e52]"
           >
             <option value="conservative">Conservative — langsam, sicher</option>
             <option value="balanced">Balanced — ausgewogen</option>
@@ -154,9 +154,9 @@ function LearningSensitivitySection({
           </select>
         </div>
         <div className={`rounded-sm p-3 text-xs ${
-          mode === "conservative" ? "bg-[rgba(30,58,95,.06)] text-[#1e3a5f]" :
-          mode === "balanced" ? "bg-[rgba(139,69,19,.1)] text-[#8b4513]" :
-          "bg-[rgba(192,57,43,.08)] text-[#c0392b]"
+          mode === "conservative" ? "bg-[rgba(74,85,104,.06)] text-[#4a5568]" :
+          mode === "balanced" ? "bg-[rgba(122,100,80,.1)] text-[#7a6450]" :
+          "bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
         }`}>
           {mode === "conservative" && "Das System lernt vorsichtig und ändert Verhalten nur bei hoher Sicherheit."}
           {mode === "balanced" && "Das System lernt ausgewogen — gute Balance zwischen Stabilität und Optimierung."}
@@ -387,7 +387,7 @@ function GovernanceSection({
           <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide mb-2">Freigabe-Rollen</p>
           <div className="flex flex-wrap gap-2">
             {((p.approver_roles as string[]) ?? ["admin", "architect_ai", "security_ai"]).map(role => (
-              <span key={role} className="px-2 py-1 bg-[rgba(192,57,43,.08)] text-[#c0392b] rounded-sm text-xs font-medium">
+              <span key={role} className="px-2 py-1 bg-[rgba(139,94,82,.08)] text-[#8b5e52] rounded-sm text-xs font-medium">
                 {role}
               </span>
             ))}
@@ -442,7 +442,7 @@ function LLMTriggerSection({
         <div className="border-t border-[#e2ddd4] pt-4">
           <Toggle checked={retrievalOnly} onChange={setRetrievalOnly} label="Retrieval-only Modus (kein LLM)" />
           {retrievalOnly && (
-            <p className="text-xs text-[#8b4513] bg-[rgba(139,69,19,.1)] rounded-sm p-2 mt-2 ml-14">
+            <p className="text-xs text-[#7a6450] bg-[rgba(122,100,80,.1)] rounded-sm p-2 mt-2 ml-14">
               Achtung: Im Retrieval-only Modus werden keine KI-Generierungen durchgeführt.
             </p>
           )}
@@ -505,8 +505,8 @@ function AnalyticsSection({
                         </td>
                         <td className="py-2">
                           {h.previous_value
-                            ? <span className="flex items-center gap-1 text-[#8b4513]"><CheckCircle size={11} />Aktualisiert</span>
-                            : <span className="flex items-center gap-1 text-[#2d6a4f]"><CheckCircle size={11} />Erstellt</span>}
+                            ? <span className="flex items-center gap-1 text-[#7a6450]"><CheckCircle size={11} />Aktualisiert</span>
+                            : <span className="flex items-center gap-1 text-[#526b5e]"><CheckCircle size={11} />Erstellt</span>}
                         </td>
                       </tr>
                     ))}
@@ -592,7 +592,7 @@ export default function AdminPage({ params }: { params: Promise<{ org: string }>
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                 activeTab === tab.id
-                  ? "border-[#c0392b] text-[#c0392b]"
+                  ? "border-[#8b5e52] text-[#8b5e52]"
                   : "border-transparent text-[#a09080] hover:text-[#5a5040]"
               }`}
             >
@@ -606,7 +606,7 @@ export default function AdminPage({ params }: { params: Promise<{ org: string }>
       {/* Tab content */}
       {!config ? (
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c0392b]" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8b5e52]" />
         </div>
       ) : (
         <div className="space-y-4">

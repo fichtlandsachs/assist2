@@ -10,15 +10,15 @@ import { LayoutList, Columns, Plus, Layers, GitBranch, BookOpen } from "lucide-r
 
 const COLUMNS: { status: FeatureStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
   { status: "draft",       label: "Entwurf",   color: "bg-[#f7f4ee] text-[#5a5040] border-[#e2ddd4]",                        dot: "bg-[#cec8bc]",  dropHighlight: "ring-2 ring-[#a09080] bg-[#f7f4ee]" },
-  { status: "in_progress", label: "In Arbeit", color: "bg-[rgba(139,69,19,.1)] text-[#8b4513] border-[rgba(139,69,19,.3)]",  dot: "bg-[#8b4513]",  dropHighlight: "ring-2 ring-[#8b4513] bg-[rgba(139,69,19,.1)]" },
-  { status: "testing",     label: "Test",      color: "bg-[rgba(192,57,43,.08)] text-[#c0392b] border-[rgba(192,57,43,.3)]", dot: "bg-[#c0392b]",  dropHighlight: "ring-2 ring-[#c0392b] bg-[rgba(192,57,43,.08)]" },
-  { status: "done",        label: "Fertig",    color: "bg-[rgba(45,106,79,.1)] text-[#2d6a4f] border-[rgba(45,106,79,.3)]",  dot: "bg-[#2d6a4f]",  dropHighlight: "ring-2 ring-[#2d6a4f] bg-[rgba(45,106,79,.1)]" },
+  { status: "in_progress", label: "In Arbeit", color: "bg-[rgba(122,100,80,.1)] text-[#7a6450] border-[rgba(122,100,80,.3)]",  dot: "bg-[#7a6450]",  dropHighlight: "ring-2 ring-[#7a6450] bg-[rgba(122,100,80,.1)]" },
+  { status: "testing",     label: "Test",      color: "bg-[rgba(139,94,82,.08)] text-[#8b5e52] border-[rgba(139,94,82,.3)]", dot: "bg-[#8b5e52]",  dropHighlight: "ring-2 ring-[#8b5e52] bg-[rgba(139,94,82,.08)]" },
+  { status: "done",        label: "Fertig",    color: "bg-[rgba(82,107,94,.1)] text-[#526b5e] border-[rgba(82,107,94,.3)]",  dot: "bg-[#526b5e]",  dropHighlight: "ring-2 ring-[#526b5e] bg-[rgba(82,107,94,.1)]" },
   { status: "archived",    label: "Archiviert",color: "bg-[#f7f4ee] text-[#a09080] border-[#e2ddd4]",                        dot: "bg-[#cec8bc]",  dropHighlight: "ring-2 ring-[#a09080] bg-[#f7f4ee]" },
 ];
 
 const PRIORITY_COLORS: Record<StoryPriority, string> = {
-  low: "bg-[#f7f4ee] text-[#a09080]", medium: "bg-[rgba(30,58,95,.06)] text-[#1e3a5f]",
-  high: "bg-[rgba(139,69,19,.1)] text-[#8b4513]", critical: "bg-[rgba(192,57,43,.08)] text-[#c0392b]",
+  low: "bg-[#f7f4ee] text-[#a09080]", medium: "bg-[rgba(74,85,104,.06)] text-[#4a5568]",
+  high: "bg-[rgba(122,100,80,.1)] text-[#7a6450]", critical: "bg-[rgba(139,94,82,.08)] text-[#8b5e52]",
 };
 
 const PRIORITY_LABELS: Record<StoryPriority, string> = {
@@ -45,7 +45,7 @@ function FeatureCard({
         onDragStart(feature.id);
       }}
       onDragEnd={onDragEnd}
-      className={`bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-3.5 hover:border-[rgba(192,57,43,.3)] transition-all cursor-grab active:cursor-grabbing select-none ${dragging ? "opacity-40 scale-95" : ""}`}
+      className={`bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-3.5 hover:border-[rgba(139,94,82,.3)] transition-all cursor-grab active:cursor-grabbing select-none ${dragging ? "opacity-40 scale-95" : ""}`}
     >
       <p className="text-sm font-semibold text-[#1c1810] line-clamp-2 mb-2.5 leading-snug">
         {feature.title}
@@ -134,7 +134,7 @@ export default function FeaturesBoardPage({ params }: { params: Promise<{ org: s
         </div>
         <button
           onClick={() => setShowNewForm(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#c0392b] text-white rounded-sm text-sm font-medium transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#8b5e52] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus size={16} />
           Neues Feature
@@ -149,7 +149,7 @@ export default function FeaturesBoardPage({ params }: { params: Promise<{ org: s
         <Link href={`/${resolvedParams.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
           <Columns size={15} /> Board
         </Link>
-        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#c0392b] text-[#c0392b] whitespace-nowrap">
+        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#8b5e52] text-[#8b5e52] whitespace-nowrap">
           <Layers size={15} /> Features
         </span>
         <Link href={`/${resolvedParams.org}/stories/epics/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
@@ -162,15 +162,15 @@ export default function FeaturesBoardPage({ params }: { params: Promise<{ org: s
         <NewFeatureForm orgId={org.id} onSaved={() => { void mutate(); setShowNewForm(false); }} onCancel={() => setShowNewForm(false)} />
       )}
 
-      {isLoading && <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c0392b]" /></div>}
-      {error && <div className="bg-[rgba(192,57,43,.08)] border border-[rgba(192,57,43,.3)] rounded-sm p-4 text-[#c0392b] text-sm">Fehler beim Laden.</div>}
+      {isLoading && <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8b5e52]" /></div>}
+      {error && <div className="bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] rounded-sm p-4 text-[#8b5e52] text-sm">Fehler beim Laden.</div>}
 
       {!isLoading && !error && features && features.length === 0 && !showNewForm && (
         <div className="text-center py-16 bg-[#faf9f6] rounded-sm border border-[#e2ddd4]">
           <div className="text-4xl mb-4">🧩</div>
           <h3 className="text-lg font-semibold text-[#5a5040] mb-2">Noch keine Features</h3>
           <p className="text-[#a09080] mb-6 text-sm">Features sind Teilaufgaben einer User Story.</p>
-          <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#c0392b] text-white rounded-sm text-sm font-medium transition-colors">
+          <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#8b5e52] text-white rounded-sm text-sm font-medium transition-colors">
             <Plus size={16} /> Erstes Feature erstellen
           </button>
         </div>
@@ -241,22 +241,22 @@ function NewFeatureForm({ orgId, onSaved, onCancel }: { orgId: string; onSaved: 
   }
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="bg-[#faf9f6] rounded-sm border border-[rgba(192,57,43,.3)] p-4 space-y-3">
+    <form onSubmit={(e) => void handleSubmit(e)} className="bg-[#faf9f6] rounded-sm border border-[rgba(139,94,82,.3)] p-4 space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-[#5a5040] mb-1">Titel *</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Feature-Titel" className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] bg-[#faf9f6]" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Feature-Titel" className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] bg-[#faf9f6]" />
         </div>
         <div>
           <label className="block text-xs font-medium text-[#5a5040] mb-1">User Story *</label>
-          <select value={storyId} onChange={(e) => setStoryId(e.target.value)} className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] bg-[#faf9f6]">
+          <select value={storyId} onChange={(e) => setStoryId(e.target.value)} className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] bg-[#faf9f6]">
             <option value="">Story wählen…</option>
             {stories?.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
           </select>
         </div>
       </div>
       <div className="flex gap-2">
-        <button type="submit" disabled={saving || !title.trim() || !storyId} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#c0392b] disabled:bg-[#cec8bc] text-white rounded-sm text-xs font-medium transition-colors">
+        <button type="submit" disabled={saving || !title.trim() || !storyId} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8b5e52] hover:bg-[#8b5e52] disabled:bg-[#cec8bc] text-white rounded-sm text-xs font-medium transition-colors">
           <Plus size={12} /> Erstellen
         </button>
         <button type="button" onClick={onCancel} className="px-3 py-1.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-xs font-medium transition-colors">Abbrechen</button>

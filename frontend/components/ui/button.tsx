@@ -9,7 +9,7 @@ const buttonVariants = cva(
     "cursor-pointer select-none whitespace-nowrap",
     "transition-all duration-[120ms]",
     "disabled:pointer-events-none disabled:opacity-35",
-    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#c0392b] focus-visible:ring-offset-1",
+    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#8b5e52] focus-visible:ring-offset-1",
   ],
   {
     variants: {
@@ -27,21 +27,21 @@ const buttonVariants = cva(
           "[font-family:var(--font-mono)] text-[9px] tracking-[.05em] uppercase",
         ],
         orange: [
-          "rounded-sm border-[0.5px] border-[#c0392b]",
-          "bg-[#c0392b] text-[#faf9f6]",
-          "hover:bg-[#a93226]",
+          "rounded-sm border-[0.5px] border-[#8b5e52]",
+          "bg-[#8b5e52] text-[#faf9f6]",
+          "hover:bg-[#7a5248]",
           "[font-family:var(--font-mono)] text-[9px] tracking-[.05em] uppercase",
         ],
         yellow: [
-          "rounded-sm border-[0.5px] border-[#8b4513]",
-          "bg-[rgba(139,69,19,.1)] text-[#8b4513]",
-          "hover:bg-[rgba(139,69,19,.18)]",
+          "rounded-sm border-[0.5px] border-[#7a6450]",
+          "bg-[rgba(122,100,80,.1)] text-[#7a6450]",
+          "hover:bg-[rgba(122,100,80,.18)]",
           "[font-family:var(--font-mono)] text-[9px] tracking-[.05em] uppercase",
         ],
         teal: [
-          "rounded-sm border-[0.5px] border-[#2d6a4f]",
-          "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]",
-          "hover:bg-[rgba(45,106,79,.18)]",
+          "rounded-sm border-[0.5px] border-[#526b5e]",
+          "bg-[rgba(82,107,94,.1)] text-[#526b5e]",
+          "hover:bg-[rgba(82,107,94,.18)]",
           "[font-family:var(--font-mono)] text-[9px] tracking-[.05em] uppercase",
         ],
         ghost: [
@@ -50,9 +50,9 @@ const buttonVariants = cva(
           "[font-family:var(--font-mono)] text-[9px] tracking-[.05em] uppercase",
         ],
         destructive: [
-          "rounded-sm border-[0.5px] border-[#c0392b]",
-          "bg-[#c0392b] text-[#faf9f6]",
-          "hover:bg-[#a93226]",
+          "rounded-sm border-[0.5px] border-[#8b5e52]",
+          "bg-[#8b5e52] text-[#faf9f6]",
+          "hover:bg-[#7a5248]",
           "[font-family:var(--font-mono)] text-[9px] tracking-[.05em] uppercase",
         ],
       },

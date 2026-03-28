@@ -10,8 +10,8 @@ import { LayoutList, Columns, Plus, Layers, GitBranch } from "lucide-react";
 
 const COLUMNS: { status: EpicStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
   { status: "planning",    label: "Planung",    color: "bg-[#f7f4ee] text-[#5a5040] border-[#e2ddd4]",                        dot: "bg-[#cec8bc]",  dropHighlight: "ring-2 ring-[#a09080] bg-[#f7f4ee]" },
-  { status: "in_progress", label: "In Arbeit",  color: "bg-[rgba(139,69,19,.1)] text-[#8b4513] border-[rgba(139,69,19,.3)]",  dot: "bg-[#8b4513]",  dropHighlight: "ring-2 ring-[#8b4513] bg-[rgba(139,69,19,.1)]" },
-  { status: "done",        label: "Fertig",     color: "bg-[rgba(45,106,79,.1)] text-[#2d6a4f] border-[rgba(45,106,79,.3)]",  dot: "bg-[#2d6a4f]",  dropHighlight: "ring-2 ring-[#2d6a4f] bg-[rgba(45,106,79,.1)]" },
+  { status: "in_progress", label: "In Arbeit",  color: "bg-[rgba(122,100,80,.1)] text-[#7a6450] border-[rgba(122,100,80,.3)]",  dot: "bg-[#7a6450]",  dropHighlight: "ring-2 ring-[#7a6450] bg-[rgba(122,100,80,.1)]" },
+  { status: "done",        label: "Fertig",     color: "bg-[rgba(82,107,94,.1)] text-[#526b5e] border-[rgba(82,107,94,.3)]",  dot: "bg-[#526b5e]",  dropHighlight: "ring-2 ring-[#526b5e] bg-[rgba(82,107,94,.1)]" },
   { status: "archived",    label: "Archiviert", color: "bg-[#f7f4ee] text-[#a09080] border-[#e2ddd4]",                        dot: "bg-[#cec8bc]",  dropHighlight: "ring-2 ring-[#a09080] bg-[#f7f4ee]" },
 ];
 
@@ -23,7 +23,7 @@ function EpicCard({ epic, dragging, onDragStart, onDragEnd }: {
       draggable
       onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", epic.id); onDragStart(epic.id); }}
       onDragEnd={onDragEnd}
-      className={`bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-3.5 hover:border-[rgba(192,57,43,.3)] transition-all cursor-grab active:cursor-grabbing select-none ${dragging ? "opacity-40 scale-95" : ""}`}
+      className={`bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-3.5 hover:border-[rgba(139,94,82,.3)] transition-all cursor-grab active:cursor-grabbing select-none ${dragging ? "opacity-40 scale-95" : ""}`}
     >
       <p className="text-sm font-semibold text-[#1c1810] line-clamp-2 mb-1.5 leading-snug">{epic.title}</p>
       {epic.description && <p className="text-xs text-[#a09080] line-clamp-2 leading-relaxed">{epic.description}</p>}
@@ -89,7 +89,7 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
           <h1 className="text-2xl font-bold text-[#1c1810]">Epics</h1>
           {total > 0 && <p className="text-[#a09080] mt-0.5 text-sm">{total} Epics</p>}
         </div>
-        <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#c0392b] text-white rounded-sm text-sm font-medium transition-colors">
+        <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#8b5e52] text-white rounded-sm text-sm font-medium transition-colors">
           <Plus size={16} /> Neues Epic
         </button>
       </div>
@@ -99,26 +99,26 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
         <Link href={`/${resolvedParams.org}/stories/list`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"><LayoutList size={15} /> Liste</Link>
         <Link href={`/${resolvedParams.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"><Columns size={15} /> Board</Link>
         <Link href={`/${resolvedParams.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"><Layers size={15} /> Features</Link>
-        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#c0392b] text-[#c0392b] whitespace-nowrap"><GitBranch size={15} /> Epics</span>
+        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#8b5e52] text-[#8b5e52] whitespace-nowrap"><GitBranch size={15} /> Epics</span>
       </div>
 
       {showNewForm && (
-        <form onSubmit={(e) => void handleCreate(e)} className="bg-[#faf9f6] rounded-sm border border-[rgba(192,57,43,.3)] p-4 flex gap-3">
-          <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Epic-Titel" className="flex-1 px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] bg-[#faf9f6]" />
-          <button type="submit" disabled={saving || !newTitle.trim()} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#c0392b] disabled:bg-[#cec8bc] text-white rounded-sm text-xs font-medium transition-colors"><Plus size={12} /> Erstellen</button>
+        <form onSubmit={(e) => void handleCreate(e)} className="bg-[#faf9f6] rounded-sm border border-[rgba(139,94,82,.3)] p-4 flex gap-3">
+          <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Epic-Titel" className="flex-1 px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] bg-[#faf9f6]" />
+          <button type="submit" disabled={saving || !newTitle.trim()} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8b5e52] hover:bg-[#8b5e52] disabled:bg-[#cec8bc] text-white rounded-sm text-xs font-medium transition-colors"><Plus size={12} /> Erstellen</button>
           <button type="button" onClick={() => setShowNewForm(false)} className="px-3 py-1.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-xs font-medium transition-colors">Abbrechen</button>
         </form>
       )}
 
-      {isLoading && <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c0392b]" /></div>}
-      {error && <div className="bg-[rgba(192,57,43,.08)] border border-[rgba(192,57,43,.3)] rounded-sm p-4 text-[#c0392b] text-sm">Fehler beim Laden.</div>}
+      {isLoading && <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8b5e52]" /></div>}
+      {error && <div className="bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] rounded-sm p-4 text-[#8b5e52] text-sm">Fehler beim Laden.</div>}
 
       {!isLoading && !error && epics && epics.length === 0 && !showNewForm && (
         <div className="text-center py-16 bg-[#faf9f6] rounded-sm border border-[#e2ddd4]">
           <div className="text-4xl mb-4">🗺️</div>
           <h3 className="text-lg font-semibold text-[#5a5040] mb-2">Noch keine Epics</h3>
           <p className="text-[#a09080] mb-6 text-sm">Epics bündeln verwandte User Stories.</p>
-          <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#c0392b] text-white rounded-sm text-sm font-medium transition-colors">
+          <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#8b5e52] text-white rounded-sm text-sm font-medium transition-colors">
             <Plus size={16} /> Erstes Epic erstellen
           </button>
         </div>

@@ -16,9 +16,9 @@ import { cn } from "@/lib/utils";
 type CardAccent = "orange" | "yellow" | "teal" | "none";
 
 const accentClasses: Record<CardAccent, string> = {
-  orange: "border-l-[3px] border-l-[#c0392b]",
-  yellow: "border-l-[3px] border-l-[#8b4513]",
-  teal:   "border-l-[3px] border-l-[#2d6a4f]",
+  orange: "border-l-[3px] border-l-[#8b5e52]",
+  yellow: "border-l-[3px] border-l-[#7a6450]",
+  teal:   "border-l-[3px] border-l-[#526b5e]",
   none:   "",
 };
 

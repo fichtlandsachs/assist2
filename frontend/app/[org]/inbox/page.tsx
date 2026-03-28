@@ -186,10 +186,10 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
       {/* Top bar */}
       <div className="flex items-center gap-3 px-4 md:px-6 py-3 bg-[#faf9f6] border-b border-[#e2ddd4] shrink-0">
         <div className="flex items-center gap-2 flex-1">
-          <Inbox size={18} className="text-[#c0392b] shrink-0" />
+          <Inbox size={18} className="text-[#8b5e52] shrink-0" />
           <h1 className="text-base font-semibold text-[#1c1810]">Posteingang</h1>
           {totalUnread > 0 && (
-            <span className="px-2 py-0.5 bg-[#5a3a7a] text-white text-xs font-semibold rounded-full">{totalUnread}</span>
+            <span className="px-2 py-0.5 bg-[#5a5068] text-white text-xs font-semibold rounded-full">{totalUnread}</span>
           )}
         </div>
         <div className="relative flex-1 max-w-xs">
@@ -198,7 +198,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Suchen…"
-            className="w-full pl-8 pr-3 py-1.5 text-sm border border-[#e2ddd4] rounded-sm outline-none focus:border-[#c0392b] bg-[#faf9f6]"
+            className="w-full pl-8 pr-3 py-1.5 text-sm border border-[#e2ddd4] rounded-sm outline-none focus:border-[#8b5e52] bg-[#faf9f6]"
           />
         </div>
         <button
@@ -207,7 +207,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
           title="Themen neu gruppieren (KI)"
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#e2ddd4] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm transition-colors disabled:opacity-50"
         >
-          <RefreshCw size={14} className={reclustering ? "animate-spin text-[#c0392b]" : ""} />
+          <RefreshCw size={14} className={reclustering ? "animate-spin text-[#8b5e52]" : ""} />
           <span className="hidden sm:inline">{reclustering ? "Gruppiere…" : "Neu gruppieren"}</span>
         </button>
         <button
@@ -226,7 +226,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
         <div className="w-72 xl:w-80 shrink-0 border-r border-[#e2ddd4] overflow-y-auto bg-[#faf9f6]">
           {!allMessages ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#c0392b]" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8b5e52]" />
             </div>
           ) : threads.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
@@ -244,7 +244,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                 <button
                   key={thread.key}
                   onClick={() => { setSelectedThreadKey(thread.key); setSelectedMessage(null); }}
-                  className={`w-full text-left px-4 py-3 border-b border-[#e2ddd4] transition-colors hover:bg-[#f7f4ee] ${isSelected ? "bg-[rgba(192,57,43,.08)] border-l-2 border-l-[#c0392b]" : ""}`}
+                  className={`w-full text-left px-4 py-3 border-b border-[#e2ddd4] transition-colors hover:bg-[#f7f4ee] ${isSelected ? "bg-[rgba(139,94,82,.08)] border-l-2 border-l-[#8b5e52]" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -265,7 +265,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                           </span>
                         )}
                         {hasUnread && (
-                          <span className="w-2 h-2 bg-[#c0392b] rounded-full" />
+                          <span className="w-2 h-2 bg-[#8b5e52] rounded-full" />
                         )}
                       </div>
                     </div>
@@ -298,7 +298,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                   <button
                     key={msg.id}
                     onClick={() => setSelectedMessage(msg)}
-                    className={`w-full text-left px-3 py-3 border-b border-[#e2ddd4] transition-colors hover:bg-[#faf9f6] ${isActive ? "bg-[#faf9f6] border-l-2 border-l-[#c0392b]" : ""}`}
+                    className={`w-full text-left px-3 py-3 border-b border-[#e2ddd4] transition-colors hover:bg-[#faf9f6] ${isActive ? "bg-[#faf9f6] border-l-2 border-l-[#8b5e52]" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-1">
                       <p className={`text-xs flex-1 truncate ${msg.status === "unread" ? "font-bold text-[#1c1810]" : "font-medium text-[#5a5040]"}`}>
@@ -307,7 +307,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                       <span className="text-xs text-[#a09080] shrink-0">{formatDate(msg.received_at)}</span>
                     </div>
                     {conn && (
-                      <p className="text-xs text-[#c0392b] truncate mt-0.5">→ {conn.email_address}</p>
+                      <p className="text-xs text-[#8b5e52] truncate mt-0.5">→ {conn.email_address}</p>
                     )}
                     {msg.snippet && (
                       <p className="text-xs text-[#a09080] truncate mt-0.5">{msg.snippet}</p>

@@ -10,19 +10,19 @@ import { LayoutList, Columns, Plus, GitBranch, AlertTriangle, Layers } from "luc
 
 const COLUMNS: { status: StoryStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
   { status: "draft",       label: "Entwurf",        color: "bg-[#f7f4ee] text-[#5a5040] border-[#e2ddd4]",                        dot: "bg-[#cec8bc]",   dropHighlight: "ring-2 ring-[#a09080] bg-[#f7f4ee]" },
-  { status: "in_review",   label: "Überarbeitung",   color: "bg-[rgba(90,58,122,.08)] text-[#5a3a7a] border-[rgba(192,57,43,.3)]", dot: "bg-[#5a3a7a]",  dropHighlight: "ring-2 ring-[#5a3a7a] bg-[rgba(90,58,122,.08)]" },
-  { status: "ready",       label: "Bereit",          color: "bg-[rgba(30,58,95,.06)] text-[#1e3a5f] border-[#e2ddd4]",            dot: "bg-[#1e3a5f]",   dropHighlight: "ring-2 ring-[#1e3a5f] bg-[rgba(30,58,95,.06)]" },
-  { status: "in_progress", label: "In Arbeit",       color: "bg-[rgba(139,69,19,.1)] text-[#8b4513] border-[#e2ddd4]",            dot: "bg-[#8b4513]",   dropHighlight: "ring-2 ring-[#8b4513] bg-[rgba(139,69,19,.1)]" },
-  { status: "testing",     label: "Test",            color: "bg-[rgba(192,57,43,.08)] text-[#c0392b] border-[#e2ddd4]",           dot: "bg-[#c0392b]",   dropHighlight: "ring-2 ring-[#c0392b] bg-[rgba(192,57,43,.08)]" },
-  { status: "done",        label: "Fertig",          color: "bg-[rgba(45,106,79,.1)] text-[#2d6a4f] border-[#e2ddd4]",            dot: "bg-[#2d6a4f]",   dropHighlight: "ring-2 ring-[#2d6a4f] bg-[rgba(45,106,79,.1)]" },
+  { status: "in_review",   label: "Überarbeitung",   color: "bg-[rgba(90,80,104,.08)] text-[#5a5068] border-[rgba(139,94,82,.3)]", dot: "bg-[#5a5068]",  dropHighlight: "ring-2 ring-[#5a5068] bg-[rgba(90,80,104,.08)]" },
+  { status: "ready",       label: "Bereit",          color: "bg-[rgba(74,85,104,.06)] text-[#4a5568] border-[#e2ddd4]",            dot: "bg-[#4a5568]",   dropHighlight: "ring-2 ring-[#4a5568] bg-[rgba(74,85,104,.06)]" },
+  { status: "in_progress", label: "In Arbeit",       color: "bg-[rgba(122,100,80,.1)] text-[#7a6450] border-[#e2ddd4]",            dot: "bg-[#7a6450]",   dropHighlight: "ring-2 ring-[#7a6450] bg-[rgba(122,100,80,.1)]" },
+  { status: "testing",     label: "Test",            color: "bg-[rgba(139,94,82,.08)] text-[#8b5e52] border-[#e2ddd4]",           dot: "bg-[#8b5e52]",   dropHighlight: "ring-2 ring-[#8b5e52] bg-[rgba(139,94,82,.08)]" },
+  { status: "done",        label: "Fertig",          color: "bg-[rgba(82,107,94,.1)] text-[#526b5e] border-[#e2ddd4]",            dot: "bg-[#526b5e]",   dropHighlight: "ring-2 ring-[#526b5e] bg-[rgba(82,107,94,.1)]" },
   { status: "archived",    label: "Archiviert",      color: "bg-[#f7f4ee] text-[#a09080] border-[#e2ddd4]",                       dot: "bg-[#cec8bc]",   dropHighlight: "ring-2 ring-[#cec8bc] bg-[#f7f4ee]" },
 ];
 
 const PRIORITY_COLORS: Record<StoryPriority, string> = {
   low:      "bg-[#f7f4ee] text-[#a09080]",
-  medium:   "bg-[rgba(30,58,95,.06)] text-[#1e3a5f]",
-  high:     "bg-[rgba(139,69,19,.1)] text-[#8b4513]",
-  critical: "bg-[rgba(192,57,43,.08)] text-[#c0392b]",
+  medium:   "bg-[rgba(74,85,104,.06)] text-[#4a5568]",
+  high:     "bg-[rgba(122,100,80,.1)] text-[#7a6450]",
+  critical: "bg-[rgba(139,94,82,.08)] text-[#8b5e52]",
 };
 
 const PRIORITY_LABELS: Record<StoryPriority, string> = {
@@ -60,11 +60,11 @@ function StoryCard({
       onDragEnd={onDragEnd}
       className={`bg-[#faf9f6] rounded-sm border p-3.5 transition-all cursor-grab active:cursor-grabbing select-none ${
         dragging ? "opacity-40 scale-95" : ""
-      } ${lowScore ? "border-[#8b4513] hover:border-[#8b4513]" : "border-[#e2ddd4] hover:border-[rgba(192,57,43,.3)]"}`}
+      } ${lowScore ? "border-[#7a6450] hover:border-[#7a6450]" : "border-[#e2ddd4] hover:border-[rgba(139,94,82,.3)]"}`}
     >
       <Link
         href={`/${org}/stories/${story.id}`}
-        className="block text-sm font-semibold text-[#1c1810] hover:text-[#c0392b] transition-colors line-clamp-2 mb-2.5 leading-snug"
+        className="block text-sm font-semibold text-[#1c1810] hover:text-[#8b5e52] transition-colors line-clamp-2 mb-2.5 leading-snug"
         onClick={(e) => e.stopPropagation()}
         draggable={false}
       >
@@ -86,19 +86,19 @@ function StoryCard({
         )}
         {score !== null && (
           <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium flex items-center gap-0.5 ${
-            score >= 80 ? "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]" :
-            score >= 50 ? "bg-[rgba(139,69,19,.1)] text-[#8b4513]" :
-            "bg-[rgba(192,57,43,.08)] text-[#c0392b]"
+            score >= 80 ? "bg-[rgba(82,107,94,.1)] text-[#526b5e]" :
+            score >= 50 ? "bg-[rgba(122,100,80,.1)] text-[#7a6450]" :
+            "bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
           }`}>
             {score < 80 && <AlertTriangle size={9} />}
             {score}
           </span>
         )}
         {story.dor_passed && (
-          <span className="px-1.5 py-0.5 rounded-sm bg-[rgba(45,106,79,.1)] text-[#2d6a4f] text-xs font-medium">✓ DoR</span>
+          <span className="px-1.5 py-0.5 rounded-sm bg-[rgba(82,107,94,.1)] text-[#526b5e] text-xs font-medium">✓ DoR</span>
         )}
         {story.is_split && (
-          <span className="px-1.5 py-0.5 rounded-sm bg-[rgba(139,69,19,.1)] text-[#8b4513] text-xs font-medium flex items-center gap-0.5">
+          <span className="px-1.5 py-0.5 rounded-sm bg-[rgba(122,100,80,.1)] text-[#7a6450] text-xs font-medium flex items-center gap-0.5">
             <GitBranch size={10} />
             Aufgeteilt
           </span>
@@ -200,7 +200,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
         </div>
         <Link
           href={`/${resolvedParams.org}/stories/new`}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#a93226] text-white rounded-sm text-sm font-medium transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a5068] hover:bg-[#7a5248] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus size={16} />
           Neue Story
@@ -216,7 +216,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
           <LayoutList size={15} />
           Liste
         </Link>
-        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#c0392b] text-[#c0392b] whitespace-nowrap">
+        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#8b5e52] text-[#8b5e52] whitespace-nowrap">
           <Columns size={15} />
           Board
         </span>
@@ -238,12 +238,12 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
 
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c0392b]" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8b5e52]" />
         </div>
       )}
 
       {error && (
-        <div className="bg-[rgba(192,57,43,.08)] border border-[#e2ddd4] rounded-sm p-4 text-[#c0392b] text-sm">
+        <div className="bg-[rgba(139,94,82,.08)] border border-[#e2ddd4] rounded-sm p-4 text-[#8b5e52] text-sm">
           Fehler beim Laden der Stories.
         </div>
       )}
@@ -255,7 +255,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
           <p className="text-[#a09080] mb-6 text-sm">Erstelle deine erste User Story.</p>
           <Link
             href={`/${resolvedParams.org}/stories/new`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#a93226] text-white rounded-sm text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a5068] hover:bg-[#7a5248] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
             Erste Story erstellen
@@ -317,7 +317,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
       )}
 
       {blockedMsg && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 text-xs bg-[#c0392b] text-white px-4 py-2 rounded-full pointer-events-none z-50">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 text-xs bg-[#8b5e52] text-white px-4 py-2 rounded-full pointer-events-none z-50">
           <AlertTriangle size={13} />
           {blockedMsg}
         </div>

@@ -16,10 +16,10 @@ const TRIGGER_LABELS: Record<string, string> = {
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   pending:   { label: "Ausstehend",   color: "bg-[#f7f4ee] text-[#5a5040]",                       icon: <Clock size={13} /> },
-  running:   { label: "Läuft",        color: "bg-[rgba(30,58,95,.06)] text-[#1e3a5f]",             icon: <RefreshCw size={13} className="animate-spin" /> },
-  success:   { label: "Erfolgreich",  color: "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]",             icon: <CheckCircle2 size={13} /> },
-  failed:    { label: "Fehlgeschlagen",color: "bg-[rgba(192,57,43,.08)] text-[#c0392b]",           icon: <XCircle size={13} /> },
-  cancelled: { label: "Abgebrochen",  color: "bg-[rgba(139,69,19,.1)] text-[#8b4513]",             icon: <AlertCircle size={13} /> },
+  running:   { label: "Läuft",        color: "bg-[rgba(74,85,104,.06)] text-[#4a5568]",             icon: <RefreshCw size={13} className="animate-spin" /> },
+  success:   { label: "Erfolgreich",  color: "bg-[rgba(82,107,94,.1)] text-[#526b5e]",             icon: <CheckCircle2 size={13} /> },
+  failed:    { label: "Fehlgeschlagen",color: "bg-[rgba(139,94,82,.08)] text-[#8b5e52]",           icon: <XCircle size={13} /> },
+  cancelled: { label: "Abgebrochen",  color: "bg-[rgba(122,100,80,.1)] text-[#7a6450]",             icon: <AlertCircle size={13} /> },
 };
 
 function ExecutionRow({ execution }: { execution: WorkflowExecution }) {
@@ -42,7 +42,7 @@ function ExecutionRow({ execution }: { execution: WorkflowExecution }) {
         <span className="text-[#a09080] text-xs">{duration}s</span>
       )}
       {execution.error_message && (
-        <span className="flex-1 text-xs text-[#c0392b] truncate">{execution.error_message}</span>
+        <span className="flex-1 text-xs text-[#8b5e52] truncate">{execution.error_message}</span>
       )}
     </div>
   );
@@ -85,7 +85,7 @@ function WorkflowCard({
       <div className="flex items-start gap-4 p-4 sm:p-5">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${workflow.is_active ? "bg-[#2d6a4f]" : "bg-[#e2ddd4]"}`} />
+            <span className={`w-2 h-2 rounded-full shrink-0 ${workflow.is_active ? "bg-[#526b5e]" : "bg-[#e2ddd4]"}`} />
             <h3 className="font-semibold text-[#1c1810] text-sm">{workflow.name}</h3>
             <span className="px-1.5 py-0.5 rounded-sm bg-[#f7f4ee] text-[#a09080] text-xs font-medium">
               {TRIGGER_LABELS[workflow.trigger_type] ?? workflow.trigger_type}
@@ -96,7 +96,7 @@ function WorkflowCard({
             <p className="text-xs text-[#a09080] mt-0.5 line-clamp-2">{workflow.description}</p>
           )}
           {triggerError && (
-            <p className="text-xs text-[#c0392b] mt-1">{triggerError}</p>
+            <p className="text-xs text-[#8b5e52] mt-1">{triggerError}</p>
           )}
         </div>
 
@@ -105,7 +105,7 @@ function WorkflowCard({
             <button
               onClick={() => void handleTrigger()}
               disabled={triggering}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#a09080] text-white rounded-sm text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[#a09080] text-white rounded-sm text-xs font-medium transition-colors"
             >
               {triggering
                 ? <RefreshCw size={12} className="animate-spin" />
@@ -127,7 +127,7 @@ function WorkflowCard({
         <div className="border-t border-[#e2ddd4]">
           {!executions ? (
             <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#c0392b]" />
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#8b5e52]" />
             </div>
           ) : executions.length === 0 ? (
             <p className="text-center text-xs text-[#a09080] py-4">Noch keine Ausführungen.</p>
@@ -165,7 +165,7 @@ export default function WorkflowsPage({ params }: { params: Promise<{ org: strin
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[#1c1810] flex items-center gap-2">
-            <Workflow size={24} className="text-[#c0392b]" />
+            <Workflow size={24} className="text-[#8b5e52]" />
             Workflows
           </h1>
           {workflows && (
@@ -203,12 +203,12 @@ export default function WorkflowsPage({ params }: { params: Promise<{ org: strin
       {/* Workflow list */}
       {isLoading && (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#c0392b]" />
+          <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#8b5e52]" />
         </div>
       )}
 
       {error && (
-        <div className="p-4 bg-[rgba(192,57,43,.08)] border border-[#c0392b] rounded-sm text-[#c0392b] text-sm">
+        <div className="p-4 bg-[rgba(139,94,82,.08)] border border-[#8b5e52] rounded-sm text-[#8b5e52] text-sm">
           Fehler beim Laden der Workflows.
         </div>
       )}

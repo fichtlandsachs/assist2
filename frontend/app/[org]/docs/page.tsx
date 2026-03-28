@@ -181,7 +181,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
         <h2 className="text-base font-semibold text-[#1c1810]">Story auswählen</h2>
 
         {!stories ? (
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#c0392b]" />
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8b5e52]" />
         ) : stories.length === 0 ? (
           <p className="text-sm text-[#a09080]">Keine User Stories vorhanden. Erstelle zuerst eine Story.</p>
         ) : (
@@ -196,7 +196,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
                 setPdfPath(null);
                 setPdfError(null);
               }}
-              className="flex-1 px-3 py-2 border border-[#cec8bc] rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[#c0392b]"
+              className="flex-1 px-3 py-2 border border-[#cec8bc] rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[#8b5e52]"
             >
               <option value="">-- Story wählen --</option>
               {stories.map((s) => (
@@ -208,7 +208,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             <button
               onClick={() => void handleGenerate()}
               disabled={!selectedStoryId || generating}
-              className="flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#a93226] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#7a5248] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
             >
               <Sparkles size={16} />
               {generating ? "Generiere…" : "Generieren"}
@@ -230,7 +230,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
         )}
 
         {error && (
-          <div className="bg-[rgba(192,57,43,.08)] border border-[rgba(192,57,43,.3)] text-[#c0392b] text-sm rounded-sm px-4 py-3">
+          <div className="bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] text-[#8b5e52] text-sm rounded-sm px-4 py-3">
             {error}
           </div>
         )}
@@ -244,7 +244,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-semibold text-[#1c1810] flex items-center gap-2">
-                  <FileText size={18} className="text-[#c0392b]" />
+                  <FileText size={18} className="text-[#8b5e52]" />
                   Zusammenfassung
                 </h2>
                 <CopyButton text={result.summary} />
@@ -272,7 +272,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
               <ol className="space-y-2">
                 {result.pdf_outline.map((item, index) => (
                   <li key={index} className="flex items-center gap-3 text-sm text-[#5a5040]">
-                    <span className="w-6 h-6 rounded-full bg-[rgba(192,57,43,.08)] text-[#c0392b] flex items-center justify-center text-xs font-bold shrink-0">
+                    <span className="w-6 h-6 rounded-full bg-[rgba(139,94,82,.08)] text-[#8b5e52] flex items-center justify-center text-xs font-bold shrink-0">
                       {index + 1}
                     </span>
                     {item}
@@ -320,7 +320,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
                     <select
                       value={confluenceSpaceKey}
                       onChange={(e) => setConfluenceSpaceKey(e.target.value)}
-                      className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-1 focus:ring-[#c0392b] bg-[#faf9f6]"
+                      className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-1 focus:ring-[#8b5e52] bg-[#faf9f6]"
                     >
                       <option value="">— Kein Confluence —</option>
                       {confluenceConfig.spaces.map((sp) => (
@@ -340,7 +340,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
                       value={confluenceParentPageId}
                       onChange={(e) => setConfluenceParentPageId(e.target.value)}
                       placeholder="z.B. 12345678"
-                      className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-1 focus:ring-[#c0392b] bg-[#faf9f6]"
+                      className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-1 focus:ring-[#8b5e52] bg-[#faf9f6]"
                     />
                   </div>
                 </div>
@@ -357,20 +357,20 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             )}
 
             {saveError && (
-              <div className="p-3 bg-[rgba(192,57,43,.08)] border border-[rgba(192,57,43,.3)] rounded-sm text-[#c0392b] text-sm">
+              <div className="p-3 bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] rounded-sm text-[#8b5e52] text-sm">
                 {saveError}
               </div>
             )}
 
             {result.nextcloud_path && (
-              <div className="flex items-center gap-2 p-3 bg-[rgba(30,58,95,.06)] border border-[#e2ddd4] rounded-sm text-[#1e3a5f] text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(74,85,104,.06)] border border-[#e2ddd4] rounded-sm text-[#4a5568] text-sm">
                 <Folder size={16} className="shrink-0" />
                 <span className="flex-1">PDF in Nextcloud: <span className="font-mono text-xs">{result.nextcloud_path.split("/").pop()}</span></span>
               </div>
             )}
 
             {saved && result.confluence_page_url && (
-              <div className="flex items-center gap-2 p-3 bg-[rgba(45,106,79,.1)] border border-[#e2ddd4] rounded-sm text-[#2d6a4f] text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[#e2ddd4] rounded-sm text-[#526b5e] text-sm">
                 <CheckCircle size={16} className="shrink-0" />
                 <span>In Confluence veröffentlicht:</span>
                 <a
@@ -385,20 +385,20 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             )}
 
             {saved && !result.confluence_page_url && (
-              <div className="flex items-center gap-2 p-3 bg-[rgba(45,106,79,.1)] border border-[#e2ddd4] rounded-sm text-[#2d6a4f] text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[#e2ddd4] rounded-sm text-[#526b5e] text-sm">
                 <CheckCircle size={16} className="shrink-0" />
                 Dokumentation gespeichert.
               </div>
             )}
 
             {pdfError && (
-              <div className="p-3 bg-[rgba(192,57,43,.08)] border border-[rgba(192,57,43,.3)] rounded-sm text-[#c0392b] text-sm">
+              <div className="p-3 bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] rounded-sm text-[#8b5e52] text-sm">
                 {pdfError}
               </div>
             )}
 
             {pdfPath && (
-              <div className="flex items-center gap-2 p-3 bg-[rgba(45,106,79,.1)] border border-[#e2ddd4] rounded-sm text-[#2d6a4f] text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[#e2ddd4] rounded-sm text-[#526b5e] text-sm">
                 <CheckCircle size={16} className="shrink-0" />
                 <span>PDF gespeichert in Nextcloud: <span className="font-mono text-xs">{pdfPath}</span></span>
               </div>
@@ -408,7 +408,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
               <button
                 onClick={() => void handleSave()}
                 disabled={saving}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[rgba(192,57,43,.08)] text-white rounded-sm text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[rgba(139,94,82,.08)] text-white rounded-sm text-sm font-medium transition-colors"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />

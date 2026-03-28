@@ -32,7 +32,7 @@ function SaveButton({ saving, label = "Speichern" }: { saving: boolean; label?: 
     <button
       type="submit"
       disabled={saving}
-      className="flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#a09080] text-white rounded-sm text-sm font-medium transition-colors"
+      className="flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[#a09080] text-white rounded-sm text-sm font-medium transition-colors"
     >
       {saving && <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />}
       {saving ? "Speichern…" : label}
@@ -42,7 +42,7 @@ function SaveButton({ saving, label = "Speichern" }: { saving: boolean; label?: 
 
 function StatusBadge({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${ok ? "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]" : "bg-[#f7f4ee] text-[#a09080]"}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${ok ? "bg-[rgba(82,107,94,.1)] text-[#526b5e]" : "bg-[#f7f4ee] text-[#a09080]"}`}>
       {ok ? <CheckCircle size={11} /> : <AlertCircle size={11} />}
       {label}
     </span>
@@ -70,7 +70,7 @@ function TokenField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={isSet ? "••••••••••••••••••••" : placeholder}
-          className="w-full px-3 py-2 pr-9 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]"
+          className="w-full px-3 py-2 pr-9 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
         />
         <button type="button" onClick={() => setShow((v) => !v)}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a09080] hover:text-[#5a5040]">
@@ -91,7 +91,7 @@ function FormField({ id, label, value, onChange, placeholder, type = "text" }: {
       <label htmlFor={id} className="block text-sm font-medium text-[#5a5040] mb-1">{label}</label>
       <input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]" />
+        className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]" />
     </div>
   );
 }
@@ -99,7 +99,7 @@ function FormField({ id, label, value, onChange, placeholder, type = "text" }: {
 function SectionMessage({ msg }: { msg: { type: "success" | "error"; text: string } | null }) {
   if (!msg) return null;
   return (
-    <div className={`px-4 py-3 rounded-sm text-sm ${msg.type === "success" ? "bg-[rgba(45,106,79,.1)] border border-[#2d6a4f] text-[#2d6a4f]" : "bg-[rgba(192,57,43,.08)] border border-[#c0392b] text-[#c0392b]"}`}>
+    <div className={`px-4 py-3 rounded-sm text-sm ${msg.type === "success" ? "bg-[rgba(82,107,94,.1)] border border-[#526b5e] text-[#526b5e]" : "bg-[rgba(139,94,82,.08)] border border-[#8b5e52] text-[#8b5e52]"}`}>
       {msg.text}
     </div>
   );
@@ -147,7 +147,7 @@ function GeneralSection({ org, mutateOrg }: { org: any; mutateOrg: () => void })
       <div>
         <label className="block text-sm font-medium text-[#5a5040] mb-1">Beschreibung</label>
         <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] resize-none" />
+          className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] resize-none" />
       </div>
       <div>
         <label className="block text-sm font-medium text-[#5a5040] mb-1">Plan</label>
@@ -223,7 +223,7 @@ function EmailSection({ orgId }: { orgId: string }) {
     finally { setDeleting(null); }
   }
 
-  const selectCls = "w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]";
+  const selectCls = "w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]";
 
   return (
     <div className="space-y-5 max-w-xl">
@@ -242,8 +242,8 @@ function EmailSection({ orgId }: { orgId: string }) {
               <div className="flex items-center gap-2">
                 <StatusBadge ok={c.is_active} label={c.is_active ? "Aktiv" : "Inaktiv"} />
                 <button type="button" onClick={() => void handleDelete(c.id)} disabled={deleting === c.id}
-                  className="p-1.5 text-[#a09080] hover:text-[#c0392b] hover:bg-[rgba(192,57,43,.08)] rounded transition-colors">
-                  {deleting === c.id ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-[#c0392b] border-t-transparent" /> : <Trash2 size={14} />}
+                  className="p-1.5 text-[#a09080] hover:text-[#8b5e52] hover:bg-[rgba(139,94,82,.08)] rounded transition-colors">
+                  {deleting === c.id ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-[#8b5e52] border-t-transparent" /> : <Trash2 size={14} />}
                 </button>
               </div>
             </div>
@@ -336,7 +336,7 @@ function EmailSection({ orgId }: { orgId: string }) {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#a09080] text-white rounded-sm text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[#a09080] text-white rounded-sm text-sm font-medium transition-colors"
             >
               {saving && <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />}
               {saving ? "Verbinde…" : "Verbinden"}
@@ -389,7 +389,7 @@ function CalendarSection({ orgId }: { orgId: string }) {
       <div className="flex items-center justify-between">
         <p className="text-sm text-[#5a5040]">Kalender-Konten für die Kalenderansicht verwalten.</p>
         <button onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] text-white rounded-sm text-xs font-medium transition-colors">
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8b5e52] hover:bg-[#7a5248] text-white rounded-sm text-xs font-medium transition-colors">
           <Plus size={13} /> Kalender hinzufügen
         </button>
       </div>
@@ -401,7 +401,7 @@ function CalendarSection({ orgId }: { orgId: string }) {
           <div>
             <label className="block text-xs font-medium text-[#5a5040] mb-1">Anbieter</label>
             <select value={provider} onChange={(e) => setProvider(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] bg-[#faf9f6]">
+              className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] bg-[#faf9f6]">
               <option value="google">Google Kalender</option>
               <option value="outlook">Outlook / Microsoft 365</option>
             </select>
@@ -419,7 +419,7 @@ function CalendarSection({ orgId }: { orgId: string }) {
       )}
 
       {!connections ? (
-        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#c0392b]" />
+        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#8b5e52]" />
       ) : connections.length === 0 ? (
         <p className="text-sm text-[#a09080] text-center py-6">Keine Kalender verbunden.</p>
       ) : (
@@ -436,8 +436,8 @@ function CalendarSection({ orgId }: { orgId: string }) {
               <div className="flex items-center gap-2">
                 <StatusBadge ok={c.is_active} label={c.is_active ? "Aktiv" : "Inaktiv"} />
                 <button onClick={() => void handleDelete(c.id)} disabled={deleting === c.id}
-                  className="p-1.5 text-[#a09080] hover:text-[#c0392b] hover:bg-[rgba(192,57,43,.08)] rounded transition-colors">
-                  {deleting === c.id ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-[#c0392b] border-t-transparent" /> : <Trash2 size={14} />}
+                  className="p-1.5 text-[#a09080] hover:text-[#8b5e52] hover:bg-[rgba(139,94,82,.08)] rounded transition-colors">
+                  {deleting === c.id ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-[#8b5e52] border-t-transparent" /> : <Trash2 size={14} />}
                 </button>
               </div>
             </div>
@@ -543,7 +543,7 @@ function ConfluenceSection({ orgId, settings }: { orgId: string; settings: Integ
         value={token} onChange={setToken} isSet={settings.api_token_set}
         hint="Generiere einen Token unter atlassian.com → Konto → Sicherheit → API-Token" />
       {testResult && (
-        <p className={`text-xs px-3 py-2 rounded-sm ${testResult.startsWith("✓") ? "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]" : "bg-[rgba(192,57,43,.08)] text-[#c0392b]"}`}>
+        <p className={`text-xs px-3 py-2 rounded-sm ${testResult.startsWith("✓") ? "bg-[rgba(82,107,94,.1)] text-[#526b5e]" : "bg-[rgba(139,94,82,.08)] text-[#8b5e52]"}`}>
           {testResult}
         </p>
       )}
@@ -610,7 +610,7 @@ function AISection({ orgId, settings }: { orgId: string; settings: IntegrationSe
     finally { setSaving(false); }
   };
 
-  const selectCls = "w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]";
+  const selectCls = "w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]";
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 max-w-lg">
@@ -629,7 +629,7 @@ function AISection({ orgId, settings }: { orgId: string; settings: IntegrationSe
           ].map(({ value, label }) => (
             <label key={value} className={`flex items-center gap-2 px-4 py-2.5 rounded-sm border cursor-pointer text-sm font-medium transition-colors ${
               provider === value
-                ? "border-[#c0392b] bg-[rgba(192,57,43,.08)] text-[#c0392b]"
+                ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
                 : "border-[#e2ddd4] bg-[#faf9f6] text-[#5a5040] hover:border-[#cec8bc]"
             }`}>
               <input
@@ -707,7 +707,7 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
   if (!org) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c0392b]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8b5e52]" />
       </div>
     );
   }
@@ -728,11 +728,11 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
               onClick={() => setActiveTab(id)}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm font-medium transition-colors whitespace-nowrap md:w-full md:text-left ${
                 activeTab === id
-                  ? "bg-[rgba(192,57,43,.08)] text-[#c0392b] font-semibold"
+                  ? "bg-[rgba(139,94,82,.08)] text-[#8b5e52] font-semibold"
                   : "text-[#5a5040] hover:bg-[#f7f4ee] hover:text-[#1c1810]"
               }`}
             >
-              <Icon size={16} className={activeTab === id ? "text-[#c0392b]" : "text-[#a09080]"} />
+              <Icon size={16} className={activeTab === id ? "text-[#8b5e52]" : "text-[#a09080]"} />
               {label}
             </button>
           ))}
@@ -764,7 +764,7 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
               {integrationSettings ? (
                 <JiraSection orgId={org.id} settings={integrationSettings.jira} onSaved={mutateIntegrations} />
               ) : (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#c0392b]" />
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#8b5e52]" />
               )}
             </>
           )}
@@ -774,7 +774,7 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
               {integrationSettings ? (
                 <ConfluenceSection orgId={org.id} settings={integrationSettings.confluence} onSaved={mutateIntegrations} />
               ) : (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#c0392b]" />
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#8b5e52]" />
               )}
             </>
           )}
@@ -784,7 +784,7 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
               {integrationSettings ? (
                 <AISection orgId={org.id} settings={integrationSettings.ai} />
               ) : (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#c0392b]" />
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#8b5e52]" />
               )}
             </>
           )}

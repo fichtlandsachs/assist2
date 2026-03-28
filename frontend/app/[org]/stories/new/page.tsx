@@ -21,7 +21,7 @@ const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
-  return <p className="mt-1 text-xs text-[#c0392b]">{msg}</p>;
+  return <p className="mt-1 text-xs text-[#8b5e52]">{msg}</p>;
 }
 
 function DroppableTextarea({
@@ -98,14 +98,14 @@ function DroppableTextarea({
         rows={rows}
         className={`w-full px-3 py-2 text-sm border rounded-sm resize-y overflow-hidden outline-none transition-colors ${
           isDragOver
-            ? "border-[#c0392b] bg-[rgba(192,57,43,.08)] ring-2 ring-[rgba(192,57,43,.3)]"
+            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] ring-2 ring-[rgba(139,94,82,.3)]"
             : error
-            ? "border-[#c0392b] bg-[rgba(192,57,43,.08)] focus:border-[#c0392b] focus:ring-2 focus:ring-[rgba(192,57,43,.08)]"
-            : "border-[#cec8bc] bg-[#faf9f6] focus:border-[#c0392b] focus:ring-2 focus:ring-[rgba(192,57,43,.08)]"
+            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
+            : "border-[#cec8bc] bg-[#faf9f6] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
         }`}
       />
       {isDragOver && (
-        <p className="text-xs text-[#c0392b] mt-1">Loslassen zum Übernehmen</p>
+        <p className="text-xs text-[#8b5e52] mt-1">Loslassen zum Übernehmen</p>
       )}
       <FieldError msg={error} />
     </div>
@@ -155,7 +155,7 @@ function DroppableInput({
     <div>
       <label htmlFor={id} className="block text-sm font-medium text-[#5a5040] mb-1.5">
         {label}
-        <span className="text-[#c0392b] ml-0.5">*</span>
+        <span className="text-[#8b5e52] ml-0.5">*</span>
       </label>
       <input
         id={id}
@@ -168,10 +168,10 @@ function DroppableInput({
         placeholder={placeholder}
         className={`w-full px-3 py-2 text-sm border rounded-sm outline-none transition-colors ${
           isDragOver
-            ? "border-[#c0392b] bg-[rgba(192,57,43,.08)] ring-2 ring-[rgba(192,57,43,.3)]"
+            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] ring-2 ring-[rgba(139,94,82,.3)]"
             : error
-            ? "border-[#c0392b] bg-[rgba(192,57,43,.08)] focus:border-[#c0392b] focus:ring-2 focus:ring-[rgba(192,57,43,.08)]"
-            : "border-[#cec8bc] bg-[#faf9f6] focus:border-[#c0392b] focus:ring-2 focus:ring-[rgba(192,57,43,.08)]"
+            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
+            : "border-[#cec8bc] bg-[#faf9f6] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
         }`}
       />
       <FieldError msg={error} />
@@ -311,7 +311,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
                   id="priority"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as StoryPriority)}
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[rgba(192,57,43,.08)] bg-[#faf9f6]"
+                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)] bg-[#faf9f6]"
                 >
                   {PRIORITY_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -333,7 +333,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
                   value={storyPoints}
                   onChange={(e) => setStoryPoints(e.target.value)}
                   placeholder="z.B. 5"
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[rgba(192,57,43,.08)] bg-[#faf9f6]"
+                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)] bg-[#faf9f6]"
                 />
               </div>
             </div>
@@ -348,7 +348,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
           </div>
 
           {fieldErrors.general && (
-            <div className="p-3 bg-[rgba(192,57,43,.08)] border border-[#e2ddd4] rounded-sm text-[#c0392b] text-sm">
+            <div className="p-3 bg-[rgba(139,94,82,.08)] border border-[#e2ddd4] rounded-sm text-[#8b5e52] text-sm">
               {fieldErrors.general}
             </div>
           )}
@@ -357,7 +357,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
             <button
               type="submit"
               disabled={saving || !org}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#5a3a7a] hover:bg-[#a93226] disabled:bg-[#cec8bc] text-white rounded-sm text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#5a5068] hover:bg-[#7a5248] disabled:bg-[#cec8bc] text-white rounded-sm text-sm font-medium transition-colors"
             >
               {saving ? (
                 <>
