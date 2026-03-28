@@ -27,68 +27,49 @@ import { cn } from "@/lib/utils";
  */
 const badgeVariants = cva(
   [
-    // Base
     "inline-flex items-center gap-1",
-    "font-heading font-600 text-[0.6875rem]",
-    "px-2.5 py-0.5",
-    "border-2 border-[#0A0A0A]",
-    "shadow-[2px_2px_0px_#0A0A0A]",
-    "uppercase tracking-[0.04em] leading-[1.4]",
+    "[font-family:var(--font-mono)] font-medium text-[7px]",
+    "px-2 py-[2px]",
+    "border-[0.5px] border-current",
+    "rounded-[10px]",
+    "uppercase tracking-[.08em] leading-[1.4]",
     "whitespace-nowrap",
   ],
   {
     variants: {
       variant: {
-        /* ── Compliance status ─────────────────────────── */
-        direct: "bg-[#00D4AA] text-[#0A0A0A]",
-        interpreted: "bg-[#FFD700] text-[#0A0A0A]",
-        open: "bg-[#FF5C00] text-[#0A0A0A]",
-        met: "bg-[#22C55E] text-[#0A0A0A]",
-        partial: "bg-[#FFD700] text-[#0A0A0A]",
-        missing: "bg-[#EF4444] text-white",
-
-        /* ── Framework labels ──────────────────────────── */
-        nis2: "bg-[#0A0A0A] text-white border-[#0A0A0A] shadow-[2px_2px_0px_#444]",
-        kritis: "bg-[#FF5C00] text-[#0A0A0A]",
-        iso: "bg-[#00D4AA] text-[#0A0A0A]",
-        iso27001: "bg-[#00D4AA] text-[#0A0A0A]",
-
-        /* ── Document types ────────────────────────────── */
-        sop: "bg-[#DBEAFE] text-[#1e40af] border-[#1e40af] shadow-[2px_2px_0px_#1e40af]",
-        runbook:
-          "bg-[#F3E8FF] text-[#6d28d9] border-[#6d28d9] shadow-[2px_2px_0px_#6d28d9]",
-        bia: "bg-[#FEF3C7] text-[#92400e] border-[#92400e] shadow-[2px_2px_0px_#92400e]",
-        incident:
-          "bg-[#FEE2E2] text-[#991b1b] border-[#991b1b] shadow-[2px_2px_0px_#991b1b]",
-        richtlinie:
-          "bg-[#DCFCE7] text-[#166534] border-[#166534] shadow-[2px_2px_0px_#166534]",
-
-        /* ── Audit/doc status ──────────────────────────── */
-        auditiert:
-          "bg-[#22C55E] text-[#0A0A0A]",
-        in_bearbeitung:
-          "bg-[#FFD700] text-[#0A0A0A]",
-        ausstehend:
-          "bg-[#FF5C00] text-[#0A0A0A]",
-        abgelaufen:
-          "bg-[#EF4444] text-white",
-
-        /* ── Generic neutral ───────────────────────────── */
-        default:
-          "bg-[#F5F0E8] text-[#0A0A0A] border-[#0A0A0A]",
-        outline:
-          "bg-transparent text-[#0A0A0A] border-[#0A0A0A] shadow-none",
+        direct:         "text-[#2d6a4f] bg-[rgba(45,106,79,.1)]",
+        interpreted:    "text-[#8b4513] bg-[rgba(139,69,19,.1)]",
+        open:           "text-[#1e3a5f] bg-[rgba(30,58,95,.08)]",
+        met:            "text-[#2d6a4f] bg-[rgba(45,106,79,.1)]",
+        partial:        "text-[#8b4513] bg-[rgba(139,69,19,.1)]",
+        missing:        "text-[#c0392b] bg-[rgba(192,57,43,.08)]",
+        nis2:           "text-[#1c1810] bg-[#ece8e0]",
+        kritis:         "text-[#c0392b] bg-[rgba(192,57,43,.08)]",
+        iso:            "text-[#2d6a4f] bg-[rgba(45,106,79,.1)]",
+        iso27001:       "text-[#2d6a4f] bg-[rgba(45,106,79,.1)]",
+        sop:            "text-[#1e3a5f] bg-[rgba(30,58,95,.06)]",
+        runbook:        "text-[#5a3a7a] bg-[rgba(90,58,122,.08)]",
+        bia:            "text-[#8b4513] bg-[rgba(139,69,19,.1)]",
+        incident:       "text-[#c0392b] bg-[rgba(192,57,43,.08)]",
+        richtlinie:     "text-[#2d6a4f] bg-[rgba(45,106,79,.1)]",
+        auditiert:      "text-[#2d6a4f] bg-[rgba(45,106,79,.1)]",
+        in_bearbeitung: "text-[#8b4513] bg-[rgba(139,69,19,.1)]",
+        ausstehend:     "text-[#1e3a5f] bg-[rgba(30,58,95,.08)]",
+        abgelaufen:     "text-[#c0392b] bg-[rgba(192,57,43,.08)]",
+        default:        "text-[#5a5040] bg-[#ece8e0] border-[#cec8bc]",
+        outline:        "text-[#5a5040] bg-transparent border-[#cec8bc]",
+        rag_direct:     "text-[#2d6a4f] bg-[rgba(45,106,79,.1)]",
+        rag_context:    "text-[#1e3a5f] bg-[rgba(30,58,95,.08)]",
+        llm:            "text-[#5a5040] bg-[#ece8e0] border-[#cec8bc]",
       },
       size: {
-        sm: "text-[0.625rem] px-2 py-px",
-        default: "text-[0.6875rem] px-2.5 py-0.5",
-        lg: "text-xs px-3 py-1",
+        sm:      "text-[6px] px-1.5 py-px",
+        default: "text-[7px] px-2 py-[2px]",
+        lg:      "text-[8px] px-2.5 py-1",
       },
     },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
+    defaultVariants: { variant: "default", size: "default" },
   }
 );
 
