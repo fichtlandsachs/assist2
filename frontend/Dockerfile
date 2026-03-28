@@ -26,7 +26,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 appuser
 
 COPY --from=builder --chown=appuser:nodejs /app/.next ./.next
-COPY --from=dependencies --chown=appuser:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=appuser:nodejs /app/node_modules ./node_modules
 COPY --chown=appuser:nodejs package.json ./
 
 USER appuser
