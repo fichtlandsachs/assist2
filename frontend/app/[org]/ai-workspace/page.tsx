@@ -347,7 +347,7 @@ export default function AiWorkspacePage({ params }: { params: { org: string } })
               <StorySection
                 icon={<FileText size={11} />}
                 label="User Story"
-                variant="teal"
+                variant="direct"
                 items={storyData.story}
               />
               <StorySection
@@ -386,7 +386,7 @@ function StorySection({
 }: {
   icon: React.ReactNode;
   label: string;
-  variant: "teal" | "open" | "partial" | "llm";
+  variant: "direct" | "open" | "partial" | "llm";
   items: string[];
 }) {
   return (

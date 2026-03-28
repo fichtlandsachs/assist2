@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
