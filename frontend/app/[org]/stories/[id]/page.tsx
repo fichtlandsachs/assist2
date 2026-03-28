@@ -32,13 +32,13 @@ const STATUS_OPTIONS: { value: StoryStatus; label: string }[] = [
 ];
 
 const STATUS_COLORS: Record<StoryStatus, string> = {
-  draft: "bg-slate-100 text-slate-600",
-  in_review: "bg-violet-100 text-violet-700",
-  ready: "bg-blue-100 text-blue-700",
-  in_progress: "bg-amber-100 text-amber-700",
-  testing: "bg-orange-100 text-orange-700",
-  done: "bg-green-100 text-green-700",
-  archived: "bg-slate-200 text-slate-500",
+  draft: "bg-[#f7f4ee] text-[#5a5040]",
+  in_review: "bg-[rgba(90,58,122,.08)] text-[#5a3a7a]",
+  ready: "bg-[rgba(30,58,95,.06)] text-[#1e3a5f]",
+  in_progress: "bg-[rgba(139,69,19,.1)] text-[#8b4513]",
+  testing: "bg-[rgba(192,57,43,.08)] text-[#c0392b]",
+  done: "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]",
+  archived: "bg-[#ece8e0] text-[#a09080]",
 };
 
 const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
@@ -49,10 +49,10 @@ const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
 ];
 
 const PRIORITY_COLORS: Record<StoryPriority, string> = {
-  low: "text-slate-400",
-  medium: "text-blue-500",
-  high: "text-amber-500",
-  critical: "text-red-500",
+  low: "text-[#a09080]",
+  medium: "text-[#1e3a5f]",
+  high: "text-[#8b4513]",
+  critical: "text-[#c0392b]",
 };
 
 function EpicBadge({ epicId, orgId }: { epicId: string; orgId: string }) {
@@ -72,7 +72,7 @@ function EpicBadge({ epicId, orgId }: { epicId: string; orgId: string }) {
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
-  return <p className="mt-1 text-xs text-red-600">{msg}</p>;
+  return <p className="mt-1 text-xs text-[#c0392b]">{msg}</p>;
 }
 
 function DroppableField({
@@ -134,17 +134,17 @@ function DroppableField({
     }
   };
 
-  const baseClass = `w-full px-3 py-2 text-sm border rounded-lg outline-none transition-colors ${
+  const baseClass = `w-full px-3 py-2 text-sm border rounded-sm outline-none transition-colors ${
     isDragOver
-      ? "border-brand-400 bg-brand-50 ring-2 ring-brand-200"
+      ? "border-[#c0392b] bg-[rgba(192,57,43,.08)] ring-2 ring-[#c0392b]"
       : error
-      ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-100"
-      : "border-slate-300 bg-white focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+      ? "border-red-400 bg-[rgba(192,57,43,.08)] focus:border-red-400 focus:ring-2 focus:ring-red-100"
+      : "border-[#cec8bc] bg-[#faf9f6] focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b]"
   }`;
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1.5">
+      <label htmlFor={id} className="block text-sm font-medium text-[#5a5040] mb-1.5">
         {label}
       </label>
       {editing ? (
@@ -175,8 +175,8 @@ function DroppableField({
           />
         )
       ) : (
-        <div className="px-3 py-2 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg min-h-[2.5rem] whitespace-pre-wrap">
-          {value || <span className="text-slate-400">{placeholder}</span>}
+        <div className="px-3 py-2 text-sm text-[#5a5040] bg-[#faf9f6] border border-[#e2ddd4] rounded-sm min-h-[2.5rem] whitespace-pre-wrap">
+          {value || <span className="text-[#a09080]">{placeholder}</span>}
         </div>
       )}
       <FieldError msg={error} />
@@ -185,10 +185,10 @@ function DroppableField({
 }
 
 const TEST_RESULT_COLORS: Record<TestResult, string> = {
-  pending: "bg-slate-100 text-slate-600",
-  passed: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-700",
-  skipped: "bg-amber-100 text-amber-700",
+  pending: "bg-[#f7f4ee] text-[#5a5040]",
+  passed: "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]",
+  failed: "bg-[rgba(192,57,43,.08)] text-[#c0392b]",
+  skipped: "bg-[rgba(139,69,19,.1)] text-[#8b4513]",
 };
 
 const TEST_RESULT_LABELS: Record<TestResult, string> = {
@@ -238,15 +238,15 @@ function SuggestedTestCaseCard({
     <div
       draggable
       onDragStart={handleDragStart}
-      className="border border-violet-200 rounded-lg bg-violet-50 hover:bg-white hover:border-violet-300 transition-all cursor-grab active:cursor-grabbing group"
+      className="border border-[rgba(90,58,122,.3)] rounded-sm bg-[rgba(90,58,122,.08)] hover:bg-[#faf9f6] hover:border-[#5a3a7a] transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex items-center gap-2 px-3 py-2.5">
-        <GripVertical size={13} className="shrink-0 text-violet-300 group-hover:text-violet-400 transition-colors" />
-        <span className="flex-1 min-w-0 text-sm font-medium text-slate-800 leading-tight break-words">{suggestion.title}</span>
+        <GripVertical size={13} className="shrink-0 text-[#5a3a7a] group-hover:text-[#5a3a7a] transition-colors" />
+        <span className="flex-1 min-w-0 text-sm font-medium text-[#1c1810] leading-tight break-words">{suggestion.title}</span>
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="shrink-0 text-xs text-slate-400 hover:text-slate-600 px-1"
+          className="shrink-0 text-xs text-[#a09080] hover:text-[#5a5040] px-1"
         >
           {expanded ? "▲" : "▼"}
         </button>
@@ -255,7 +255,7 @@ function SuggestedTestCaseCard({
           onClick={() => void handleAdd()}
           disabled={adding}
           title="Direkt als Testfall hinzufügen"
-          className="shrink-0 flex items-center gap-1 px-2 py-1 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-400 text-white rounded text-xs font-medium transition-colors"
+          className="shrink-0 flex items-center gap-1 px-2 py-1 bg-[#5a3a7a] hover:bg-[#5a3a7a] disabled:bg-[#5a3a7a] text-white rounded-sm text-xs font-medium transition-colors"
         >
           {adding ? (
             <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
@@ -266,23 +266,23 @@ function SuggestedTestCaseCard({
         </button>
       </div>
       {expanded && (suggestion.steps || suggestion.expected_result) && (
-        <div className="px-3 pb-3 space-y-2 border-t border-violet-100 pt-2">
+        <div className="px-3 pb-3 space-y-2 border-t border-[rgba(90,58,122,.3)] pt-2">
           {suggestion.steps && (
             <div>
-              <p className="text-xs font-medium text-slate-500 mb-0.5">Schritte:</p>
-              <p className="text-xs text-slate-700 whitespace-pre-wrap">{suggestion.steps}</p>
+              <p className="text-xs font-medium text-[#a09080] mb-0.5">Schritte:</p>
+              <p className="text-xs text-[#5a5040] whitespace-pre-wrap">{suggestion.steps}</p>
             </div>
           )}
           {suggestion.expected_result && (
             <div>
-              <p className="text-xs font-medium text-slate-500 mb-0.5">Erwartetes Ergebnis:</p>
-              <p className="text-xs text-slate-700 whitespace-pre-wrap">{suggestion.expected_result}</p>
+              <p className="text-xs font-medium text-[#a09080] mb-0.5">Erwartetes Ergebnis:</p>
+              <p className="text-xs text-[#5a5040] whitespace-pre-wrap">{suggestion.expected_result}</p>
             </div>
           )}
           <button
             type="button"
             onClick={() => onDragToForm(suggestion)}
-            className="text-xs text-violet-600 hover:text-violet-800 underline"
+            className="text-xs text-[#5a3a7a] hover:text-[#5a3a7a] underline"
           >
             In Formular laden zum Bearbeiten
           </button>
@@ -373,20 +373,20 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
       {/* LEFT: Checkliste */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100">
+      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] overflow-hidden">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#e2ddd4]">
           <div className="flex items-center gap-2">
-            <ClipboardCheck size={16} className="text-slate-500" />
-            <h2 className="text-base font-semibold text-slate-900">Definition of Done</h2>
+            <ClipboardCheck size={16} className="text-[#a09080]" />
+            <h2 className="text-base font-semibold text-[#1c1810]">Definition of Done</h2>
             {items.length > 0 && (
-              <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+              <span className="px-1.5 py-0.5 bg-[#f7f4ee] text-[#5a5040] rounded-sm text-xs font-medium">
                 {doneCount}/{items.length}
               </span>
             )}
           </div>
           <button
             onClick={() => setShowInput((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] text-white rounded-sm text-xs font-medium transition-colors"
           >
             <Plus size={14} />
             Kriterium
@@ -396,13 +396,13 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
         <div className="p-4 space-y-3">
           {items.length > 0 && (
             <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs text-slate-500">
+              <div className="flex items-center justify-between text-xs text-[#a09080]">
                 <span>{doneCount} von {items.length} erledigt</span>
-                <span className={`font-semibold ${progress === 100 ? "text-green-600" : "text-slate-600"}`}>{progress}%</span>
+                <span className={`font-semibold ${progress === 100 ? "text-[#2d6a4f]" : "text-[#5a5040]"}`}>{progress}%</span>
               </div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-[#f7f4ee] rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? "bg-green-500" : "bg-brand-500"}`}
+                  className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? "bg-[#2d6a4f]" : "bg-[#c0392b]"}`}
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -424,18 +424,18 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
                 }}
                 placeholder="Kriterium eingeben…"
                 autoFocus
-                className="flex-1 min-w-0 px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100"
+                className="flex-1 min-w-0 px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-1 focus:ring-[#c0392b]"
               />
               <button
                 onClick={() => { addItem(newText); setNewText(""); setShowInput(false); }}
                 disabled={!newText.trim() || saving}
-                className="shrink-0 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-xs font-medium transition-colors"
+                className="shrink-0 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#c0392b] text-white rounded-sm text-xs font-medium transition-colors"
               >
                 Hinzufügen
               </button>
               <button
                 onClick={() => { setNewText(""); setShowInput(false); }}
-                className="shrink-0 px-3 py-1.5 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium transition-colors"
+                className="shrink-0 px-3 py-1.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-xs font-medium transition-colors"
               >
                 Abbrechen
               </button>
@@ -443,7 +443,7 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
           )}
 
           {items.length === 0 && !showInput && (
-            <p className="text-sm text-slate-400 text-center py-8">
+            <p className="text-sm text-[#a09080] text-center py-8">
               Noch keine DoD-Kriterien definiert. Füge eigene hinzu oder lass dir Vorschläge generieren.
             </p>
           )}
@@ -451,19 +451,19 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
           {items.length > 0 && (
             <div className="space-y-1.5">
               {items.map((item, i) => (
-                <div key={i} className={`flex items-start gap-3 px-3 py-2.5 rounded-lg border transition-colors group ${item.done ? "bg-green-50 border-green-200" : "bg-white border-slate-200"}`}>
+                <div key={i} className={`flex items-start gap-3 px-3 py-2.5 rounded-sm border transition-colors group ${item.done ? "bg-[rgba(45,106,79,.1)] border-[rgba(45,106,79,.3)]" : "bg-[#faf9f6] border-[#e2ddd4]"}`}>
                   <button
                     onClick={() => void toggleItem(i)}
-                    className={`shrink-0 mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${item.done ? "bg-green-500 border-green-500" : "border-slate-300 hover:border-green-400"}`}
+                    className={`shrink-0 mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${item.done ? "bg-[#2d6a4f] border-[#2d6a4f]" : "border-[#cec8bc] hover:border-[#2d6a4f]"}`}
                   >
                     {item.done && <CheckCircle size={10} className="text-white" />}
                   </button>
-                  <span className={`flex-1 min-w-0 text-sm break-words ${item.done ? "line-through text-slate-400" : "text-slate-700"}`}>
+                  <span className={`flex-1 min-w-0 text-sm break-words ${item.done ? "line-through text-[#a09080]" : "text-[#5a5040]"}`}>
                     {item.text}
                   </span>
                   <button
                     onClick={() => void removeItem(i)}
-                    className="shrink-0 p-0.5 text-slate-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded"
+                    className="shrink-0 p-0.5 text-[#cec8bc] hover:text-[#c0392b] opacity-0 group-hover:opacity-100 transition-all rounded-sm"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -475,13 +475,13 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
       </div>
 
       {/* RIGHT: Assistent */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
         <div className="mb-4">
-          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
-            <Sparkles size={16} className="text-brand-500" />
+          <h2 className="text-base font-semibold text-[#1c1810] flex items-center gap-2">
+            <Sparkles size={16} className="text-[#c0392b]" />
             Assistent
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#a09080] mt-1">
             Schlägt DoD-Kriterien basierend auf der Story vor.
           </p>
         </div>
@@ -489,7 +489,7 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
         <button
           onClick={() => void handleLoadSuggestions()}
           disabled={aiLoading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#c0392b] text-white rounded-sm text-sm font-medium transition-colors"
         >
           {aiLoading ? (
             <>
@@ -505,49 +505,49 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
         </button>
 
         {aiError && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">{aiError}</div>
+          <div className="mt-3 p-3 bg-[rgba(192,57,43,.08)] border border-[rgba(192,57,43,.3)] rounded-sm text-[#c0392b] text-xs">{aiError}</div>
         )}
 
         <div className={`mt-4 space-y-2 transition-opacity duration-300 ${!aiSuggestions && !aiLoading ? "opacity-30 pointer-events-none select-none" : "opacity-100"}`}>
           {!aiSuggestions && (
             <div className="space-y-2">
-              <div className="h-10 bg-slate-100 rounded-lg" />
-              <div className="h-10 bg-slate-100 rounded-lg" />
-              <div className="h-10 bg-slate-100 rounded-lg" />
-              <p className="text-xs text-slate-400 text-center pt-1">Kriterien erscheinen nach der Analyse hier.</p>
+              <div className="h-10 bg-[#f7f4ee] rounded-sm" />
+              <div className="h-10 bg-[#f7f4ee] rounded-sm" />
+              <div className="h-10 bg-[#f7f4ee] rounded-sm" />
+              <p className="text-xs text-[#a09080] text-center pt-1">Kriterien erscheinen nach der Analyse hier.</p>
             </div>
           )}
 
           {aiSuggestions?.length === 0 && (
-            <p className="text-xs text-slate-400 text-center py-4">Alle Vorschläge wurden übernommen.</p>
+            <p className="text-xs text-[#a09080] text-center py-4">Alle Vorschläge wurden übernommen.</p>
           )}
 
           {aiSuggestions && aiSuggestions.length > 0 && (
             <>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide flex items-center gap-1.5">
                   <Sparkles size={12} />
                   Vorschläge
-                  <span className="normal-case font-normal text-slate-400">({aiSuggestions.length})</span>
+                  <span className="normal-case font-normal text-[#a09080]">({aiSuggestions.length})</span>
                 </p>
                 <button
                   onClick={() => setAiSuggestions(null)}
-                  className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                  className="text-xs text-[#a09080] hover:text-[#5a5040] transition-colors"
                 >
                   Schließen
                 </button>
               </div>
               {aiSuggestions.map((s, i) => (
-                <div key={i} className="flex items-start gap-2 px-3 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-brand-200 transition-colors">
+                <div key={i} className="flex items-start gap-2 px-3 py-2.5 border border-[#e2ddd4] rounded-sm bg-[#faf9f6] hover:border-[rgba(192,57,43,.3)] transition-colors">
                   {s.category && (
-                    <span className="shrink-0 px-1.5 py-0.5 bg-brand-50 text-brand-600 rounded text-xs font-medium">
+                    <span className="shrink-0 px-1.5 py-0.5 bg-[rgba(192,57,43,.08)] text-[#c0392b] rounded-sm text-xs font-medium">
                       {s.category}
                     </span>
                   )}
-                  <span className="flex-1 min-w-0 text-sm text-slate-700 break-words">{s.text}</span>
+                  <span className="flex-1 min-w-0 text-sm text-[#5a5040] break-words">{s.text}</span>
                   <button
                     onClick={() => void addFromSuggestion(s)}
-                    className="shrink-0 flex items-center gap-1 px-2 py-1 bg-brand-600 hover:bg-brand-700 text-white rounded text-xs font-medium transition-colors"
+                    className="shrink-0 flex items-center gap-1 px-2 py-1 bg-[#c0392b] hover:bg-[#a93226] text-white rounded-sm text-xs font-medium transition-colors"
                   >
                     <Plus size={11} />
                     Hinzufügen
@@ -685,26 +685,26 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
       {/* LEFT: Testfall-Liste */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100">
+      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] overflow-hidden">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#e2ddd4]">
           <div className="flex items-center gap-2">
-            <ClipboardCheck size={16} className="text-slate-500" />
-            <h2 className="text-base font-semibold text-slate-900">Testfälle</h2>
+            <ClipboardCheck size={16} className="text-[#a09080]" />
+            <h2 className="text-base font-semibold text-[#1c1810]">Testfälle</h2>
             {testCases && testCases.length > 0 && (
-              <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+              <span className="px-1.5 py-0.5 bg-[#f7f4ee] text-[#5a5040] rounded-sm text-xs font-medium">
                 {testCases.length}
               </span>
             )}
           </div>
           {isLocked ? (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-medium">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f7f4ee] text-[#a09080] rounded-sm text-xs font-medium">
               <Lock size={13} />
               Gesperrt
             </span>
           ) : (
             <button
               onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] text-white rounded-sm text-xs font-medium transition-colors"
             >
               <Plus size={14} />
               Hinzufügen
@@ -713,7 +713,7 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
         </div>
 
         {isLocked && (
-          <div className="mx-4 mt-3 mb-1 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+          <div className="mx-4 mt-3 mb-1 flex items-center gap-2 px-3 py-2 bg-[rgba(139,69,19,.1)] border border-[rgba(139,69,19,.3)] rounded-sm text-xs text-[#8b4513]">
             <Lock size={12} />
             Testfälle sind ab Status „Test" schreibgeschützt. Testergebnisse können weiterhin eingetragen werden.
           </div>
@@ -721,33 +721,33 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
 
         <div className="p-4 space-y-3">
           {!isLocked && showForm && (
-            <form onSubmit={(e) => void handleAddTestCase(e)} className="border border-slate-200 bg-slate-50 rounded-lg p-4 space-y-3">
+            <form onSubmit={(e) => void handleAddTestCase(e)} className="border border-[#e2ddd4] bg-[#f7f4ee] rounded-sm p-4 space-y-3">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Titel <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-medium text-[#5a5040] mb-1">Titel <span className="text-[#c0392b]">*</span></label>
                 <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)}
                   placeholder="Testfall Titel"
-                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 bg-white" />
+                  className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-1 focus:ring-[#c0392b] bg-[#faf9f6]" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Schritte</label>
+                <label className="block text-xs font-medium text-[#5a5040] mb-1">Schritte</label>
                 <textarea value={formSteps} onChange={e => setFormSteps(e.target.value)}
                   placeholder={"1. Schritt\n2. Schritt"} rows={3}
-                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 bg-white resize-none" />
+                  className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-1 focus:ring-[#c0392b] bg-[#faf9f6] resize-none" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Erwartetes Ergebnis</label>
+                <label className="block text-xs font-medium text-[#5a5040] mb-1">Erwartetes Ergebnis</label>
                 <textarea value={formExpected} onChange={e => setFormExpected(e.target.value)}
                   placeholder="Das erwartete Ergebnis..." rows={2}
-                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 bg-white resize-none" />
+                  className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-1 focus:ring-[#c0392b] bg-[#faf9f6] resize-none" />
               </div>
               <div className="flex gap-2">
                 <button type="submit" disabled={saving || !formTitle.trim()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-xs font-medium transition-colors">
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#c0392b] text-white rounded-sm text-xs font-medium transition-colors">
                   {saving ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" /> : <Plus size={12} />}
                   Hinzufügen
                 </button>
                 <button type="button" onClick={() => setShowForm(false)}
-                  className="px-3 py-1.5 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium transition-colors">
+                  className="px-3 py-1.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-xs font-medium transition-colors">
                   Abbrechen
                 </button>
               </div>
@@ -756,36 +756,36 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
 
           {isLoading && (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#c0392b]" />
             </div>
           )}
 
           {!isLoading && testCases && testCases.length === 0 && !showForm && (
-            <p className="text-sm text-slate-400 text-center py-8">Noch keine Testfälle definiert.</p>
+            <p className="text-sm text-[#a09080] text-center py-8">Noch keine Testfälle definiert.</p>
           )}
 
           {testCases && testCases.length > 0 && (
             <div className="space-y-3">
               {testCases.map((tc) => (
-                <div key={tc.id} className={`border rounded-lg p-4 space-y-2 ${tc.is_ai_generated ? "border-violet-200 bg-violet-50/30" : "border-slate-200"}`}>
+                <div key={tc.id} className={`border rounded-sm p-4 space-y-2 ${tc.is_ai_generated ? "border-[rgba(90,58,122,.3)] bg-[rgba(90,58,122,.08)]" : "border-[#e2ddd4]"}`}>
                   {editingId === tc.id ? (
                     <div className="space-y-2">
                       <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)}
-                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 bg-white" />
+                        className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] bg-[#faf9f6]" />
                       <textarea value={editSteps} onChange={e => setEditSteps(e.target.value)} rows={3}
                         placeholder="Schritte..."
-                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 bg-white resize-none" />
+                        className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] bg-[#faf9f6] resize-none" />
                       <textarea value={editExpected} onChange={e => setEditExpected(e.target.value)} rows={2}
                         placeholder="Erwartetes Ergebnis..."
-                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 bg-white resize-none" />
+                        className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] bg-[#faf9f6] resize-none" />
                       <div className="flex gap-2">
                         <button onClick={() => void handleSaveEdit(tc.id)} disabled={editSaving}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium transition-colors">
+                          className="flex items-center gap-1 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] text-white rounded-sm text-xs font-medium transition-colors">
                           {editSaving ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" /> : <CheckCircle size={12} />}
                           Speichern
                         </button>
                         <button onClick={() => setEditingId(null)}
-                          className="px-3 py-1.5 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium transition-colors">
+                          className="px-3 py-1.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-xs font-medium transition-colors">
                           Abbrechen
                         </button>
                       </div>
@@ -799,32 +799,32 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
                               {TEST_RESULT_LABELS[tc.result]}
                             </span>
                             {tc.is_ai_generated && (
-                              <span className="flex items-center gap-1 px-1.5 py-0.5 bg-violet-100 text-violet-600 rounded text-xs font-medium">
+                              <span className="flex items-center gap-1 px-1.5 py-0.5 bg-[rgba(90,58,122,.08)] text-[#5a3a7a] rounded-sm text-xs font-medium">
                                 <Sparkles size={10} />Auto
                               </span>
                             )}
                           </div>
-                          <h4 className="text-sm font-semibold text-slate-800 break-words">{tc.title}</h4>
+                          <h4 className="text-sm font-semibold text-[#1c1810] break-words">{tc.title}</h4>
                         </div>
                         <div className="flex items-center gap-1 sm:shrink-0 flex-wrap">
                           <button onClick={() => void handleMark(tc.id, "passed")}
                             disabled={markingId === tc.id || tc.result === "passed"}
-                            className="flex items-center gap-1 px-2 py-1 bg-green-50 hover:bg-green-100 text-green-700 disabled:opacity-50 rounded text-xs font-medium transition-colors">
+                            className="flex items-center gap-1 px-2 py-1 bg-[rgba(45,106,79,.1)] hover:bg-[rgba(45,106,79,.15)] text-[#2d6a4f] disabled:opacity-50 rounded-sm text-xs font-medium transition-colors">
                             <CheckCircle size={12} />Bestanden
                           </button>
                           <button onClick={() => void handleMark(tc.id, "failed")}
                             disabled={markingId === tc.id || tc.result === "failed"}
-                            className="flex items-center gap-1 px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 disabled:opacity-50 rounded text-xs font-medium transition-colors">
+                            className="flex items-center gap-1 px-2 py-1 bg-[rgba(192,57,43,.08)] hover:bg-[rgba(192,57,43,.12)] text-[#c0392b] disabled:opacity-50 rounded-sm text-xs font-medium transition-colors">
                             <XCircle size={12} />Fehlgeschlagen
                           </button>
                           {!isLocked && (
                             <>
                               <button onClick={() => startEdit(tc)}
-                                className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors">
+                                className="p-1.5 text-[#a09080] hover:text-[#c0392b] hover:bg-[rgba(192,57,43,.08)] rounded-sm transition-colors">
                                 <Pencil size={13} />
                               </button>
                               <button onClick={() => void handleDelete(tc.id)}
-                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
+                                className="p-1.5 text-[#a09080] hover:text-[#c0392b] hover:bg-[rgba(192,57,43,.08)] rounded-sm transition-colors">
                                 <Trash2 size={13} />
                               </button>
                             </>
@@ -833,14 +833,14 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
                       </div>
                       {tc.steps && (
                         <div>
-                          <p className="text-xs font-medium text-slate-500 mb-0.5">Schritte:</p>
-                          <p className="text-xs text-slate-700 whitespace-pre-wrap bg-white rounded p-2 border border-slate-100">{tc.steps}</p>
+                          <p className="text-xs font-medium text-[#a09080] mb-0.5">Schritte:</p>
+                          <p className="text-xs text-[#5a5040] whitespace-pre-wrap bg-[#faf9f6] rounded-sm p-2 border border-[#e2ddd4]">{tc.steps}</p>
                         </div>
                       )}
                       {tc.expected_result && (
                         <div>
-                          <p className="text-xs font-medium text-slate-500 mb-0.5">Erwartetes Ergebnis:</p>
-                          <p className="text-xs text-slate-700 whitespace-pre-wrap bg-white rounded p-2 border border-slate-100">{tc.expected_result}</p>
+                          <p className="text-xs font-medium text-[#a09080] mb-0.5">Erwartetes Ergebnis:</p>
+                          <p className="text-xs text-[#5a5040] whitespace-pre-wrap bg-[#faf9f6] rounded-sm p-2 border border-[#e2ddd4]">{tc.expected_result}</p>
                         </div>
                       )}
                     </>
@@ -853,20 +853,20 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
       </div>
 
       {/* RIGHT: Assistent */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
         <div className="mb-4">
-          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
-            <Sparkles size={16} className="text-brand-500" />
+          <h2 className="text-base font-semibold text-[#1c1810] flex items-center gap-2">
+            <Sparkles size={16} className="text-[#c0392b]" />
             Assistent
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#a09080] mt-1">
             Generiert Testfall-Vorschläge aus den Akzeptanzkriterien und speichert sie direkt an der Story.
             Beim erneuten Generieren werden bestehende Testfälle ersetzt.
           </p>
         </div>
 
         {isLocked ? (
-          <div className="flex items-center gap-2 px-4 py-3 bg-slate-100 text-slate-500 rounded-lg text-sm">
+          <div className="flex items-center gap-2 px-4 py-3 bg-[#f7f4ee] text-[#a09080] rounded-sm text-sm">
             <Lock size={15} />
             Generierung gesperrt (Status: {storyStatus})
           </div>
@@ -874,7 +874,7 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
           <button
             onClick={() => void generateAndSave()}
             disabled={aiLoading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#c0392b] text-white rounded-sm text-sm font-medium transition-colors"
           >
             {aiLoading ? (
               <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />Analysiert…</>
@@ -885,18 +885,18 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
         )}
 
         {aiError && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">{aiError}</div>
+          <div className="mt-3 p-3 bg-[rgba(192,57,43,.08)] border border-[rgba(192,57,43,.3)] rounded-sm text-[#c0392b] text-xs">{aiError}</div>
         )}
 
         {lastAiCount !== null && !aiError && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-xs">
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-[rgba(45,106,79,.1)] border border-[rgba(45,106,79,.3)] rounded-sm text-[#2d6a4f] text-xs">
             <CheckCircle size={13} />
             {lastAiCount} Testfall{lastAiCount !== 1 ? "fälle" : ""} generiert und gespeichert.
           </div>
         )}
 
-        <div className="mt-5 space-y-2 text-xs text-slate-500">
-          <p className="font-medium text-slate-600">Regeln:</p>
+        <div className="mt-5 space-y-2 text-xs text-[#a09080]">
+          <p className="font-medium text-[#5a5040]">Regeln:</p>
           <ul className="space-y-1 list-disc list-inside">
             <li>Testfälle werden sofort gespeichert</li>
             <li>Erneutes Generieren ersetzt bestehende Testfälle</li>
@@ -945,11 +945,11 @@ function EditableNotesField({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</h3>
+        <h3 className="text-xs font-semibold text-[#a09080] uppercase tracking-wide">{label}</h3>
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            className="flex items-center gap-1 px-2 py-0.5 text-xs text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors"
+            className="flex items-center gap-1 px-2 py-0.5 text-xs text-[#a09080] hover:text-[#c0392b] hover:bg-[rgba(192,57,43,.08)] rounded-sm transition-colors"
           >
             <Pencil size={11} />
             Bearbeiten
@@ -964,13 +964,13 @@ function EditableNotesField({
             placeholder={placeholder}
             rows={4}
             autoFocus
-            className="w-full px-3 py-2 text-sm border border-brand-300 rounded-lg outline-none focus:ring-2 focus:ring-brand-100 resize-y"
+            className="w-full px-3 py-2 text-sm border border-[rgba(192,57,43,.3)] rounded-sm outline-none focus:ring-2 focus:ring-[#c0392b] resize-y"
           />
           <div className="flex gap-2">
             <button
               onClick={() => void handleSave()}
               disabled={saving}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#c0392b] text-white rounded-sm text-xs font-medium transition-colors"
             >
               {saving ? (
                 <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
@@ -981,7 +981,7 @@ function EditableNotesField({
             </button>
             <button
               onClick={() => { setEditing(false); setDraft(value); }}
-              className="px-3 py-1.5 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium transition-colors"
+              className="px-3 py-1.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-xs font-medium transition-colors"
             >
               Abbrechen
             </button>
@@ -990,10 +990,10 @@ function EditableNotesField({
       ) : (
         <div
           onClick={() => setEditing(true)}
-          className={`px-3 py-2.5 text-sm rounded-lg border cursor-text min-h-[3rem] whitespace-pre-wrap leading-relaxed transition-colors ${
+          className={`px-3 py-2.5 text-sm rounded-sm border cursor-text min-h-[3rem] whitespace-pre-wrap leading-relaxed transition-colors ${
             value
-              ? "text-slate-700 bg-white border-slate-200 hover:border-brand-300"
-              : "text-slate-400 bg-slate-50 border-dashed border-slate-300 hover:border-brand-300"
+              ? "text-[#5a5040] bg-[#faf9f6] border-[#e2ddd4] hover:border-[rgba(192,57,43,.3)]"
+              : "text-[#a09080] bg-[#faf9f6] border-dashed border-[#cec8bc] hover:border-[rgba(192,57,43,.3)]"
           }`}
         >
           {value || placeholder}
@@ -1051,23 +1051,23 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
       {/* LEFT: Dokumentationsinhalt + Zusatzfelder */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="flex items-center gap-2 px-4 sm:px-6 py-4 border-b border-slate-100">
-          <FileText size={15} className="text-slate-500" />
-          <h2 className="text-base font-semibold text-slate-900">Dokumentation</h2>
-          {docs && <span className="text-xs text-slate-400 ml-1">Automatisch generiert, wird bei Änderungen aktualisiert</span>}
+      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] overflow-hidden">
+        <div className="flex items-center gap-2 px-4 sm:px-6 py-4 border-b border-[#e2ddd4]">
+          <FileText size={15} className="text-[#a09080]" />
+          <h2 className="text-base font-semibold text-[#1c1810]">Dokumentation</h2>
+          {docs && <span className="text-xs text-[#a09080] ml-1">Automatisch generiert, wird bei Änderungen aktualisiert</span>}
         </div>
 
         <div className="p-4 sm:p-6 space-y-6">
           {isLoading && (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#c0392b]" />
             </div>
           )}
 
           {!isLoading && !docs && !regenerating && (
             <div className="text-center py-6">
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-[#a09080]">
                 Noch keine Dokumentation vorhanden. Starte die Generierung oder speichere die Story.
               </p>
             </div>
@@ -1076,21 +1076,21 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
           {docs && (
             <div className="space-y-5">
               <div>
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Zusammenfassung</h3>
-                <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 rounded-lg p-3">{docs.summary}</p>
+                <h3 className="text-xs font-semibold text-[#a09080] uppercase tracking-wide mb-2">Zusammenfassung</h3>
+                <p className="text-sm text-[#5a5040] leading-relaxed bg-[#faf9f6] rounded-sm p-3">{docs.summary}</p>
               </div>
 
               <div>
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Changelog-Eintrag</h3>
-                <pre className="text-xs text-slate-700 bg-slate-50 rounded-lg p-3 whitespace-pre-wrap font-mono overflow-x-auto">{docs.changelog_entry}</pre>
+                <h3 className="text-xs font-semibold text-[#a09080] uppercase tracking-wide mb-2">Changelog-Eintrag</h3>
+                <pre className="text-xs text-[#5a5040] bg-[#faf9f6] rounded-sm p-3 whitespace-pre-wrap font-mono overflow-x-auto">{docs.changelog_entry}</pre>
               </div>
 
               <div>
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Dokumenten-Gliederung</h3>
+                <h3 className="text-xs font-semibold text-[#a09080] uppercase tracking-wide mb-2">Dokumenten-Gliederung</h3>
                 <ol className="space-y-1.5">
                   {docs.pdf_outline.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700">
-                      <span className="shrink-0 w-5 h-5 rounded-full bg-brand-100 text-brand-700 text-xs flex items-center justify-center font-semibold mt-0.5">{i + 1}</span>
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-[#5a5040]">
+                      <span className="shrink-0 w-5 h-5 rounded-full bg-[rgba(192,57,43,.08)] text-[#c0392b] text-xs flex items-center justify-center font-semibold mt-0.5">{i + 1}</span>
                       {item}
                     </li>
                   ))}
@@ -1098,8 +1098,8 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
               </div>
 
               <div>
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Technische Hinweise</h3>
-                <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 rounded-lg p-3 whitespace-pre-wrap">{docs.technical_notes}</p>
+                <h3 className="text-xs font-semibold text-[#a09080] uppercase tracking-wide mb-2">Technische Hinweise</h3>
+                <p className="text-sm text-[#5a5040] leading-relaxed bg-[#faf9f6] rounded-sm p-3 whitespace-pre-wrap">{docs.technical_notes}</p>
               </div>
 
               {docs.confluence_page_url && (
@@ -1107,7 +1107,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
                   href={docs.confluence_page_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-medium transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-[rgba(30,58,95,.06)] border border-[rgba(30,58,95,.2)] text-[#1e3a5f] hover:bg-[rgba(30,58,95,.1)] rounded-sm text-xs font-medium transition-colors"
                 >
                   In Confluence öffnen →
                 </a>
@@ -1116,7 +1116,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
           )}
 
           {/* Divider for user-editable sections — always visible */}
-          <div className="border-t border-slate-100 pt-5 space-y-5">
+          <div className="border-t border-[#e2ddd4] pt-5 space-y-5">
             <EditableNotesField
               label="Zusatzinformationen"
               value={additionalInfo}
@@ -1134,13 +1134,13 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
       </div>
 
       {/* RIGHT: Assistent / Regenerieren */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
         <div className="mb-4">
-          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
-            <Sparkles size={16} className="text-brand-500" />
+          <h2 className="text-base font-semibold text-[#1c1810] flex items-center gap-2">
+            <Sparkles size={16} className="text-[#c0392b]" />
             Assistent
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#a09080] mt-1">
             Generiert Zusammenfassung, Changelog-Eintrag, Dokumenten-Gliederung und technische Hinweise aus der Story.
           </p>
         </div>
@@ -1148,7 +1148,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
         <button
           onClick={() => void handleRegenerate()}
           disabled={regenerating}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#c0392b] text-white rounded-sm text-sm font-medium transition-colors"
         >
           {regenerating ? (
             <>
@@ -1164,35 +1164,35 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
         </button>
 
         {regenError && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">{regenError}</div>
+          <div className="mt-3 p-3 bg-[rgba(192,57,43,.08)] border border-[rgba(192,57,43,.3)] rounded-sm text-[#c0392b] text-xs">{regenError}</div>
         )}
 
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Generierte Abschnitte</p>
+          <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide mb-3">Generierte Abschnitte</p>
           {[
             { label: "Zusammenfassung" },
             { label: "Changelog-Eintrag" },
             { label: "Dokumenten-Gliederung" },
             { label: "Technische Hinweise" },
           ].map(({ label }) => (
-            <div key={label} className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${docs ? "bg-green-400" : "bg-slate-300"}`} />
-              <span className="text-xs text-slate-600">{label}</span>
+            <div key={label} className="flex items-center gap-2 p-3 bg-[#faf9f6] rounded-sm border border-[#e2ddd4]">
+              <div className={`w-2 h-2 rounded-full shrink-0 ${docs ? "bg-[#2d6a4f]" : "bg-[#e2ddd4]"}`} />
+              <span className="text-xs text-[#5a5040]">{label}</span>
             </div>
           ))}
           {!docs && (
-            <p className="text-xs text-slate-400 text-center pt-1">Wird nach dem Generieren befüllt.</p>
+            <p className="text-xs text-[#a09080] text-center pt-1">Wird nach dem Generieren befüllt.</p>
           )}
 
-          <div className="border-t border-slate-100 pt-4 mt-4 space-y-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Manuell gepflegt</p>
-            <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${additionalInfo ? "bg-brand-400" : "bg-slate-300"}`} />
-              <span className="text-xs text-slate-600">Zusatzinformationen</span>
+          <div className="border-t border-[#e2ddd4] pt-4 mt-4 space-y-2">
+            <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide mb-3">Manuell gepflegt</p>
+            <div className="flex items-center gap-2 p-3 bg-[#faf9f6] rounded-sm border border-[#e2ddd4]">
+              <div className={`w-2 h-2 rounded-full shrink-0 ${additionalInfo ? "bg-[#c0392b]" : "bg-[#e2ddd4]"}`} />
+              <span className="text-xs text-[#5a5040]">Zusatzinformationen</span>
             </div>
-            <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${workarounds ? "bg-brand-400" : "bg-slate-300"}`} />
-              <span className="text-xs text-slate-600">Bekannte Workarounds</span>
+            <div className="flex items-center gap-2 p-3 bg-[#faf9f6] rounded-sm border border-[#e2ddd4]">
+              <div className={`w-2 h-2 rounded-full shrink-0 ${workarounds ? "bg-[#c0392b]" : "bg-[#e2ddd4]"}`} />
+              <span className="text-xs text-[#5a5040]">Bekannte Workarounds</span>
             </div>
           </div>
         </div>
@@ -1214,11 +1214,11 @@ const FEATURE_STATUS_LABELS: Record<FeatureStatus, string> = {
 };
 
 const FEATURE_STATUS_COLORS: Record<FeatureStatus, string> = {
-  draft: "bg-slate-100 text-slate-600",
-  in_progress: "bg-amber-100 text-amber-700",
-  testing: "bg-orange-100 text-orange-700",
-  done: "bg-green-100 text-green-700",
-  archived: "bg-slate-200 text-slate-500",
+  draft: "bg-[#f7f4ee] text-[#5a5040]",
+  in_progress: "bg-[rgba(139,69,19,.1)] text-[#8b4513]",
+  testing: "bg-[rgba(192,57,43,.08)] text-[#c0392b]",
+  done: "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]",
+  archived: "bg-[#ece8e0] text-[#a09080]",
 };
 
 const FEATURE_STATUS_OPTIONS: { value: FeatureStatus; label: string }[] = [
@@ -1249,32 +1249,32 @@ function FeatureCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="border border-slate-200 rounded-lg bg-white hover:border-slate-300 transition-colors">
+    <div className="border border-[#e2ddd4] rounded-sm bg-[#faf9f6] hover:border-[#cec8bc] transition-colors">
       <div className="flex items-start gap-2 p-3">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 mb-1">
-            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${FEATURE_STATUS_COLORS[feature.status]}`}>
+            <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${FEATURE_STATUS_COLORS[feature.status]}`}>
               {FEATURE_STATUS_LABELS[feature.status]}
             </span>
             <span className={`text-xs font-medium ${PRIORITY_COLORS[feature.priority]}`}>
               ● {PRIORITY_OPTIONS.find((p) => p.value === feature.priority)?.label}
             </span>
             {feature.story_points !== null && (
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-xs">{feature.story_points} SP</span>
+              <span className="px-1.5 py-0.5 rounded-sm bg-[#f7f4ee] text-[#a09080] text-xs">{feature.story_points} SP</span>
             )}
           </div>
-          <p className="text-sm font-medium text-slate-800 leading-snug">{feature.title}</p>
+          <p className="text-sm font-medium text-[#1c1810] leading-snug">{feature.title}</p>
           {feature.description && (
             <>
               {!expanded && (
-                <button onClick={() => setExpanded(true)} className="text-xs text-slate-400 hover:text-slate-600 mt-0.5">
+                <button onClick={() => setExpanded(true)} className="text-xs text-[#a09080] hover:text-[#5a5040] mt-0.5">
                   Beschreibung anzeigen ▼
                 </button>
               )}
               {expanded && (
                 <>
-                  <p className="text-xs text-slate-500 mt-1 whitespace-pre-wrap">{feature.description}</p>
-                  <button onClick={() => setExpanded(false)} className="text-xs text-slate-400 hover:text-slate-600 mt-0.5">
+                  <p className="text-xs text-[#a09080] mt-1 whitespace-pre-wrap">{feature.description}</p>
+                  <button onClick={() => setExpanded(false)} className="text-xs text-[#a09080] hover:text-[#5a5040] mt-0.5">
                     ▲ Einklappen
                   </button>
                 </>
@@ -1286,7 +1286,7 @@ function FeatureCard({
           <button
             type="button"
             onClick={() => onEdit(feature)}
-            className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors"
+            className="p-1.5 text-[#a09080] hover:text-[#c0392b] hover:bg-[rgba(192,57,43,.08)] rounded-sm transition-colors"
             title="Bearbeiten"
           >
             <Pencil size={13} />
@@ -1295,11 +1295,11 @@ function FeatureCard({
             type="button"
             onClick={() => void onDelete(feature.id)}
             disabled={deletingId === feature.id}
-            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+            className="p-1.5 text-[#a09080] hover:text-[#c0392b] hover:bg-[rgba(192,57,43,.08)] rounded-sm transition-colors"
             title="Löschen"
           >
             {deletingId === feature.id
-              ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-red-400 border-t-transparent" />
+              ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-[#c0392b] border-t-transparent" />
               : <Trash2 size={13} />
             }
           </button>
@@ -1326,7 +1326,7 @@ function SuggestedFeatureCard({
   }
 
   return (
-    <div className="border border-emerald-200 rounded-lg bg-emerald-50 hover:border-emerald-300 transition-colors">
+    <div className="border border-emerald-200 rounded-sm bg-emerald-50 hover:border-emerald-300 transition-colors">
       <div className="flex items-start gap-2 px-3 py-2.5">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
@@ -1334,21 +1334,21 @@ function SuggestedFeatureCard({
               ● {PRIORITY_OPTIONS.find((p) => p.value === (suggestion.priority ?? "medium"))?.label}
             </span>
             {suggestion.story_points !== null && suggestion.story_points !== undefined && (
-              <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-600 text-xs">{suggestion.story_points} SP</span>
+              <span className="px-1.5 py-0.5 rounded-sm bg-emerald-100 text-emerald-600 text-xs">{suggestion.story_points} SP</span>
             )}
           </div>
-          <p className="text-sm font-medium text-slate-800 leading-snug">{suggestion.title}</p>
+          <p className="text-sm font-medium text-[#1c1810] leading-snug">{suggestion.title}</p>
           {suggestion.description && (
             <>
               {!expanded && (
-                <button onClick={() => setExpanded(true)} className="text-xs text-slate-400 hover:text-slate-600 mt-0.5">
+                <button onClick={() => setExpanded(true)} className="text-xs text-[#a09080] hover:text-[#5a5040] mt-0.5">
                   Details ▼
                 </button>
               )}
               {expanded && (
                 <>
-                  <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{suggestion.description}</p>
-                  <button onClick={() => setExpanded(false)} className="text-xs text-slate-400 hover:text-slate-600">▲</button>
+                  <p className="text-xs text-[#5a5040] mt-1 whitespace-pre-wrap">{suggestion.description}</p>
+                  <button onClick={() => setExpanded(false)} className="text-xs text-[#a09080] hover:text-[#5a5040]">▲</button>
                 </>
               )}
             </>
@@ -1358,7 +1358,7 @@ function SuggestedFeatureCard({
           type="button"
           onClick={() => void handleAdd()}
           disabled={adding}
-          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-lg text-xs font-medium transition-colors"
+          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-sm text-xs font-medium transition-colors"
         >
           {adding
             ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
@@ -1401,7 +1401,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  const inputCls = "w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white";
+  const inputCls = "w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]";
 
   function startEdit(f: Feature) {
     setEditingId(f.id);
@@ -1489,17 +1489,17 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
       {/* LEFT: Feature list */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 space-y-4">
+      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Package size={16} className="text-brand-500" />
-            <h3 className="font-semibold text-slate-900">Features</h3>
-            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{features?.length ?? 0}</span>
+            <Package size={16} className="text-[#c0392b]" />
+            <h3 className="font-semibold text-[#1c1810]">Features</h3>
+            <span className="text-xs text-[#a09080] bg-[#f7f4ee] px-2 py-0.5 rounded-full">{features?.length ?? 0}</span>
           </div>
           {!showAddForm && (
             <button
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] text-white rounded-sm text-xs font-medium transition-colors"
             >
               <Plus size={12} /> Feature hinzufügen
             </button>
@@ -1508,8 +1508,8 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
 
         {/* Add form */}
         {showAddForm && (
-          <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-3">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Neues Feature</p>
+          <div className="border border-[#e2ddd4] rounded-sm p-3 bg-[#f7f4ee] space-y-3">
+            <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide">Neues Feature</p>
             <input
               autoFocus
               value={addTitle}
@@ -1539,14 +1539,14 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
               <button
                 onClick={() => void handleAdd()}
                 disabled={!addTitle.trim() || addSaving}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#c0392b] text-white rounded-sm text-sm font-medium transition-colors"
               >
                 {addSaving && <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />}
                 Speichern
               </button>
               <button
                 onClick={() => { setShowAddForm(false); setAddTitle(""); setAddDesc(""); }}
-                className="px-3 py-1.5 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm transition-colors"
+                className="px-3 py-1.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm transition-colors"
               >
                 Abbrechen
               </button>
@@ -1556,9 +1556,9 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
 
         {/* Feature list */}
         {!features ? (
-          <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" /></div>
+          <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#c0392b]" /></div>
         ) : features.length === 0 && !showAddForm ? (
-          <div className="text-center py-10 text-slate-400">
+          <div className="text-center py-10 text-[#a09080]">
             <Package size={32} className="mx-auto mb-2 opacity-30" />
             <p className="text-sm">Noch keine Features.</p>
             <p className="text-xs mt-1">Features manuell hinzufügen oder Vorschläge generieren.</p>
@@ -1567,8 +1567,8 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
           <div className="space-y-2">
             {features.map((f) =>
               editingId === f.id ? (
-                <div key={f.id} className="border border-brand-300 rounded-xl p-3 bg-brand-50 space-y-3">
-                  <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide">Feature bearbeiten</p>
+                <div key={f.id} className="border border-[rgba(192,57,43,.3)] rounded-sm p-3 bg-[rgba(192,57,43,.08)] space-y-3">
+                  <p className="text-xs font-semibold text-[#c0392b] uppercase tracking-wide">Feature bearbeiten</p>
                   <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={inputCls} placeholder="Titel" />
                   <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={2} className={`${inputCls} resize-none`} placeholder="Beschreibung" />
                   <div className="grid grid-cols-3 gap-2">
@@ -1584,12 +1584,12 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
                     <button
                       onClick={() => void handleSaveEdit(f.id)}
                       disabled={!editTitle.trim() || editSaving}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#c0392b] text-white rounded-sm text-sm font-medium"
                     >
                       {editSaving && <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />}
                       Speichern
                     </button>
-                    <button onClick={() => setEditingId(null)} className="px-3 py-1.5 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm">
+                    <button onClick={() => setEditingId(null)} className="px-3 py-1.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm">
                       Abbrechen
                     </button>
                   </div>
@@ -1603,19 +1603,19 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
       </div>
 
       {/* RIGHT: AI Panel */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto space-y-4">
+      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto space-y-4">
         <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-brand-500" />
-          <h3 className="font-semibold text-slate-900">Feature-Vorschläge</h3>
+          <Sparkles size={16} className="text-[#c0392b]" />
+          <h3 className="font-semibold text-[#1c1810]">Feature-Vorschläge</h3>
         </div>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[#a09080]">
           Analysiert die User Story und schlägt konkrete, implementierbare Features (Teilfunktionen) vor.
         </p>
 
         <button
           onClick={() => void handleAiSuggest()}
           disabled={aiLoading}
-          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#c0392b] text-white rounded-sm text-sm font-medium transition-colors"
         >
           {aiLoading
             ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Wird analysiert…</>
@@ -1624,12 +1624,12 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
         </button>
 
         {aiError && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">{aiError}</p>
+          <p className="text-sm text-[#c0392b] bg-[rgba(192,57,43,.08)] border border-[rgba(192,57,43,.3)] px-3 py-2 rounded-sm">{aiError}</p>
         )}
 
         {aiSuggestions.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide">
               {aiSuggestions.length} Vorschläge — mit „Übernehmen" zur Feature-Liste hinzufügen
             </p>
             {aiSuggestions.map((s, i) => (
@@ -1651,12 +1651,12 @@ type ActiveTab = "story" | "dod" | "tests" | "features" | "docs";
 type DemoRole = "user" | "ba" | "architect" | "developer" | "tester" | "release";
 
 const DEMO_ROLES: { id: DemoRole; label: string; description: string; color: string }[] = [
-  { id: "user",      label: "User",              description: "Gesamtüberblick",                         color: "bg-slate-100 text-slate-700 border-slate-300" },
-  { id: "ba",        label: "Business Analyst",  description: "Story, DoD & Akzeptanzkriterien",         color: "bg-blue-100 text-blue-700 border-blue-300" },
-  { id: "architect", label: "Senior Architekt",  description: "Story, DoD, Features & Dokumentation",    color: "bg-violet-100 text-violet-700 border-violet-300" },
-  { id: "developer", label: "Developer",         description: "Story, DoD, Testfälle & Features",         color: "bg-amber-100 text-amber-700 border-amber-300" },
-  { id: "tester",    label: "Tester",            description: "Story, Akzeptanzkriterien & Testfälle",   color: "bg-orange-100 text-orange-700 border-orange-300" },
-  { id: "release",   label: "Releasemanager",    description: "Story, Testfälle & Dokumentation",        color: "bg-green-100 text-green-700 border-green-300" },
+  { id: "user",      label: "User",              description: "Gesamtüberblick",                         color: "bg-[#f7f4ee] text-[#5a5040] border-[#cec8bc]" },
+  { id: "ba",        label: "Business Analyst",  description: "Story, DoD & Akzeptanzkriterien",         color: "bg-[rgba(30,58,95,.06)] text-[#1e3a5f] border-[rgba(30,58,95,.3)]" },
+  { id: "architect", label: "Senior Architekt",  description: "Story, DoD, Features & Dokumentation",    color: "bg-[rgba(90,58,122,.08)] text-[#5a3a7a] border-[rgba(90,58,122,.3)]" },
+  { id: "developer", label: "Developer",         description: "Story, DoD, Testfälle & Features",         color: "bg-[rgba(139,69,19,.1)] text-[#8b4513] border-[rgba(139,69,19,.3)]" },
+  { id: "tester",    label: "Tester",            description: "Story, Akzeptanzkriterien & Testfälle",   color: "bg-[rgba(192,57,43,.08)] text-[#c0392b] border-[rgba(192,57,43,.3)]" },
+  { id: "release",   label: "Releasemanager",    description: "Story, Testfälle & Dokumentation",        color: "bg-[rgba(45,106,79,.1)] text-[#2d6a4f] border-[rgba(45,106,79,.3)]" },
 ];
 
 const ROLE_TABS: Record<DemoRole, ActiveTab[]> = {
@@ -1784,7 +1784,7 @@ export default function StoryDetailPage({
   if (isLoading || !story) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c0392b]" />
       </div>
     );
   }
@@ -1817,7 +1817,7 @@ export default function StoryDetailPage({
         <div className="flex items-center gap-4">
           <Link
             href={`/${params.org}/stories`}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-sm text-[#a09080] hover:text-[#5a5040] hover:bg-[#f7f4ee] transition-colors"
           >
             <ArrowLeft size={18} />
           </Link>
@@ -1830,12 +1830,12 @@ export default function StoryDetailPage({
                 ● {PRIORITY_OPTIONS.find((p) => p.value === story.priority)?.label}
               </span>
               {story.story_points !== null && (
-                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium">
+                <span className="px-2 py-0.5 rounded-full bg-[#f7f4ee] text-[#5a5040] text-xs font-medium">
                   {story.story_points} SP
                 </span>
               )}
               {story.dor_passed && (
-                <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-xs font-medium">
+                <span className="px-2 py-0.5 rounded-full bg-[rgba(45,106,79,.1)] text-[#2d6a4f] text-xs font-medium">
                   ✓ DoR
                 </span>
               )}
@@ -1843,7 +1843,7 @@ export default function StoryDetailPage({
                 <EpicBadge epicId={story.epic_id} orgId={story.organization_id} />
               )}
             </div>
-            <h1 className="text-xl font-bold text-slate-900 break-words">
+            <h1 className="text-xl font-bold text-[#1c1810] break-words">
               {story.title}
             </h1>
           </div>
@@ -1853,7 +1853,7 @@ export default function StoryDetailPage({
           {!editing && !showSplitPanel && (
             <button
               onClick={() => setShowSplitPanel(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm font-medium transition-colors"
             >
               <GitBranch size={16} />
               Aufteilen
@@ -1864,7 +1864,7 @@ export default function StoryDetailPage({
               <button
                 onClick={() => void handleSave()}
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#c0392b] text-white rounded-sm text-sm font-medium transition-colors"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -1875,7 +1875,7 @@ export default function StoryDetailPage({
               </button>
               <button
                 onClick={handleCancelEdit}
-                className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm font-medium transition-colors"
               >
                 <X size={16} />
                 Abbrechen
@@ -1884,7 +1884,7 @@ export default function StoryDetailPage({
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm font-medium transition-colors"
             >
               <Pencil size={16} />
               Bearbeiten
@@ -1895,7 +1895,7 @@ export default function StoryDetailPage({
 
       {/* Split badge */}
       {story.is_split && (
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-[rgba(139,69,19,.1)] border border-[rgba(139,69,19,.3)] rounded-sm text-[#8b4513] text-sm">
           <GitBranch size={15} className="shrink-0" />
           Diese Story wurde aufgeteilt. Die Sub-Stories findest du in der Story-Liste.
         </div>
@@ -1912,44 +1912,44 @@ export default function StoryDetailPage({
       )}
 
       {/* Demo role switcher */}
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[#faf9f6] border border-[#e2ddd4] rounded-sm">
         <div className="flex items-center gap-2 min-w-0">
-          <Users size={14} className="text-slate-400 shrink-0" />
-          <span className="text-xs text-slate-400 font-medium shrink-0">Demo-Ansicht:</span>
+          <Users size={14} className="text-[#a09080] shrink-0" />
+          <span className="text-xs text-[#a09080] font-medium shrink-0">Demo-Ansicht:</span>
           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${currentRole.color}`}>
             {currentRole.label}
           </span>
-          <span className="text-xs text-slate-400 hidden sm:inline truncate">{currentRole.description}</span>
+          <span className="text-xs text-[#a09080] hidden sm:inline truncate">{currentRole.description}</span>
         </div>
         <div className="relative shrink-0">
           <button
             onClick={() => setShowRolePicker((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 text-slate-600 hover:bg-white rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-xs font-medium transition-colors"
           >
             Rolle wechseln
           </button>
           {showRolePicker && (
-            <div className="absolute right-0 top-full mt-1 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Perspektive wählen</p>
+            <div className="absolute right-0 top-full mt-1 w-72 bg-[#faf9f6] border border-[#e2ddd4] rounded-sm z-50 overflow-hidden">
+              <div className="px-3 py-2 border-b border-[#e2ddd4] bg-[#f7f4ee]">
+                <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide">Perspektive wählen</p>
               </div>
               {DEMO_ROLES.map((role) => (
                 <button
                   key={role.id}
                   onClick={() => handleRoleChange(role.id)}
-                  className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0 ${
-                    demoRole === role.id ? "bg-brand-50" : ""
+                  className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-[#f7f4ee] transition-colors border-b border-[#e2ddd4] last:border-0 ${
+                    demoRole === role.id ? "bg-[rgba(192,57,43,.08)]" : ""
                   }`}
                 >
-                  <span className={`mt-0.5 shrink-0 px-1.5 py-0.5 rounded text-xs font-semibold border ${role.color}`}>
+                  <span className={`mt-0.5 shrink-0 px-1.5 py-0.5 rounded-sm text-xs font-semibold border ${role.color}`}>
                     {role.label.split(" ")[0]}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-800">{role.label}</p>
-                    <p className="text-xs text-slate-400">{role.description}</p>
+                    <p className="text-sm font-medium text-[#1c1810]">{role.label}</p>
+                    <p className="text-xs text-[#a09080]">{role.description}</p>
                   </div>
                   {demoRole === role.id && (
-                    <CheckCircle size={14} className="shrink-0 mt-0.5 text-brand-600" />
+                    <CheckCircle size={14} className="shrink-0 mt-0.5 text-[#c0392b]" />
                   )}
                 </button>
               ))}
@@ -1959,15 +1959,15 @@ export default function StoryDetailPage({
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
+      <div className="flex gap-1 border-b border-[#e2ddd4] overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
               activeTab === tab.id
-                ? "border-brand-600 text-brand-600"
-                : "border-transparent text-slate-500 hover:text-slate-700"
+                ? "border-[#c0392b] text-[#c0392b]"
+                : "border-transparent text-[#a09080] hover:text-[#5a5040]"
             }`}
           >
             {tab.label}
@@ -1979,7 +1979,7 @@ export default function StoryDetailPage({
       {activeTab === "story" && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
           {/* LEFT: Story fields */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 space-y-5">
+          <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 space-y-5">
             <DroppableField
               id="title"
               label="Titel"
@@ -2019,14 +2019,14 @@ export default function StoryDetailPage({
               <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  <label htmlFor="status" className="block text-sm font-medium text-[#5a5040] mb-1.5">
                     Status
                   </label>
                   <select
                     id="status"
                     value={status}
                     onChange={(e) => setStatus(e.target.value as StoryStatus)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white"
+                    className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]"
                   >
                     {STATUS_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
@@ -2037,14 +2037,14 @@ export default function StoryDetailPage({
                 </div>
 
                 <div>
-                  <label htmlFor="priority" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  <label htmlFor="priority" className="block text-sm font-medium text-[#5a5040] mb-1.5">
                     Priorität
                   </label>
                   <select
                     id="priority"
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as StoryPriority)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white"
+                    className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]"
                   >
                     {PRIORITY_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
@@ -2055,7 +2055,7 @@ export default function StoryDetailPage({
                 </div>
 
                 <div>
-                  <label htmlFor="story_points" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  <label htmlFor="story_points" className="block text-sm font-medium text-[#5a5040] mb-1.5">
                     Story Points
                   </label>
                   <input
@@ -2066,7 +2066,7 @@ export default function StoryDetailPage({
                     value={storyPoints}
                     onChange={(e) => setStoryPoints(e.target.value)}
                     placeholder="z.B. 5"
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white"
+                    className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]"
                   />
                 </div>
 
@@ -2076,9 +2076,9 @@ export default function StoryDetailPage({
                       type="checkbox"
                       checked={dorPassed}
                       onChange={(e) => setDorPassed(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-brand-600"
+                      className="w-4 h-4 rounded border-[#cec8bc] text-[#c0392b]"
                     />
-                    <span className="text-sm font-medium text-slate-700">DoR bestanden</span>
+                    <span className="text-sm font-medium text-[#5a5040]">DoR bestanden</span>
                   </label>
                 </div>
               </div>
@@ -2092,19 +2092,19 @@ export default function StoryDetailPage({
             )}
 
             {fieldErrors.general && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <div className="p-3 bg-[rgba(192,57,43,.08)] border border-[rgba(192,57,43,.3)] rounded-sm text-[#c0392b] text-sm">
                 {fieldErrors.general}
               </div>
             )}
 
-            <div className="text-xs text-slate-400 pt-2 border-t border-slate-100">
+            <div className="text-xs text-[#a09080] pt-2 border-t border-[#e2ddd4]">
               Erstellt: {new Date(story.created_at).toLocaleDateString("de-DE")} &middot; Aktualisiert:{" "}
               {new Date(story.updated_at).toLocaleDateString("de-DE")}
             </div>
           </div>
 
           {/* RIGHT: AI Suggestions */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+          <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
             <AISuggestPanel
               title={title}
               description={description}

@@ -183,36 +183,36 @@ export default function InboxPage({ params }: { params: { org: string } }) {
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] gap-0 -m-4 md:-m-6">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 md:px-6 py-3 bg-white border-b border-slate-200 shrink-0">
+      <div className="flex items-center gap-3 px-4 md:px-6 py-3 bg-[#faf9f6] border-b border-[#e2ddd4] shrink-0">
         <div className="flex items-center gap-2 flex-1">
-          <Inbox size={18} className="text-brand-600 shrink-0" />
-          <h1 className="text-base font-semibold text-slate-900">Posteingang</h1>
+          <Inbox size={18} className="text-[#c0392b] shrink-0" />
+          <h1 className="text-base font-semibold text-[#1c1810]">Posteingang</h1>
           {totalUnread > 0 && (
-            <span className="px-2 py-0.5 bg-brand-600 text-white text-xs font-semibold rounded-full">{totalUnread}</span>
+            <span className="px-2 py-0.5 bg-[#5a3a7a] text-white text-xs font-semibold rounded-full">{totalUnread}</span>
           )}
         </div>
         <div className="relative flex-1 max-w-xs">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#a09080]" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Suchen…"
-            className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-400 bg-slate-50"
+            className="w-full pl-8 pr-3 py-1.5 text-sm border border-[#e2ddd4] rounded-sm outline-none focus:border-[#c0392b] bg-[#faf9f6]"
           />
         </div>
         <button
           onClick={() => void handleRecluster()}
           disabled={reclustering}
           title="Themen neu gruppieren (KI)"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#e2ddd4] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm transition-colors disabled:opacity-50"
         >
-          <RefreshCw size={14} className={reclustering ? "animate-spin text-brand-500" : ""} />
+          <RefreshCw size={14} className={reclustering ? "animate-spin text-[#c0392b]" : ""} />
           <span className="hidden sm:inline">{reclustering ? "Gruppiere…" : "Neu gruppieren"}</span>
         </button>
         <button
           onClick={() => void handleSyncAll()}
           disabled={syncing || !connections?.length}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#e2ddd4] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
           <span className="hidden sm:inline">Aktualisieren</span>
@@ -222,16 +222,16 @@ export default function InboxPage({ params }: { params: { org: string } }) {
       {/* Main 3-pane layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Thread list */}
-        <div className="w-72 xl:w-80 shrink-0 border-r border-slate-200 overflow-y-auto bg-white">
+        <div className="w-72 xl:w-80 shrink-0 border-r border-[#e2ddd4] overflow-y-auto bg-[#faf9f6]">
           {!allMessages ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#c0392b]" />
             </div>
           ) : threads.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-              <Mail size={36} className="text-slate-300 mb-3" />
-              <p className="text-sm text-slate-500 font-medium">Keine Nachrichten</p>
-              <p className="text-xs text-slate-400 mt-1">
+              <Mail size={36} className="text-[#cec8bc] mb-3" />
+              <p className="text-sm text-[#a09080] font-medium">Keine Nachrichten</p>
+              <p className="text-xs text-[#a09080] mt-1">
                 {search ? "Keine Treffer für deine Suche." : "Klicke auf Aktualisieren, um E-Mails zu laden."}
               </p>
             </div>
@@ -243,28 +243,28 @@ export default function InboxPage({ params }: { params: { org: string } }) {
                 <button
                   key={thread.key}
                   onClick={() => { setSelectedThreadKey(thread.key); setSelectedMessage(null); }}
-                  className={`w-full text-left px-4 py-3 border-b border-slate-100 transition-colors hover:bg-slate-50 ${isSelected ? "bg-brand-50 border-l-2 border-l-brand-500" : ""}`}
+                  className={`w-full text-left px-4 py-3 border-b border-[#e2ddd4] transition-colors hover:bg-[#f7f4ee] ${isSelected ? "bg-[rgba(192,57,43,.08)] border-l-2 border-l-[#c0392b]" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm truncate ${hasUnread ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
+                      <p className={`text-sm truncate ${hasUnread ? "font-bold text-[#1c1810]" : "font-medium text-[#5a5040]"}`}>
                         {normalizeSubject(thread.subject)}
                       </p>
-                      <p className="text-xs text-slate-400 truncate mt-0.5">
+                      <p className="text-xs text-[#a09080] truncate mt-0.5">
                         {thread.senders.slice(0, 2).join(", ")}
                         {thread.senders.length > 2 && ` +${thread.senders.length - 2}`}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className="text-xs text-slate-400">{formatDate(thread.latestDate)}</span>
+                      <span className="text-xs text-[#a09080]">{formatDate(thread.latestDate)}</span>
                       <div className="flex items-center gap-1">
                         {thread.messages.length > 1 && (
-                          <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                          <span className="text-xs text-[#a09080] bg-[#f7f4ee] px-1.5 py-0.5 rounded-full">
                             {thread.messages.length}
                           </span>
                         )}
                         {hasUnread && (
-                          <span className="w-2 h-2 bg-brand-500 rounded-full" />
+                          <span className="w-2 h-2 bg-[#c0392b] rounded-full" />
                         )}
                       </div>
                     </div>
@@ -276,19 +276,19 @@ export default function InboxPage({ params }: { params: { org: string } }) {
         </div>
 
         {/* Middle: Message list for selected thread */}
-        <div className={`w-64 xl:w-72 shrink-0 border-r border-slate-200 overflow-y-auto bg-slate-50 ${!selectedThread ? "hidden md:block" : ""}`}>
+        <div className={`w-64 xl:w-72 shrink-0 border-r border-[#e2ddd4] overflow-y-auto bg-[#faf9f6] ${!selectedThread ? "hidden md:block" : ""}`}>
           {!selectedThread ? (
             <div className="flex flex-col items-center justify-center h-full py-12 text-center px-4">
-              <ChevronRight size={32} className="text-slate-300 mb-2" />
-              <p className="text-sm text-slate-400">Thema wählen</p>
+              <ChevronRight size={32} className="text-[#cec8bc] mb-2" />
+              <p className="text-sm text-[#a09080]">Thema wählen</p>
             </div>
           ) : (
             <>
-              <div className="px-3 py-2.5 border-b border-slate-200 bg-white">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide truncate">
+              <div className="px-3 py-2.5 border-b border-[#e2ddd4] bg-[#faf9f6]">
+                <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide truncate">
                   {normalizeSubject(selectedThread.subject)}
                 </p>
-                <p className="text-xs text-slate-400 mt-0.5">{selectedThread.messages.length} Nachrichten</p>
+                <p className="text-xs text-[#a09080] mt-0.5">{selectedThread.messages.length} Nachrichten</p>
               </div>
               {selectedThread.messages.map((msg) => {
                 const conn = connectionMap[msg.connection_id];
@@ -297,19 +297,19 @@ export default function InboxPage({ params }: { params: { org: string } }) {
                   <button
                     key={msg.id}
                     onClick={() => setSelectedMessage(msg)}
-                    className={`w-full text-left px-3 py-3 border-b border-slate-100 transition-colors hover:bg-white ${isActive ? "bg-white border-l-2 border-l-brand-500" : ""}`}
+                    className={`w-full text-left px-3 py-3 border-b border-[#e2ddd4] transition-colors hover:bg-[#faf9f6] ${isActive ? "bg-[#faf9f6] border-l-2 border-l-[#c0392b]" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-1">
-                      <p className={`text-xs flex-1 truncate ${msg.status === "unread" ? "font-bold text-slate-900" : "font-medium text-slate-600"}`}>
+                      <p className={`text-xs flex-1 truncate ${msg.status === "unread" ? "font-bold text-[#1c1810]" : "font-medium text-[#5a5040]"}`}>
                         {msg.sender_name ?? msg.sender_email}
                       </p>
-                      <span className="text-xs text-slate-400 shrink-0">{formatDate(msg.received_at)}</span>
+                      <span className="text-xs text-[#a09080] shrink-0">{formatDate(msg.received_at)}</span>
                     </div>
                     {conn && (
-                      <p className="text-xs text-brand-500 truncate mt-0.5">→ {conn.email_address}</p>
+                      <p className="text-xs text-[#c0392b] truncate mt-0.5">→ {conn.email_address}</p>
                     )}
                     {msg.snippet && (
-                      <p className="text-xs text-slate-400 truncate mt-0.5">{msg.snippet}</p>
+                      <p className="text-xs text-[#a09080] truncate mt-0.5">{msg.snippet}</p>
                     )}
                   </button>
                 );
@@ -319,26 +319,26 @@ export default function InboxPage({ params }: { params: { org: string } }) {
         </div>
 
         {/* Right: Message detail */}
-        <div className="flex-1 overflow-y-auto bg-white">
+        <div className="flex-1 overflow-y-auto bg-[#faf9f6]">
           {!selectedMessage ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <Mail size={40} className="text-slate-300 mb-3" />
-              <p className="text-sm font-medium text-slate-500">
+              <Mail size={40} className="text-[#cec8bc] mb-3" />
+              <p className="text-sm font-medium text-[#a09080]">
                 {selectedThread ? "Nachricht auswählen" : "Thema auswählen"}
               </p>
             </div>
           ) : (
             <div className="p-5 md:p-6 space-y-4">
               {/* Header */}
-              <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-[#e2ddd4]">
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-base font-semibold text-slate-900 break-words">
+                  <h2 className="text-base font-semibold text-[#1c1810] break-words">
                     {selectedMessage.subject ?? "(Kein Betreff)"}
                   </h2>
                   <div className="mt-2 space-y-1">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-medium text-slate-400 w-16 shrink-0">Von</span>
-                      <span className="text-sm text-slate-700">
+                      <span className="text-xs font-medium text-[#a09080] w-16 shrink-0">Von</span>
+                      <span className="text-sm text-[#5a5040]">
                         {selectedMessage.sender_name
                           ? `${selectedMessage.sender_name} <${selectedMessage.sender_email}>`
                           : selectedMessage.sender_email}
@@ -346,15 +346,15 @@ export default function InboxPage({ params }: { params: { org: string } }) {
                     </div>
                     {connectionMap[selectedMessage.connection_id] && (
                       <div className="flex items-baseline gap-2">
-                        <span className="text-xs font-medium text-slate-400 w-16 shrink-0">Konto</span>
-                        <span className="text-sm text-slate-700">
+                        <span className="text-xs font-medium text-[#a09080] w-16 shrink-0">Konto</span>
+                        <span className="text-sm text-[#5a5040]">
                           {connectionMap[selectedMessage.connection_id].display_name ?? connectionMap[selectedMessage.connection_id].email_address}
                         </span>
                       </div>
                     )}
                     {connectionMap[selectedMessage.connection_id] && (
                       <div className="flex items-center gap-2 mt-2">
-                        <label className="text-xs text-slate-500 whitespace-nowrap">Sync-Intervall:</label>
+                        <label className="text-xs text-[#a09080] whitespace-nowrap">Sync-Intervall:</label>
                         <select
                           defaultValue={connectionMap[selectedMessage.connection_id].sync_interval_minutes ?? 15}
                           onChange={async (e) => {
@@ -370,7 +370,7 @@ export default function InboxPage({ params }: { params: { org: string } }) {
                               body: JSON.stringify({ sync_interval_minutes: interval }),
                             });
                           }}
-                          className="text-xs border border-slate-200 rounded px-2 py-1 bg-white text-slate-700"
+                          className="text-xs border border-[#e2ddd4] rounded-sm px-2 py-1 bg-[#faf9f6] text-[#5a5040]"
                         >
                           <option value={5}>5 Minuten</option>
                           <option value={15}>15 Minuten</option>
@@ -381,8 +381,8 @@ export default function InboxPage({ params }: { params: { org: string } }) {
                     )}
                     {selectedMessage.received_at && (
                       <div className="flex items-baseline gap-2">
-                        <span className="text-xs font-medium text-slate-400 w-16 shrink-0">Datum</span>
-                        <span className="text-xs text-slate-500">{formatDateFull(selectedMessage.received_at)}</span>
+                        <span className="text-xs font-medium text-[#a09080] w-16 shrink-0">Datum</span>
+                        <span className="text-xs text-[#a09080]">{formatDateFull(selectedMessage.received_at)}</span>
                       </div>
                     )}
                   </div>
@@ -393,7 +393,7 @@ export default function InboxPage({ params }: { params: { org: string } }) {
                     <button
                       onClick={() => void handleMarkRead(selectedMessage)}
                       disabled={!!actionLoading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-[#e2ddd4] text-[#5a5040] hover:bg-[#f7f4ee] rounded-sm text-xs font-medium transition-colors disabled:opacity-50"
                     >
                       <Eye size={12} /> Als gelesen
                     </button>
@@ -401,7 +401,7 @@ export default function InboxPage({ params }: { params: { org: string } }) {
                   <button
                     onClick={() => void handleArchive(selectedMessage)}
                     disabled={!!actionLoading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-[#e2ddd4] text-[#5a5040] hover:bg-[#f7f4ee] rounded-sm text-xs font-medium transition-colors disabled:opacity-50"
                   >
                     <Archive size={12} /> Archivieren
                   </button>
@@ -409,13 +409,13 @@ export default function InboxPage({ params }: { params: { org: string } }) {
               </div>
 
               {/* Body */}
-              <div className="text-sm text-slate-700 leading-relaxed">
+              <div className="text-sm text-[#5a5040] leading-relaxed">
                 {selectedMessage.body_text ? (
                   <pre className="whitespace-pre-wrap font-sans">{selectedMessage.body_text}</pre>
                 ) : selectedMessage.snippet ? (
                   <p>{selectedMessage.snippet}</p>
                 ) : (
-                  <p className="text-slate-400 italic">Kein Nachrichteninhalt verfügbar.</p>
+                  <p className="text-[#a09080] italic">Kein Nachrichteninhalt verfügbar.</p>
                 )}
               </div>
             </div>

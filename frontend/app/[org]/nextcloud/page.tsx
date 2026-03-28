@@ -37,12 +37,12 @@ type Tab = "org" | "personal";
 
 function FileIcon({ contentType }: { contentType: string }) {
   if (contentType.includes("spreadsheet") || contentType.includes("excel"))
-    return <FileSpreadsheet className="w-4 h-4 text-green-600 flex-shrink-0" />;
+    return <FileSpreadsheet className="w-4 h-4 text-[#2d6a4f] flex-shrink-0" />;
   if (contentType.includes("word") || contentType.includes("document"))
-    return <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />;
+    return <FileText className="w-4 h-4 text-[#1e3a5f] flex-shrink-0" />;
   if (contentType.includes("pdf"))
-    return <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />;
-  return <File className="w-4 h-4 text-slate-500 flex-shrink-0" />;
+    return <FileText className="w-4 h-4 text-[#c0392b] flex-shrink-0" />;
+  return <File className="w-4 h-4 text-[#a09080] flex-shrink-0" />;
 }
 
 function formatSize(bytes: number): string {
@@ -97,7 +97,7 @@ function FileList({
       <div className="flex items-center justify-end gap-2">
         <button
           onClick={onMutate}
-          className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-[#5a5040] hover:text-[#1c1810] px-3 py-1.5 rounded-sm border border-[#e2ddd4] hover:bg-[#f7f4ee] transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Aktualisieren
@@ -105,7 +105,7 @@ function FileList({
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 text-sm text-white bg-[#1e3a5f] hover:bg-[#1e3a5f] disabled:opacity-50 px-3 py-1.5 rounded-sm transition-colors"
         >
           <Upload className="w-3.5 h-3.5" />
           {uploading ? "Lädt…" : "Hochladen"}
@@ -120,7 +120,7 @@ function FileList({
 
       {/* Status */}
       {(uploadError || uploadSuccess) && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm ${uploadError ? "bg-red-50 text-red-700 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-sm text-sm ${uploadError ? "bg-[rgba(192,57,43,.08)] text-[#c0392b] border border-[#c0392b]" : "bg-[rgba(45,106,79,.1)] text-[#2d6a4f] border border-[#2d6a4f]"}`}>
           {uploadError ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> : <CheckCircle className="w-4 h-4 flex-shrink-0" />}
           <span className="flex-1">{uploadError ?? uploadSuccess}</span>
           <button onClick={onClearStatus}><X className="w-4 h-4" /></button>
@@ -129,53 +129,53 @@ function FileList({
 
       {/* Drop zone */}
       <div
-        className={`relative bg-white border-2 ${dragging ? "border-blue-400 bg-blue-50" : "border-slate-200"} rounded-xl overflow-hidden transition-colors`}
+        className={`relative bg-[#faf9f6] border-2 ${dragging ? "border-[#1e3a5f] bg-[rgba(30,58,95,.06)]" : "border-[#e2ddd4]"} rounded-sm overflow-hidden transition-colors`}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { setDragging(false); onDrop(e); }}
       >
         {dragging && (
-          <div className="absolute inset-0 flex items-center justify-center bg-blue-50/80 z-10 rounded-xl">
-            <p className="text-blue-600 font-medium text-sm">Datei hier ablegen</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-[rgba(30,58,95,.06)] z-10 rounded-sm">
+            <p className="text-[#1e3a5f] font-medium text-sm">Datei hier ablegen</p>
           </div>
         )}
 
-        {isLoading && <div className="px-6 py-12 text-center text-sm text-slate-400">Lädt…</div>}
+        {isLoading && <div className="px-6 py-12 text-center text-sm text-[#a09080]">Lädt…</div>}
 
         {!isLoading && !!error && (
-          <div className="px-6 py-12 text-center text-sm text-slate-500">
+          <div className="px-6 py-12 text-center text-sm text-[#a09080]">
             Nextcloud momentan nicht erreichbar.
           </div>
         )}
 
         {!isLoading && !error && data && data.files.length === 0 && (
           <div className="px-6 py-12 text-center">
-            <Folder className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-500">Noch keine Dateien.</p>
-            <p className="text-xs text-slate-400 mt-1">Datei hochladen oder per Drag &amp; Drop ablegen.</p>
+            <Folder className="w-8 h-8 text-[#a09080] mx-auto mb-3" />
+            <p className="text-sm text-[#a09080]">Noch keine Dateien.</p>
+            <p className="text-xs text-[#a09080] mt-1">Datei hochladen oder per Drag &amp; Drop ablegen.</p>
           </div>
         )}
 
         {!isLoading && !error && data && data.files.length > 0 && (
           <>
-            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 text-xs text-slate-400 px-4 py-2 border-b border-slate-100 font-medium">
+            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 text-xs text-[#a09080] px-4 py-2 border-b border-[#e2ddd4] font-medium">
               <span>Name</span>
               <span className="w-20 text-right pr-2">Größe</span>
               <span className="w-20 text-right pr-2">Geändert</span>
               <span className="w-10"></span>
             </div>
-            <ul className="divide-y divide-slate-50">
+            <ul className="divide-y divide-[#f7f4ee]">
               {data.files.map((file) => (
-                <li key={file.href} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-0 px-4 py-3 hover:bg-slate-50 transition-colors">
+                <li key={file.href} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-0 px-4 py-3 hover:bg-[#f7f4ee] transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <FileIcon contentType={file.content_type} />
-                    <span className="text-sm text-slate-800 truncate">{file.name}</span>
+                    <span className="text-sm text-[#1c1810] truncate">{file.name}</span>
                   </div>
-                  <span className="w-20 text-right text-xs text-slate-400 pr-2">{formatSize(file.size)}</span>
-                  <span className="w-20 text-right text-xs text-slate-400 pr-2">{formatDate(file.last_modified)}</span>
+                  <span className="w-20 text-right text-xs text-[#a09080] pr-2">{formatSize(file.size)}</span>
+                  <span className="w-20 text-right text-xs text-[#a09080] pr-2">{formatDate(file.last_modified)}</span>
                   <button
                     onClick={() => onDownload(file)}
-                    className="w-10 flex items-center justify-center text-slate-400 hover:text-blue-600 transition-colors"
+                    className="w-10 flex items-center justify-center text-[#a09080] hover:text-[#1e3a5f] transition-colors"
                     title="Herunterladen"
                   >
                     <Download className="w-4 h-4" />
@@ -187,8 +187,8 @@ function FileList({
         )}
 
         {data && (
-          <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50">
-            <p className="text-xs text-slate-400">Drag &amp; Drop zum Hochladen · {data.files.length} Datei{data.files.length !== 1 ? "en" : ""}</p>
+          <div className="px-4 py-2.5 border-t border-[#e2ddd4] bg-[#f7f4ee]">
+            <p className="text-xs text-[#a09080]">Drag &amp; Drop zum Hochladen · {data.files.length} Datei{data.files.length !== 1 ? "en" : ""}</p>
           </div>
         )}
       </div>
@@ -299,25 +299,25 @@ export default function NextcloudPage({ params }: { params: { org: string } }) {
     <div className="max-w-3xl mx-auto py-8 px-4">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
-          <Folder className="w-5 h-5 text-blue-600" />
+        <div className="w-9 h-9 rounded-sm bg-[rgba(30,58,95,.06)] flex items-center justify-center">
+          <Folder className="w-5 h-5 text-[#1e3a5f]" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Dateien</h1>
-          <p className="text-sm text-slate-500">{activeData?.files.length ?? 0} Dateien</p>
+          <h1 className="text-xl font-semibold text-[#1c1810]">Dateien</h1>
+          <p className="text-sm text-[#a09080]">{activeData?.files.length ?? 0} Dateien</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-slate-100 rounded-xl mb-6 w-fit">
+      <div className="flex gap-1 p-1 bg-[#f7f4ee] rounded-sm mb-6 w-fit">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
               tab === id
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
+                ? "bg-[#faf9f6] text-[#1c1810]"
+                : "text-[#a09080] hover:text-[#5a5040]"
             }`}
           >
             <Icon className="w-4 h-4" />

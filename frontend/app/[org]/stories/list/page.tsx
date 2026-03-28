@@ -31,13 +31,13 @@ const STATUS_LABELS: Record<StoryStatus, string> = {
 };
 
 const STATUS_COLORS: Record<StoryStatus, string> = {
-  draft: "bg-slate-100 text-slate-600",
-  in_review: "bg-violet-100 text-violet-700",
-  ready: "bg-blue-100 text-blue-700",
-  in_progress: "bg-amber-100 text-amber-700",
-  testing: "bg-orange-100 text-orange-700",
-  done: "bg-green-100 text-green-700",
-  archived: "bg-slate-200 text-slate-500",
+  draft:       "bg-[#f7f4ee] text-[#5a5040]",
+  in_review:   "bg-[rgba(90,58,122,.08)] text-[#5a3a7a]",
+  ready:       "bg-[rgba(30,58,95,.06)] text-[#1e3a5f]",
+  in_progress: "bg-[rgba(139,69,19,.1)] text-[#8b4513]",
+  testing:     "bg-[rgba(192,57,43,.08)] text-[#c0392b]",
+  done:        "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]",
+  archived:    "bg-[#ece8e0] text-[#a09080]",
 };
 
 const PRIORITY_LABELS: Record<StoryPriority, string> = {
@@ -48,10 +48,10 @@ const PRIORITY_LABELS: Record<StoryPriority, string> = {
 };
 
 const PRIORITY_COLORS: Record<StoryPriority, string> = {
-  low: "text-slate-400",
-  medium: "text-blue-500",
-  high: "text-amber-500",
-  critical: "text-red-500",
+  low:      "text-[#a09080]",
+  medium:   "text-[#1e3a5f]",
+  high:     "text-[#8b4513]",
+  critical: "text-[#c0392b]",
 };
 
 export default function StoriesListPage({ params }: { params: { org: string } }) {
@@ -84,14 +84,14 @@ export default function StoriesListPage({ params }: { params: { org: string } })
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">User Stories</h1>
-          <p className="text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-[#1c1810]">User Stories</h1>
+          <p className="text-[#a09080] mt-1">
             {stories ? `${stories.length} ${stories.length === 1 ? "Story" : "Stories"}` : ""}
           </p>
         </div>
         <Link
           href={`/${params.org}/stories/new`}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#a93226] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus size={16} />
           Neue Story
@@ -99,17 +99,17 @@ export default function StoriesListPage({ params }: { params: { org: string } })
       </div>
 
       {/* View tabs */}
-      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
-        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-brand-600 text-brand-600 whitespace-nowrap">
+      <div className="flex gap-1 border-b border-[#e2ddd4] overflow-x-auto">
+        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#c0392b] text-[#c0392b] whitespace-nowrap">
           <LayoutList size={15} /> Liste
         </span>
-        <Link href={`/${params.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+        <Link href={`/${params.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
           <Columns size={15} /> Board
         </Link>
-        <Link href={`/${params.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+        <Link href={`/${params.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
           <Layers size={15} /> Features
         </Link>
-        <Link href={`/${params.org}/stories/epics/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+        <Link href={`/${params.org}/stories/epics/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
           <GitBranch size={15} /> Epics
         </Link>
       </div>
@@ -117,26 +117,26 @@ export default function StoriesListPage({ params }: { params: { org: string } })
       {/* Content */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c0392b]" />
         </div>
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+        <div className="bg-[rgba(192,57,43,.08)] border border-[#e2ddd4] rounded-sm p-4 text-[#c0392b] text-sm">
           Fehler beim Laden der Stories.
         </div>
       )}
 
       {stories && stories.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
+        <div className="text-center py-16 bg-[#faf9f6] rounded-sm border border-[#e2ddd4]">
           <div className="text-4xl mb-4">📋</div>
-          <h3 className="text-lg font-semibold text-slate-700 mb-2">Noch keine User Stories</h3>
-          <p className="text-slate-400 mb-6 text-sm">
+          <h3 className="text-lg font-semibold text-[#5a5040] mb-2">Noch keine User Stories</h3>
+          <p className="text-[#a09080] mb-6 text-sm">
             Erstelle deine erste User Story.
           </p>
           <Link
             href={`/${params.org}/stories/new`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#a93226] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
             Erste Story erstellen
@@ -157,14 +157,14 @@ export default function StoriesListPage({ params }: { params: { org: string } })
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[status]}`}>
                     {STATUS_LABELS[status]}
                   </span>
-                  <span className="text-xs text-slate-400">{items.length}</span>
+                  <span className="text-xs text-[#a09080]">{items.length}</span>
                 </div>
                 <div className="grid gap-2">
                   {items.map((story) => (
                     <Link
                       key={story.id}
                       href={`/${params.org}/stories/${story.id}`}
-                      className="block bg-white rounded-xl border border-slate-200 p-5 hover:border-brand-300 hover:shadow-sm transition-all group"
+                      className="block bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-5 hover:border-[rgba(192,57,43,.3)] transition-all group"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
@@ -173,21 +173,21 @@ export default function StoriesListPage({ params }: { params: { org: string } })
                               ● {PRIORITY_LABELS[story.priority]}
                             </span>
                             {story.story_points !== null && (
-                              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium">
+                              <span className="px-2 py-0.5 rounded-full bg-[#f7f4ee] text-[#5a5040] text-xs font-medium">
                                 {story.story_points} SP
                               </span>
                             )}
                             {story.dor_passed && (
-                              <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-xs font-medium">
+                              <span className="px-2 py-0.5 rounded-full bg-[rgba(45,106,79,.1)] text-[#2d6a4f] text-xs font-medium">
                                 ✓ DoR
                               </span>
                             )}
                           </div>
-                          <h3 className="font-semibold text-slate-900 truncate group-hover:text-brand-600 transition-colors">
+                          <h3 className="font-semibold text-[#1c1810] truncate group-hover:text-[#c0392b] transition-colors">
                             {story.title}
                           </h3>
                           {story.description && (
-                            <p className="text-slate-500 text-sm mt-1 line-clamp-2">{story.description}</p>
+                            <p className="text-[#a09080] text-sm mt-1 line-clamp-2">{story.description}</p>
                           )}
                         </div>
 
@@ -198,10 +198,10 @@ export default function StoriesListPage({ params }: { params: { org: string } })
                               title={`Quality-Score: ${story.quality_score}/100`}
                               className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
                                 story.quality_score >= 75
-                                  ? "bg-green-100 text-green-700"
+                                  ? "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]"
                                   : story.quality_score >= 50
-                                  ? "bg-amber-100 text-amber-700"
-                                  : "bg-red-100 text-red-600"
+                                  ? "bg-[rgba(139,69,19,.1)] text-[#8b4513]"
+                                  : "bg-[rgba(192,57,43,.08)] text-[#c0392b]"
                               }`}
                             >
                               {story.quality_score < 50 && <AlertTriangle size={11} />}
@@ -211,7 +211,7 @@ export default function StoriesListPage({ params }: { params: { org: string } })
                           <button
                             onClick={(e) => void handleDelete(e, story.id)}
                             disabled={deleting === story.id}
-                            className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+                            className="p-2 rounded-sm text-[#cec8bc] hover:text-[#c0392b] hover:bg-[rgba(192,57,43,.08)] transition-colors sm:opacity-0 sm:group-hover:opacity-100"
                             aria-label="Story löschen"
                           >
                             <Trash2 size={16} />

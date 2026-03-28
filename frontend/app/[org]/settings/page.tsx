@@ -32,7 +32,7 @@ function SaveButton({ saving, label = "Speichern" }: { saving: boolean; label?: 
     <button
       type="submit"
       disabled={saving}
-      className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+      className="flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#a09080] text-white rounded-sm text-sm font-medium transition-colors"
     >
       {saving && <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />}
       {saving ? "Speichern…" : label}
@@ -42,7 +42,7 @@ function SaveButton({ saving, label = "Speichern" }: { saving: boolean; label?: 
 
 function StatusBadge({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${ok ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${ok ? "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]" : "bg-[#f7f4ee] text-[#a09080]"}`}>
       {ok ? <CheckCircle size={11} /> : <AlertCircle size={11} />}
       {label}
     </span>
@@ -60,7 +60,7 @@ function TokenField({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label htmlFor={id} className="block text-sm font-medium text-slate-700">{label}</label>
+        <label htmlFor={id} className="block text-sm font-medium text-[#5a5040]">{label}</label>
         {isSet && <StatusBadge ok label="Gesetzt" />}
       </div>
       <div className="relative">
@@ -70,14 +70,14 @@ function TokenField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={isSet ? "••••••••••••••••••••" : placeholder}
-          className="w-full px-3 py-2 pr-9 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white"
+          className="w-full px-3 py-2 pr-9 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]"
         />
         <button type="button" onClick={() => setShow((v) => !v)}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a09080] hover:text-[#5a5040]">
           {show ? <EyeOff size={15} /> : <Eye size={15} />}
         </button>
       </div>
-      {hint && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-[#a09080] mt-1">{hint}</p>}
     </div>
   );
 }
@@ -88,10 +88,10 @@ function FormField({ id, label, value, onChange, placeholder, type = "text" }: {
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+      <label htmlFor={id} className="block text-sm font-medium text-[#5a5040] mb-1">{label}</label>
       <input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white" />
+        className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]" />
     </div>
   );
 }
@@ -99,7 +99,7 @@ function FormField({ id, label, value, onChange, placeholder, type = "text" }: {
 function SectionMessage({ msg }: { msg: { type: "success" | "error"; text: string } | null }) {
   if (!msg) return null;
   return (
-    <div className={`px-4 py-3 rounded-lg text-sm ${msg.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"}`}>
+    <div className={`px-4 py-3 rounded-sm text-sm ${msg.type === "success" ? "bg-[rgba(45,106,79,.1)] border border-[#2d6a4f] text-[#2d6a4f]" : "bg-[rgba(192,57,43,.08)] border border-[#c0392b] text-[#c0392b]"}`}>
       {msg.text}
     </div>
   );
@@ -141,17 +141,17 @@ function GeneralSection({ org, mutateOrg }: { org: any; mutateOrg: () => void })
       <SectionMessage msg={msg} />
       <FormField id="name" label="Name" value={name} onChange={setName} />
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Slug</label>
-        <input value={org.slug} disabled className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-400 cursor-not-allowed" />
+        <label className="block text-sm font-medium text-[#5a5040] mb-1">Slug</label>
+        <input value={org.slug} disabled className="w-full px-3 py-2 text-sm border border-[#e2ddd4] rounded-sm bg-[#f7f4ee] text-[#a09080] cursor-not-allowed" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Beschreibung</label>
+        <label className="block text-sm font-medium text-[#5a5040] mb-1">Beschreibung</label>
         <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 resize-none" />
+          className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] resize-none" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Plan</label>
-        <input value={org.plan} disabled className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-400 cursor-not-allowed" />
+        <label className="block text-sm font-medium text-[#5a5040] mb-1">Plan</label>
+        <input value={org.plan} disabled className="w-full px-3 py-2 text-sm border border-[#e2ddd4] rounded-sm bg-[#f7f4ee] text-[#a09080] cursor-not-allowed" />
       </div>
       <SaveButton saving={saving} />
     </form>
@@ -223,7 +223,7 @@ function EmailSection({ orgId }: { orgId: string }) {
     finally { setDeleting(null); }
   }
 
-  const selectCls = "w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white";
+  const selectCls = "w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]";
 
   return (
     <div className="space-y-5 max-w-xl">
@@ -231,19 +231,19 @@ function EmailSection({ orgId }: { orgId: string }) {
       {connections && connections.length > 0 && (
         <div className="space-y-2">
           {connections.map((c) => (
-            <div key={c.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-lg bg-white">
+            <div key={c.id} className="flex items-center justify-between p-3 border border-[#e2ddd4] rounded-sm bg-[#faf9f6]">
               <div className="flex items-center gap-3">
-                <Mail size={16} className="text-slate-400 shrink-0" />
+                <Mail size={16} className="text-[#a09080] shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-slate-800">{c.display_name ?? c.email_address}</p>
-                  <p className="text-xs text-slate-400">{c.email_address} · {c.provider.toUpperCase()}{c.provider === "imap" && c.imap_host ? ` · ${c.imap_host}:${c.imap_port ?? 993}` : ""}</p>
+                  <p className="text-sm font-medium text-[#1c1810]">{c.display_name ?? c.email_address}</p>
+                  <p className="text-xs text-[#a09080]">{c.email_address} · {c.provider.toUpperCase()}{c.provider === "imap" && c.imap_host ? ` · ${c.imap_host}:${c.imap_port ?? 993}` : ""}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge ok={c.is_active} label={c.is_active ? "Aktiv" : "Inaktiv"} />
                 <button type="button" onClick={() => void handleDelete(c.id)} disabled={deleting === c.id}
-                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
-                  {deleting === c.id ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-red-400 border-t-transparent" /> : <Trash2 size={14} />}
+                  className="p-1.5 text-[#a09080] hover:text-[#c0392b] hover:bg-[rgba(192,57,43,.08)] rounded transition-colors">
+                  {deleting === c.id ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-[#c0392b] border-t-transparent" /> : <Trash2 size={14} />}
                 </button>
               </div>
             </div>
@@ -252,9 +252,9 @@ function EmailSection({ orgId }: { orgId: string }) {
       )}
 
       {/* Add connection form — always visible */}
-      <form onSubmit={(e) => void handleAdd(e)} className="border border-slate-200 rounded-xl bg-slate-50">
-        <div className="px-4 py-3 border-b border-slate-200">
-          <p className="text-sm font-semibold text-slate-800">Neues E-Mail-Konto verbinden</p>
+      <form onSubmit={(e) => void handleAdd(e)} className="border border-[#e2ddd4] rounded-sm bg-[#f7f4ee]">
+        <div className="px-4 py-3 border-b border-[#e2ddd4]">
+          <p className="text-sm font-semibold text-[#1c1810]">Neues E-Mail-Konto verbinden</p>
         </div>
 
         <div className="p-4 space-y-3">
@@ -262,7 +262,7 @@ function EmailSection({ orgId }: { orgId: string }) {
 
           {/* Provider */}
           <div>
-            <label htmlFor="email-provider" className="block text-sm font-medium text-slate-700 mb-1">Protokoll</label>
+            <label htmlFor="email-provider" className="block text-sm font-medium text-[#5a5040] mb-1">Protokoll</label>
             <select
               id="email-provider"
               value={provider}
@@ -283,12 +283,12 @@ function EmailSection({ orgId }: { orgId: string }) {
 
           {/* IMAP-specific fields */}
           {provider === "imap" && (
-            <div className="space-y-3 pt-3 mt-1 border-t border-slate-200">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Servereinstellungen</p>
+            <div className="space-y-3 pt-3 mt-1 border-t border-[#e2ddd4]">
+              <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide">Servereinstellungen</p>
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
-                  <label htmlFor="imap-host" className="block text-sm font-medium text-slate-700 mb-1">Server</label>
+                  <label htmlFor="imap-host" className="block text-sm font-medium text-[#5a5040] mb-1">Server</label>
                   <input
                     id="imap-host"
                     type="text"
@@ -299,7 +299,7 @@ function EmailSection({ orgId }: { orgId: string }) {
                   />
                 </div>
                 <div>
-                  <label htmlFor="imap-port" className="block text-sm font-medium text-slate-700 mb-1">Port</label>
+                  <label htmlFor="imap-port" className="block text-sm font-medium text-[#5a5040] mb-1">Port</label>
                   <input
                     id="imap-port"
                     type="number"
@@ -312,7 +312,7 @@ function EmailSection({ orgId }: { orgId: string }) {
               </div>
 
               <div>
-                <label htmlFor="imap-enc" className="block text-sm font-medium text-slate-700 mb-1">Verschlüsselung</label>
+                <label htmlFor="imap-enc" className="block text-sm font-medium text-[#5a5040] mb-1">Verschlüsselung</label>
                 <select
                   id="imap-enc"
                   value={imapEncryption}
@@ -326,7 +326,7 @@ function EmailSection({ orgId }: { orgId: string }) {
               </div>
 
               <div>
-                <label htmlFor="imap-pass" className="block text-sm font-medium text-slate-700 mb-1">Passwort</label>
+                <label htmlFor="imap-pass" className="block text-sm font-medium text-[#5a5040] mb-1">Passwort</label>
                 <TokenField id="imap-pass" label="" placeholder="••••••••" value={imapPassword} onChange={setImapPassword} isSet={false} />
               </div>
             </div>
@@ -336,7 +336,7 @@ function EmailSection({ orgId }: { orgId: string }) {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#c0392b] hover:bg-[#a93226] disabled:bg-[#a09080] text-white rounded-sm text-sm font-medium transition-colors"
             >
               {saving && <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />}
               {saving ? "Verbinde…" : "Verbinden"}
@@ -387,9 +387,9 @@ function CalendarSection({ orgId }: { orgId: string }) {
   return (
     <div className="space-y-4 max-w-xl">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-600">Kalender-Konten für die Kalenderansicht verwalten.</p>
+        <p className="text-sm text-[#5a5040]">Kalender-Konten für die Kalenderansicht verwalten.</p>
         <button onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium transition-colors">
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c0392b] hover:bg-[#a93226] text-white rounded-sm text-xs font-medium transition-colors">
           <Plus size={13} /> Kalender hinzufügen
         </button>
       </div>
@@ -397,11 +397,11 @@ function CalendarSection({ orgId }: { orgId: string }) {
       <SectionMessage msg={msg} />
 
       {showForm && (
-        <form onSubmit={(e) => void handleAdd(e)} className="border border-slate-200 rounded-lg p-4 space-y-3 bg-slate-50">
+        <form onSubmit={(e) => void handleAdd(e)} className="border border-[#e2ddd4] rounded-sm p-4 space-y-3 bg-[#f7f4ee]">
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Anbieter</label>
+            <label className="block text-xs font-medium text-[#5a5040] mb-1">Anbieter</label>
             <select value={provider} onChange={(e) => setProvider(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 bg-white">
+              className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] bg-[#faf9f6]">
               <option value="google">Google Kalender</option>
               <option value="outlook">Outlook / Microsoft 365</option>
             </select>
@@ -411,7 +411,7 @@ function CalendarSection({ orgId }: { orgId: string }) {
           <div className="flex gap-2">
             <SaveButton saving={saving} label="Hinzufügen" />
             <button type="button" onClick={() => setShowForm(false)}
-              className="px-3 py-2 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors">
+              className="px-3 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#f7f4ee] rounded-sm text-sm font-medium transition-colors">
               Abbrechen
             </button>
           </div>
@@ -419,25 +419,25 @@ function CalendarSection({ orgId }: { orgId: string }) {
       )}
 
       {!connections ? (
-        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-500" />
+        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#c0392b]" />
       ) : connections.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-6">Keine Kalender verbunden.</p>
+        <p className="text-sm text-[#a09080] text-center py-6">Keine Kalender verbunden.</p>
       ) : (
         <div className="space-y-2">
           {connections.map((c) => (
-            <div key={c.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-lg bg-white">
+            <div key={c.id} className="flex items-center justify-between p-3 border border-[#e2ddd4] rounded-sm bg-[#faf9f6]">
               <div className="flex items-center gap-3">
-                <CalendarDays size={16} className="text-slate-400 shrink-0" />
+                <CalendarDays size={16} className="text-[#a09080] shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-slate-800">{c.display_name ?? c.email_address}</p>
-                  <p className="text-xs text-slate-400">{c.email_address} · {c.provider === "google" ? "Google" : "Outlook"}</p>
+                  <p className="text-sm font-medium text-[#1c1810]">{c.display_name ?? c.email_address}</p>
+                  <p className="text-xs text-[#a09080]">{c.email_address} · {c.provider === "google" ? "Google" : "Outlook"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge ok={c.is_active} label={c.is_active ? "Aktiv" : "Inaktiv"} />
                 <button onClick={() => void handleDelete(c.id)} disabled={deleting === c.id}
-                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
-                  {deleting === c.id ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-red-400 border-t-transparent" /> : <Trash2 size={14} />}
+                  className="p-1.5 text-[#a09080] hover:text-[#c0392b] hover:bg-[rgba(192,57,43,.08)] rounded transition-colors">
+                  {deleting === c.id ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-[#c0392b] border-t-transparent" /> : <Trash2 size={14} />}
                 </button>
               </div>
             </div>
@@ -472,7 +472,7 @@ function JiraSection({ orgId, settings }: { orgId: string; settings: Integration
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 max-w-lg">
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-[#5a5040]">
         Verbindet die Plattform mit Jira für Issue-Verlinkung und Workflow-Automatisierung.
       </p>
       <SectionMessage msg={msg} />
@@ -531,7 +531,7 @@ function ConfluenceSection({ orgId, settings }: { orgId: string; settings: Integ
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 max-w-lg">
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-[#5a5040]">
         Verbindet die Plattform mit Confluence für die Veröffentlichung von Dokumentation.
       </p>
       <SectionMessage msg={msg} />
@@ -543,15 +543,15 @@ function ConfluenceSection({ orgId, settings }: { orgId: string; settings: Integ
         value={token} onChange={setToken} isSet={settings.api_token_set}
         hint="Generiere einen Token unter atlassian.com → Konto → Sicherheit → API-Token" />
       {testResult && (
-        <p className={`text-xs px-3 py-2 rounded-lg ${testResult.startsWith("✓") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+        <p className={`text-xs px-3 py-2 rounded-sm ${testResult.startsWith("✓") ? "bg-[rgba(45,106,79,.1)] text-[#2d6a4f]" : "bg-[rgba(192,57,43,.08)] text-[#c0392b]"}`}>
           {testResult}
         </p>
       )}
       <div className="flex gap-2">
         <SaveButton saving={saving} />
         <button type="button" onClick={() => void handleTest()} disabled={testLoading}
-          className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors">
-          {testLoading ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-slate-400 border-t-transparent" /> : <RefreshCw size={14} />}
+          className="flex items-center gap-2 px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#f7f4ee] disabled:opacity-50 rounded-sm text-sm font-medium transition-colors">
+          {testLoading ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-[#a09080] border-t-transparent" /> : <RefreshCw size={14} />}
           Verbindung testen
         </button>
       </div>
@@ -610,27 +610,27 @@ function AISection({ orgId, settings }: { orgId: string; settings: IntegrationSe
     finally { setSaving(false); }
   };
 
-  const selectCls = "w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white";
+  const selectCls = "w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b] bg-[#faf9f6]";
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 max-w-lg">
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-[#5a5040]">
         KI-Anbieter, API-Schlüssel und Modell-Einstellungen konfigurieren.
       </p>
       <SectionMessage msg={msg} />
 
       {/* Provider selector */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">KI-Anbieter</label>
+        <label className="block text-sm font-medium text-[#5a5040] mb-2">KI-Anbieter</label>
         <div className="flex gap-3">
           {[
             { value: "anthropic", label: "Anthropic (Claude)" },
             { value: "openai", label: "OpenAI (ChatGPT)" },
           ].map(({ value, label }) => (
-            <label key={value} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer text-sm font-medium transition-colors ${
+            <label key={value} className={`flex items-center gap-2 px-4 py-2.5 rounded-sm border cursor-pointer text-sm font-medium transition-colors ${
               provider === value
-                ? "border-brand-500 bg-brand-50 text-brand-700"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                ? "border-[#c0392b] bg-[rgba(192,57,43,.08)] text-[#c0392b]"
+                : "border-[#e2ddd4] bg-[#faf9f6] text-[#5a5040] hover:border-[#cec8bc]"
             }`}>
               <input
                 type="radio"
@@ -671,8 +671,8 @@ function AISection({ orgId, settings }: { orgId: string; settings: IntegrationSe
 
       {/* Model override */}
       <div>
-        <label htmlFor="model-override" className="block text-sm font-medium text-slate-700 mb-1">
-          Modell-Override <span className="font-normal text-slate-400 text-xs ml-1">(leer = automatisches Routing)</span>
+        <label htmlFor="model-override" className="block text-sm font-medium text-[#5a5040] mb-1">
+          Modell-Override <span className="font-normal text-[#a09080] text-xs ml-1">(leer = automatisches Routing)</span>
         </label>
         <select
           id="model-override"
@@ -706,7 +706,7 @@ export default function SettingsPage({ params }: { params: { org: string } }) {
   if (!org) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c0392b]" />
       </div>
     );
   }
@@ -714,8 +714,8 @@ export default function SettingsPage({ params }: { params: { org: string } }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Einstellungen</h1>
-        <p className="text-slate-500 mt-1 text-sm">Organisation und Integrationen konfigurieren</p>
+        <h1 className="text-2xl font-bold text-[#1c1810]">Einstellungen</h1>
+        <p className="text-[#a09080] mt-1 text-sm">Organisation und Integrationen konfigurieren</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-6">
@@ -725,65 +725,65 @@ export default function SettingsPage({ params }: { params: { org: string } }) {
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap md:w-full md:text-left ${
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm font-medium transition-colors whitespace-nowrap md:w-full md:text-left ${
                 activeTab === id
-                  ? "bg-brand-50 text-brand-700 font-semibold"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  ? "bg-[rgba(192,57,43,.08)] text-[#c0392b] font-semibold"
+                  : "text-[#5a5040] hover:bg-[#f7f4ee] hover:text-[#1c1810]"
               }`}
             >
-              <Icon size={16} className={activeTab === id ? "text-brand-600" : "text-slate-400"} />
+              <Icon size={16} className={activeTab === id ? "text-[#c0392b]" : "text-[#a09080]"} />
               {label}
             </button>
           ))}
         </nav>
 
         {/* Tab content */}
-        <div className="flex-1 bg-white rounded-xl border border-slate-200 p-4 md:p-6 min-w-0">
+        <div className="flex-1 bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 md:p-6 min-w-0">
           {activeTab === "general" && (
             <>
-              <h2 className="text-base font-semibold text-slate-900 mb-5">Allgemeine Einstellungen</h2>
+              <h2 className="text-base font-semibold text-[#1c1810] mb-5">Allgemeine Einstellungen</h2>
               <GeneralSection org={org} mutateOrg={mutateOrg} />
             </>
           )}
           {activeTab === "email" && (
             <>
-              <h2 className="text-base font-semibold text-slate-900 mb-5">E-Mail-Konten</h2>
+              <h2 className="text-base font-semibold text-[#1c1810] mb-5">E-Mail-Konten</h2>
               <EmailSection orgId={org.id} />
             </>
           )}
           {activeTab === "calendar" && (
             <>
-              <h2 className="text-base font-semibold text-slate-900 mb-5">Kalender-Verbindungen</h2>
+              <h2 className="text-base font-semibold text-[#1c1810] mb-5">Kalender-Verbindungen</h2>
               <CalendarSection orgId={org.id} />
             </>
           )}
           {activeTab === "jira" && (
             <>
-              <h2 className="text-base font-semibold text-slate-900 mb-5">Jira-Integration</h2>
+              <h2 className="text-base font-semibold text-[#1c1810] mb-5">Jira-Integration</h2>
               {integrationSettings ? (
                 <JiraSection orgId={org.id} settings={integrationSettings.jira} onSaved={mutateIntegrations} />
               ) : (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-500" />
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#c0392b]" />
               )}
             </>
           )}
           {activeTab === "confluence" && (
             <>
-              <h2 className="text-base font-semibold text-slate-900 mb-5">Confluence-Integration</h2>
+              <h2 className="text-base font-semibold text-[#1c1810] mb-5">Confluence-Integration</h2>
               {integrationSettings ? (
                 <ConfluenceSection orgId={org.id} settings={integrationSettings.confluence} onSaved={mutateIntegrations} />
               ) : (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-500" />
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#c0392b]" />
               )}
             </>
           )}
           {activeTab === "ai" && (
             <>
-              <h2 className="text-base font-semibold text-slate-900 mb-5">Assistent-Konfiguration</h2>
+              <h2 className="text-base font-semibold text-[#1c1810] mb-5">Assistent-Konfiguration</h2>
               {integrationSettings ? (
                 <AISection orgId={org.id} settings={integrationSettings.ai} />
               ) : (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-500" />
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#c0392b]" />
               )}
             </>
           )}
