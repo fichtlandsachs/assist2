@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>assist2 – Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #F5F0E8; color: #0A0A0A; }
+
+  /* TAB SWITCHER */
+  .tab-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    background: #0A0A0A; display: flex; gap: 0; border-bottom: 2px solid #0A0A0A;
+  }
+  .tab-btn {
+    padding: 10px 28px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 700; cursor: pointer; border: none;
+    background: #222; color: #aaa; letter-spacing: 0.03em;
+    border-right: 1px solid #333; transition: all 0.15s;
+  }
+  .tab-btn.active { background: #FF5C00; color: #fff; }
+  .tab-btn:hover:not(.active) { background: #333; color: #fff; }
+
+  .view { display: none; padding-top: 42px; }
+  .view.active { display: block; }
+
+  /* ─── LANDING PAGE ─────────────────────────────────── */
+
+  /* Topbar */
+  .lp-topbar {
+    position: sticky; top: 42px; z-index: 100;
+    background: #0A0A0A; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px;
+  }
+  .lp-logo { color: #fff; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+  .lp-logo span { width: 8px; height: 8px; background: #FF5C00; border-radius: 50%; display: inline-block; }
+  .lp-nav { display: flex; gap: 32px; }
+  .lp-nav a { color: #aaa; text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.15s; }
+  .lp-nav a:hover { color: #fff; }
+  .lp-actions { display: flex; gap: 10px; align-items: center; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; border: 2px solid #0A0A0A; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; text-decoration: none; }
+  .btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #0A0A0A !important; }
+  .btn-orange { background: #FF5C00; color: #fff; box-shadow: 4px 4px 0 #0A0A0A; }
+  .btn-outline-white { background: transparent; color: #fff; border-color: #fff; box-shadow: 4px 4px 0 rgba(255,255,255,0.3); }
+  .btn-outline { background: #fff; color: #0A0A0A; box-shadow: 4px 4px 0 #0A0A0A; }
+  .btn-sm { padding: 7px 14px; font-size: 13px; }
+  .btn-lg { padding: 14px 28px; font-size: 16px; }
+
+  /* Hero */
+  .lp-hero { max-width: 1100px; margin: 0 auto; padding: 80px 40px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 60px; align-items: center; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: #00D4AA; border: 2px solid #0A0A0A; padding: 5px 14px; font-size: 12px; font-weight: 700; margin-bottom: 24px; box-shadow: 3px 3px 0 #0A0A0A; }
+  .hero-badge::before { content: '✦'; font-size: 10px; }
+  h1.hero-title { font-size: 52px; font-weight: 800; line-height: 1.08; margin-bottom: 20px; }
+  h1.hero-title em { font-style: normal; color: #FF5C00; }
+  .hero-sub { font-size: 18px; color: #6B6B6B; line-height: 1.6; margin-bottom: 32px; }
+  .hero-btns { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .trust-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .trust-badge { border: 1.5px solid #0A0A0A; padding: 4px 12px; font-size: 12px; font-weight: 600; background: #fff; display: flex; align-items: center; gap: 5px; }
+  .trust-badge::before { content: '✓'; color: #00D4AA; font-weight: 800; }
+
+  /* App Preview Card */
+  .app-preview {
+    background: #0A0A0A; border: 2px solid #0A0A0A; border-radius: 8px;
+    box-shadow: 8px 8px 0 #FF5C00; overflow: hidden;
+  }
+  .preview-header {
+    border-bottom: 1px solid #222; padding: 12px 16px;
+    font-family: monospace; font-size: 12px; color: #aaa;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dot-green { width: 8px; height: 8px; background: #00D4AA; border-radius: 50%; display: inline-block; }
+  .preview-body { padding: 16px; }
+  .preview-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #1a1a1a; font-family: monospace; font-size: 12px; }
+  .preview-row:last-child { border-bottom: none; }
+  .status-direct { color: #00D4AA; }
+  .status-interp { color: #FFD700; }
+  .status-open { color: #FF5C00; }
+  .preview-compliance { margin-top: 14px; padding-top: 14px; border-top: 1px solid #222; }
+  .compliance-label { display: flex; justify-content: space-between; font-size: 12px; color: #aaa; margin-bottom: 6px; }
+  .progress-track { background: #222; border: 1px solid #333; height: 8px; border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #00D4AA; }
+  .compliance-note { font-size: 11px; color: #FF5C00; margin-top: 6px; font-family: monospace; }
+
+  /* Features */
+  .lp-features { background: #0A0A0A; padding: 80px 40px; }
+  .section-title { text-align: center; font-size: 36px; font-weight: 800; color: #fff; margin-bottom: 10px; }
+  .section-sub { text-align: center; font-size: 16px; color: #666; margin-bottom: 48px; }
+  .features-grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .feature-card { background: #fff; border: 2px solid #fff; padding: 28px; box-shadow: 6px 6px 0 #FF5C00; }
+  .feature-icon { font-size: 28px; margin-bottom: 14px; }
+  .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+  .feature-card p { font-size: 14px; color: #6B6B6B; line-height: 1.6; }
+
+  /* How it works */
+  .lp-how { padding: 80px 40px; background: #F5F0E8; }
+  .how-title { text-align: center; font-size: 36px; font-weight: 800; margin-bottom: 56px; }
+  .how-grid { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; position: relative; }
+  .how-grid::before { content: ''; position: absolute; top: 36px; left: 16.6%; right: 16.6%; height: 2px; border-top: 2px dashed #0A0A0A; }
+  .how-step { padding: 0 20px; text-align: center; }
+  .step-num { font-size: 80px; font-weight: 800; color: #E0DBD3; line-height: 1; margin-bottom: 12px; }
+  .step-circle { width: 72px; height: 72px; border: 2px solid #0A0A0A; background: #fff; box-shadow: 4px 4px 0 #0A0A0A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px; position: relative; z-index: 2; }
+  .how-step h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .how-step p { font-size: 14px; color: #6B6B6B; line-height: 1.6; }
+
+  /* CTA */
+  .lp-cta { background: #FF5C00; padding: 80px 40px; text-align: center; border-top: 2px solid #0A0A0A; border-bottom: 2px solid #0A0A0A; }
+  .lp-cta h2 { font-size: 42px; font-weight: 800; color: #fff; margin-bottom: 12px; }
+  .lp-cta p { font-size: 16px; color: rgba(255,255,255,0.8); margin-bottom: 32px; }
+  .cta-note { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 16px; letter-spacing: 0.05em; }
+
+  /* Footer */
+  .lp-footer { background: #0A0A0A; padding: 48px 40px; color: #aaa; }
+  .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; }
+  .footer-brand p { font-size: 13px; color: #666; margin-top: 6px; }
+  .footer-links { display: flex; gap: 48px; }
+  .footer-col h4 { font-size: 12px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+  .footer-col a { display: block; font-size: 13px; color: #666; text-decoration: none; margin-bottom: 8px; }
+  .footer-col a:hover { color: #fff; }
+  .footer-bottom { max-width: 1100px; margin: 32px auto 0; padding-top: 24px; border-top: 1px solid #1a1a1a; font-size: 12px; color: #444; display: flex; justify-content: space-between; }
+
+  /* ─── DASHBOARD ─────────────────────────────────────── */
+  .dashboard { display: flex; height: calc(100vh - 42px); overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar { width: 240px; min-width: 240px; background: #fff; border-right: 2px solid #0A0A0A; display: flex; flex-direction: column; overflow-y: auto; }
+  .sidebar-logo { padding: 18px 20px; border-bottom: 2px solid #0A0A0A; display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; }
+  .sidebar-logo .dot { width: 8px; height: 8px; background: #FF5C00; border-radius: 50%; }
+  .nav-group-label { padding: 16px 20px 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #aaa; }
+  .nav-item { padding: 10px 16px; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.1s; color: #0A0A0A; text-decoration: none; border-left: 3px solid transparent; }
+  .nav-item:hover { background: #F5F0E8; }
+  .nav-item.active { background: #FF5C00; font-weight: 700; border-left: 3px solid #0A0A0A; color: #0A0A0A; }
+  .nav-badge { margin-left: auto; background: #FF5C00; color: #fff; border: 1.5px solid #0A0A0A; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
+  .nav-item.active .nav-badge { background: #0A0A0A; color: #fff; }
+  .sidebar-bottom { margin-top: auto; padding: 16px 20px; border-top: 2px solid #0A0A0A; display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 34px; height: 34px; background: #FF5C00; border: 2px solid #0A0A0A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+  .sidebar-user-name { font-size: 13px; font-weight: 700; }
+  .sidebar-user-role { font-size: 11px; color: #aaa; }
+
+  /* Main */
+  .main { flex: 1; overflow-y: auto; background: #F5F0E8; }
+  .main-topbar { position: sticky; top: 0; background: #F5F0E8; border-bottom: 2px solid #0A0A0A; padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; z-index: 10; }
+  .main-topbar h2 { font-size: 19px; font-weight: 700; }
+  .topbar-actions { display: flex; gap: 10px; }
+
+  /* Stats */
+  .stats-row { padding: 28px 32px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .stat-card { background: #fff; border: 2px solid #0A0A0A; padding: 20px; box-shadow: 4px 4px 0 #0A0A0A; }
+  .stat-number { font-size: 44px; font-weight: 800; line-height: 1; }
+  .stat-number.orange { color: #FF5C00; }
+  .stat-label { font-size: 13px; color: #6B6B6B; margin-top: 4px; }
+  .stat-trend { font-size: 12px; margin-top: 8px; font-weight: 600; }
+  .trend-teal { color: #00D4AA; }
+  .trend-orange { color: #FF5C00; }
+
+  /* Two-column layout */
+  .dash-grid { padding: 24px 32px 32px; display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+  .neo-card { background: #fff; border: 2px solid #0A0A0A; box-shadow: 4px 4px 0 #0A0A0A; }
+  .card-header { padding: 16px 20px; border-bottom: 2px solid #0A0A0A; display: flex; justify-content: space-between; align-items: center; }
+  .card-header h3 { font-size: 15px; font-weight: 700; }
+  .card-header a { font-size: 13px; font-weight: 700; color: #FF5C00; text-decoration: none; }
+
+  /* Table */
+  .doc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .doc-table th { padding: 10px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #aaa; border-bottom: 2px solid #0A0A0A; background: #fafafa; }
+  .doc-table td { padding: 12px 16px; border-bottom: 1px solid #eee; vertical-align: middle; }
+  .doc-table tr:last-child td { border-bottom: none; }
+  .doc-name { font-weight: 600; font-size: 13px; }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; font-size: 11px; font-weight: 700; border: 1.5px solid #0A0A0A; }
+  .badge-sop { background: #0A0A0A; color: #fff; }
+  .badge-runbook { background: #6B6B6B; color: #fff; }
+  .badge-incident { background: #FF5C00; color: #fff; }
+  .badge-open { background: #FFF3E0; color: #FF5C00; border-color: #FF5C00; }
+  .badge-done { background: #E0FAF4; color: #008060; border-color: #00D4AA; }
+  .badge-warn { background: #FFFDE0; color: #996600; border-color: #FFD700; }
+  .badge-met { background: #00D4AA; color: #0A0A0A; }
+  .badge-partial { background: #FFD700; color: #0A0A0A; }
+  .badge-hot { background: #FF5C00; color: #fff; }
+  .badge-warm { background: #FFD700; color: #0A0A0A; }
+
+  /* Progress bar in table */
+  .prog-wrap { display: flex; align-items: center; gap: 8px; }
+  .prog-bar { flex: 1; height: 8px; background: #eee; border: 1px solid #0A0A0A; border-radius: 2px; overflow: hidden; }
+  .prog-fill { height: 100%; }
+  .prog-fill.orange { background: #FF5C00; }
+  .prog-fill.teal { background: #00D4AA; }
+  .prog-pct { font-size: 12px; font-weight: 700; min-width: 32px; }
+
+  /* BCM + NIS2 side cards */
+  .side-cards { display: flex; flex-direction: column; gap: 16px; }
+  .bcm-row { padding: 12px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+  .bcm-row:last-child { border-bottom: none; }
+  .bcm-name { font-weight: 600; }
+  .bcm-meta { font-size: 11px; color: #6B6B6B; margin-top: 2px; }
+  .nis2-row { padding: 10px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+  .nis2-row:last-child { border-bottom: none; }
+  .nis2-name { font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showView('landing')">🌐 Landing Page</button>
+  <button class="tab-btn" onclick="showView('dashboard')">📊 App Dashboard</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LANDING PAGE
+════════════════════════════════════════════════════════════ -->
+<div id="view-landing" class="view active">
+
+  <!-- Topbar -->
+  <nav class="lp-topbar">
+    <div class="lp-logo">assist2 <span></span></div>
+    <div class="lp-nav">
+      <a href="#">Funktionen</a>
+      <a href="#">Preise</a>
+      <a href="#">Docs</a>
+      <a href="#">Blog</a>
+    </div>
+    <div class="lp-actions">
+      <a href="#" class="btn btn-outline-white btn-sm">Demo buchen</a>
+      <a href="#" class="btn btn-orange btn-sm">Kostenlos starten →</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="lp-hero">
+    <div>
+      <div class="hero-badge">NIS2-konform · KRITIS-ready · BCM-fähig</div>
+      <h1 class="hero-title">Compliance-Doku.<br><em>Automatisiert.</em><br>Auditierbar.</h1>
+      <p class="hero-sub">Aus User Stories werden SOPs, Runbooks und Incident-Pläne – regelbasiert, templategesteuert, ohne Halluzinationen.</p>
+      <div class="hero-btns">
+        <a href="#" class="btn btn-orange btn-lg">Kostenlos starten →</a>
+        <a href="#" class="btn btn-outline btn-lg">Demo ansehen</a>
+      </div>
+      <div class="trust-badges">
+        <span class="trust-badge">Keine KI-Halluzinationen</span>
+        <span class="trust-badge">Jira &amp; Confluence</span>
+        <span class="trust-badge">Draw.io Export</span>
+      </div>
+    </div>
+
+    <!-- App Preview -->
+    <div class="app-preview">
+      <div class="preview-header">
+        <span class="dot-green"></span>
+        SOP: Backup &amp; Recovery &nbsp;·&nbsp; v1.2
+      </div>
+      <div class="preview-body">
+        <div class="preview-row">
+          <span class="status-direct">✓ Zweck</span>
+          <span class="status-direct">DIRECT</span>
+          <span style="color:#555">0.94</span>
+        </div>
+        <div class="preview-row">
+          <span class="status-direct">✓ Scope</span>
+          <span class="status-direct">DIRECT</span>
+          <span style="color:#555">0.88</span>
+        </div>
+        <div class="preview-row">
+          <span class="status-direct">✓ Rollen</span>
+          <span class="status-direct">DIRECT</span>
+          <span style="color:#555">0.85</span>
+        </div>
+        <div class="preview-row">
+          <span class="status-interp">~ Prozessablauf</span>
+          <span class="status-interp">INTERPRETED</span>
+          <span style="color:#555">0.71</span>
+        </div>
+        <div class="preview-row">
+          <span class="status-open">⚠ Ausnahmen</span>
+          <span class="status-open">OFFEN</span>
+          <span style="color:#555">—</span>
+        </div>
+        <div class="preview-row">
+          <span class="status-open">⚠ Risiken</span>
+          <span class="status-open">OFFEN</span>
+          <span style="color:#555">—</span>
+        </div>
+        <div class="preview-compliance">
+          <div class="compliance-label">
+            <span>NIS2 Coverage</span>
+            <span style="color:#00D4AA;font-weight:700">67%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:67%"></div></div>
+          <div class="compliance-note">⚠ 3 Controls fehlen</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="lp-features">
+    <h2 class="section-title">Warum assist2?</h2>
+    <p class="section-sub">Keine KI-Magie. Regelbasierte Dokumentation.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🛡</div>
+        <h3>Keine Halluzinationen</h3>
+        <p>Fehlende Informationen werden explizit als <code style="background:#f5f0e8;padding:2px 5px;font-size:12px">[OFFEN]</code> markiert. Das System erfindet niemals Inhalte.</p>
+      </div>
+      <div class="feature-card" style="box-shadow: 6px 6px 0 #FFD700;">
+        <div class="feature-icon">⚡</div>
+        <h3>Template-Engine</h3>
+        <p>YAML-Templates mit Pflichtkapiteln und Qualitätsregeln. Versionierbar in Git, pflegbar ohne Code-Kenntnisse.</p>
+      </div>
+      <div class="feature-card" style="box-shadow: 6px 6px 0 #00D4AA;">
+        <div class="feature-icon">🔷</div>
+        <h3>Draw.io Export</h3>
+        <p>Flowcharts und Swimlane-Diagramme werden automatisch aus dem Prozessmodell generiert – bereit zum Download.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="lp-how">
+    <h2 class="how-title">So funktioniert es</h2>
+    <div class="how-grid">
+      <div class="how-step">
+        <div class="step-circle">🔗</div>
+        <div class="step-num">01</div>
+        <h3>Jira importieren</h3>
+        <p>User Stories und Epics direkt aus Jira laden – ein Klick, keine manuelle Eingabe.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-circle">📋</div>
+        <div class="step-num">02</div>
+        <h3>Template wählen</h3>
+        <p>SOP, Runbook oder Incident-Plan – Pflichtkapitel sind vordefiniert, Lücken werden erkannt.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-circle">✅</div>
+        <div class="step-num">03</div>
+        <h3>Dokument erhalten</h3>
+        <p>Vollständig, auditierbar, mit offenen Punkten klar markiert – direkt nach Confluence exportierbar.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="lp-cta">
+    <h2>Bereit für auditierbare Compliance?</h2>
+    <p>Starte heute. Keine Kreditkarte erforderlich.</p>
+    <a href="#" class="btn btn-outline btn-lg" style="font-size:17px;padding:16px 36px;">Kostenlos starten →</a>
+    <p class="cta-note">NIS2-konform &nbsp;·&nbsp; KRITIS-ready &nbsp;·&nbsp; ISO27001-orientiert</p>
+  </section>
+
+  <!-- Footer -->
+  <footer class="lp-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div style="font-size:20px;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px;">assist2 <span style="width:8px;height:8px;background:#FF5C00;border-radius:50%;display:inline-block;"></span></div>
+        <p>Compliance-Dokumentation.<br>Automatisiert &amp; auditierbar.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Produkt</h4>
+          <a href="#">Funktionen</a>
+          <a href="#">Preise</a>
+          <a href="#">Changelog</a>
+          <a href="#">Roadmap</a>
+        </div>
+        <div class="footer-col">
+          <h4>Integrationen</h4>
+          <a href="#">Jira</a>
+          <a href="#">Confluence</a>
+          <a href="#">Draw.io</a>
+          <a href="#">API</a>
+        </div>
+        <div class="footer-col">
+          <h4>Rechtliches</h4>
+          <a href="#">Impressum</a>
+          <a href="#">Datenschutz</a>
+          <a href="#">AGB</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 assist2 GmbH</span>
+      <span>Made for Compliance Teams</span>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DASHBOARD
+════════════════════════════════════════════════════════════ -->
+<div id="view-dashboard" class="view">
+  <div class="dashboard">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        assist2 <span class="dot"></span>
+      </div>
+
+      <a href="#" class="nav-item active">📊 &nbsp;Dashboard</a>
+      <a href="#" class="nav-item">📄 &nbsp;Dokumente</a>
+      <a href="#" class="nav-item">🛡 &nbsp;Compliance</a>
+      <a href="#" class="nav-item">♻️ &nbsp;BCM</a>
+      <a href="#" class="nav-item">🔷 &nbsp;Diagramme</a>
+
+      <div class="nav-group-label">Integrationen</div>
+      <a href="#" class="nav-item">🔗 &nbsp;Jira Import <span class="nav-badge">12</span></a>
+      <a href="#" class="nav-item">📤 &nbsp;Confluence</a>
+
+      <div class="nav-group-label">System</div>
+      <a href="#" class="nav-item">📋 &nbsp;Templates</a>
+      <a href="#" class="nav-item">⚙️ &nbsp;Einstellungen</a>
+
+      <div class="sidebar-bottom">
+        <div class="avatar">FF</div>
+        <div>
+          <div class="sidebar-user-name">Falk Fichtner</div>
+          <div class="sidebar-user-role">Admin</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <div class="main-topbar">
+        <h2>Guten Morgen, Falk 👋</h2>
+        <div class="topbar-actions">
+          <button class="btn btn-outline btn-sm">↑ Aus Jira importieren</button>
+          <button class="btn btn-orange btn-sm">+ Neues Dokument</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-number">24</div>
+          <div class="stat-label">Dokumente</div>
+          <div class="stat-trend trend-teal">↑ +3 diese Woche</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number orange">67%</div>
+          <div class="stat-label">Compliance Score</div>
+          <div class="stat-trend" style="color:#aaa">NIS2 Durchschnitt</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number orange">8</div>
+          <div class="stat-label">Offene Punkte</div>
+          <div class="stat-trend trend-orange">⚠ Klären erforderlich</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">3</div>
+          <div class="stat-label">Kritische Services</div>
+          <div class="stat-trend trend-teal">BCM erfasst</div>
+        </div>
+      </div>
+
+      <!-- Two-column grid -->
+      <div class="dash-grid">
+
+        <!-- Dokumente Tabelle -->
+        <div class="neo-card">
+          <div class="card-header">
+            <h3>Zuletzt bearbeitet</h3>
+            <a href="#">Alle anzeigen →</a>
+          </div>
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Dokument</th>
+                <th>Typ</th>
+                <th>Vollständigkeit</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="doc-name">Backup &amp; Recovery</div></td>
+                <td><span class="badge badge-sop">SOP</span></td>
+                <td>
+                  <div class="prog-wrap">
+                    <div class="prog-bar"><div class="prog-fill orange" style="width:80%"></div></div>
+                    <span class="prog-pct">80%</span>
+                  </div>
+                </td>
+                <td><span class="badge badge-open">⚠ 2 offen</span></td>
+                <td><button class="btn btn-outline btn-sm" style="white-space:nowrap">Ansehen</button></td>
+              </tr>
+              <tr>
+                <td><div class="doc-name">Failover Runbook</div></td>
+                <td><span class="badge badge-runbook">RUNBOOK</span></td>
+                <td>
+                  <div class="prog-wrap">
+                    <div class="prog-bar"><div class="prog-fill teal" style="width:95%"></div></div>
+                    <span class="prog-pct">95%</span>
+                  </div>
+                </td>
+                <td><span class="badge badge-done">✓ vollständig</span></td>
+                <td><button class="btn btn-outline btn-sm">Ansehen</button></td>
+              </tr>
+              <tr>
+                <td><div class="doc-name">Incident Response</div></td>
+                <td><span class="badge badge-incident">INCIDENT</span></td>
+                <td>
+                  <div class="prog-wrap">
+                    <div class="prog-bar"><div class="prog-fill orange" style="width:55%"></div></div>
+                    <span class="prog-pct">55%</span>
+                  </div>
+                </td>
+                <td><span class="badge badge-open">⚠ 5 offen</span></td>
+                <td><button class="btn btn-outline btn-sm">Ansehen</button></td>
+              </tr>
+              <tr>
+                <td><div class="doc-name">Change Management</div></td>
+                <td><span class="badge badge-sop">SOP</span></td>
+                <td>
+                  <div class="prog-wrap">
+                    <div class="prog-bar"><div class="prog-fill orange" style="width:70%"></div></div>
+                    <span class="prog-pct">70%</span>
+                  </div>
+                </td>
+                <td><span class="badge badge-warn">~ 1 unklar</span></td>
+                <td><button class="btn btn-outline btn-sm">Ansehen</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Side cards -->
+        <div class="side-cards">
+
+          <!-- BCM -->
+          <div class="neo-card">
+            <div class="card-header">
+              <h3>BCM Übersicht</h3>
+              <a href="#">Details →</a>
+            </div>
+            <div class="bcm-row">
+              <div>
+                <div class="bcm-name">Core Database</div>
+                <div class="bcm-meta">RTO: 4h &nbsp;·&nbsp; RPO: 1h</div>
+              </div>
+              <span class="badge badge-hot">HOT</span>
+            </div>
+            <div class="bcm-row">
+              <div>
+                <div class="bcm-name">API Gateway</div>
+                <div class="bcm-meta">RTO: 2h &nbsp;·&nbsp; RPO: 30m</div>
+              </div>
+              <span class="badge badge-warm">WARM</span>
+            </div>
+            <div class="bcm-row">
+              <div>
+                <div class="bcm-name">Auth Service</div>
+                <div class="bcm-meta">RTO: 1h &nbsp;·&nbsp; RPO: 15m</div>
+              </div>
+              <span class="badge badge-hot">HOT</span>
+            </div>
+          </div>
+
+          <!-- NIS2 Status -->
+          <div class="neo-card">
+            <div class="card-header">
+              <h3>NIS2 Status</h3>
+              <a href="#">Compliance →</a>
+            </div>
+            <div class="nis2-row">
+              <span class="nis2-name">Incident Handling</span>
+              <span class="badge badge-met">MET</span>
+            </div>
+            <div class="nis2-row">
+              <span class="nis2-name">Risk Management</span>
+              <span class="badge badge-partial">PARTIAL</span>
+            </div>
+            <div class="nis2-row">
+              <span class="nis2-name">Access Control</span>
+              <span class="badge badge-met">MET</span>
+            </div>
+            <div class="nis2-row">
+              <span class="nis2-name">Business Continuity</span>
+              <span class="badge badge-partial">PARTIAL</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>
