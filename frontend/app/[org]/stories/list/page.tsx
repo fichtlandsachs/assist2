@@ -7,7 +7,7 @@ import type { UserStory, StoryStatus, StoryPriority } from "@/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, LayoutList, Columns, Layers, GitBranch, AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import { use, useState } from "react";
 
 // Order matches the board lane sequence (left → right)
 const LANE_ORDER: StoryStatus[] = [
@@ -54,8 +54,9 @@ const PRIORITY_COLORS: Record<StoryPriority, string> = {
   critical: "text-[#c0392b]",
 };
 
-export default function StoriesListPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function StoriesListPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const router = useRouter();
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -90,7 +91,7 @@ export default function StoriesListPage({ params }: { params: { org: string } })
           </p>
         </div>
         <Link
-          href={`/${params.org}/stories/new`}
+          href={`/${resolvedParams.org}/stories/new`}
           className="flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#a93226] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus size={16} />
@@ -103,13 +104,13 @@ export default function StoriesListPage({ params }: { params: { org: string } })
         <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#c0392b] text-[#c0392b] whitespace-nowrap">
           <LayoutList size={15} /> Liste
         </span>
-        <Link href={`/${params.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
+        <Link href={`/${resolvedParams.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
           <Columns size={15} /> Board
         </Link>
-        <Link href={`/${params.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
+        <Link href={`/${resolvedParams.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
           <Layers size={15} /> Features
         </Link>
-        <Link href={`/${params.org}/stories/epics/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
+        <Link href={`/${resolvedParams.org}/stories/epics/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
           <GitBranch size={15} /> Epics
         </Link>
       </div>
@@ -135,7 +136,7 @@ export default function StoriesListPage({ params }: { params: { org: string } })
             Erstelle deine erste User Story.
           </p>
           <Link
-            href={`/${params.org}/stories/new`}
+            href={`/${resolvedParams.org}/stories/new`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#a93226] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
@@ -163,7 +164,7 @@ export default function StoriesListPage({ params }: { params: { org: string } })
                   {items.map((story) => (
                     <Link
                       key={story.id}
-                      href={`/${params.org}/stories/${story.id}`}
+                      href={`/${resolvedParams.org}/stories/${story.id}`}
                       className="block bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-5 hover:border-[rgba(192,57,43,.3)] transition-all group"
                     >
                       <div className="flex items-start justify-between gap-4">

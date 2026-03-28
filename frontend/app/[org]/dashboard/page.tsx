@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { use, useMemo } from "react";
 import { useAuth } from "@/lib/auth/context";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { SlotRenderer } from "@/lib/plugins/slots";
@@ -20,9 +20,10 @@ const STATUS_META: { status: StoryStatus; label: string; color: string; dot: str
   { status: "archived",    label: "Archiviert",      color: "bg-[#f7f4ee] text-[#a09080]",              dot: "bg-[#e2ddd4]" },
 ];
 
-export default function DashboardPage({ params }: { params: { org: string } }) {
+export default function DashboardPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
   const { user } = useAuth();
-  const { org } = useOrg(params.org);
+  const { org } = useOrg(resolvedParams.org);
 
   const { data: stories } = useSWR<UserStory[]>(
     org ? `/api/v1/user-stories?org_id=${org.id}` : null,
@@ -72,7 +73,7 @@ export default function DashboardPage({ params }: { params: { org: string } }) {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Link
-            href={`/${params.org}/inbox`}
+            href={`/${resolvedParams.org}/inbox`}
             className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-5 hover:border-[rgba(192,57,43,.3)] transition-all group"
           >
             <div className="flex items-start justify-between">
@@ -90,7 +91,7 @@ export default function DashboardPage({ params }: { params: { org: string } }) {
           </Link>
 
           <Link
-            href={`/${params.org}/inbox`}
+            href={`/${resolvedParams.org}/inbox`}
             className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-5 hover:border-[rgba(192,57,43,.3)] transition-all group"
           >
             <div className="flex items-start justify-between">
@@ -128,7 +129,7 @@ export default function DashboardPage({ params }: { params: { org: string } }) {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-[#5a5040]">Gesamt: {stories.length}</span>
                 <Link
-                  href={`/${params.org}/stories/board`}
+                  href={`/${resolvedParams.org}/stories/board`}
                   className="text-xs text-[#c0392b] hover:text-[#c0392b] font-medium"
                 >
                   Board öffnen →
@@ -155,7 +156,7 @@ export default function DashboardPage({ params }: { params: { org: string } }) {
               return (
                 <Link
                   key={m.status}
-                  href={`/${params.org}/stories/list`}
+                  href={`/${resolvedParams.org}/stories/list`}
                   className="flex items-center gap-3 px-5 py-3.5 hover:bg-[#faf9f6] transition-colors"
                 >
                   <span className={`w-2 h-2 rounded-full shrink-0 ${m.dot}`} />
@@ -178,7 +179,7 @@ export default function DashboardPage({ params }: { params: { org: string } }) {
             <div className="text-center py-8">
               <p className="text-sm text-[#a09080] mb-3">Noch keine User Stories vorhanden.</p>
               <Link
-                href={`/${params.org}/stories/new`}
+                href={`/${resolvedParams.org}/stories/new`}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#5a3a7a] text-white rounded-sm text-sm font-medium transition-colors"
               >
                 Erste Story erstellen
@@ -190,7 +191,7 @@ export default function DashboardPage({ params }: { params: { org: string } }) {
 
       {/* Plugin Dashboard Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <SlotRenderer slotId="dashboard_widget" orgSlug={params.org} />
+        <SlotRenderer slotId="dashboard_widget" orgSlug={resolvedParams.org} />
       </div>
     </div>
   );

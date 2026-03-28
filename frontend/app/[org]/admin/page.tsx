@@ -4,7 +4,7 @@ import { useOrg } from "@/lib/hooks/useOrg";
 import { useAuth } from "@/lib/auth/context";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import {
   Brain, Database, MessageSquare, GitMerge, Shield, BarChart2,
   Save, Clock, CheckCircle, XCircle, ChevronDown, ChevronUp,
@@ -534,8 +534,9 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "analytics", label: "Analytics",       icon: BarChart2 },
 ];
 
-export default function AdminPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function AdminPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("learning");
 

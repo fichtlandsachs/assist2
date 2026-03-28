@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { use, useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { mutate as swrMutate } from "swr";
 import { useOrg } from "@/lib/hooks/useOrg";
@@ -179,8 +179,9 @@ function DroppableInput({
   );
 }
 
-export default function NewStoryPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function NewStoryPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const router = useRouter();
 
   const [title, setTitle] = useState("");
@@ -234,7 +235,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
       );
       // Pre-seed SWR cache so detail page renders instantly without a loading spinner
       await swrMutate(`/api/v1/user-stories/${story.id}`, story, false);
-      router.push(`/${params.org}/stories/${story.id}`);
+      router.push(`/${resolvedParams.org}/stories/${story.id}`);
     } catch (err: unknown) {
       const msg = (err as { error?: string })?.error;
       setFieldErrors({ general: msg ?? "Fehler beim Speichern." });
@@ -248,7 +249,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          href={`/${params.org}/stories`}
+          href={`/${resolvedParams.org}/stories`}
           className="p-2 rounded-sm text-[#a09080] hover:text-[#5a5040] hover:bg-[#f7f4ee] transition-colors"
         >
           <ArrowLeft size={18} />
@@ -371,7 +372,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
               )}
             </button>
             <Link
-              href={`/${params.org}/stories`}
+              href={`/${resolvedParams.org}/stories`}
               className="px-5 py-2.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm font-medium transition-colors"
             >
               Abbrechen

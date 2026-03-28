@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
@@ -693,8 +693,9 @@ function AISection({ orgId, settings }: { orgId: string; settings: IntegrationSe
 
 // ── Main Page ──────────────────────────────────────────────────────────────
 
-export default function SettingsPage({ params }: { params: { org: string } }) {
-  const { org, mutate: mutateOrg } = useOrg(params.org);
+export default function SettingsPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org, mutate: mutateOrg } = useOrg(resolvedParams.org);
   const [activeTab, setActiveTab] = useState<TabId>("general");
 
   const { data: integrationSettings, mutate: mutateIntegrations } = useSWR<IntegrationSettings>(

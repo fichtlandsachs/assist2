@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
@@ -51,8 +51,9 @@ function colorForEvent(event: CalendarEvent): string {
   return EVENT_COLORS[Math.abs(hash) % EVENT_COLORS.length];
 }
 
-export default function CalendarPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function CalendarPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());

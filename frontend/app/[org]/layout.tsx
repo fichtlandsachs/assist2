@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/lib/auth/context";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
 import { useOrg } from "@/lib/hooks/useOrg";
@@ -12,12 +12,13 @@ export default function OrgLayout({
   params
 }: {
   children: React.ReactNode;
-  params: { org: string };
+  params: Promise<{ org: string }>;
 }) {
+  const resolvedParams = use(params);
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const { org } = useOrg(params.org);
+  const { org } = useOrg(resolvedParams.org);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -36,14 +37,14 @@ export default function OrgLayout({
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--paper)" }}>
       <Sidebar
-        orgSlug={params.org}
+        orgSlug={resolvedParams.org}
         orgId={org?.id}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <Topbar
-          orgSlug={params.org}
+          orgSlug={resolvedParams.org}
           orgId={org?.id}
           onMenuClick={() => setMobileSidebarOpen(true)}
         />

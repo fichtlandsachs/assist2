@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { API_BASE, getAccessToken } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -25,8 +25,9 @@ type ChatMode = "chat" | "docs" | "tasks";
 
 // ── Main page ──────────────────────────────────────────────────────────────
 
-export default function AiWorkspacePage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function AiWorkspacePage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<ChatMode>("chat");

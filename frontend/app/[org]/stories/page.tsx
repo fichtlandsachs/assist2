@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
-export default function StoriesPage({ params }: { params: { org: string } }) {
-  redirect(`/${params.org}/stories/board`);
+export default async function StoriesPage({ params }: { params: Promise<{ org: string }> }) {
+  const { org } = await params;
+  redirect(`/${org}/stories/board`);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { use, useState, useRef } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
@@ -108,8 +108,9 @@ function StoryCard({
   );
 }
 
-export default function StoriesBoardPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function StoriesBoardPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<StoryStatus | null>(null);
   const [blockedMsg, setBlockedMsg] = useState<string | null>(null);
@@ -198,7 +199,7 @@ export default function StoriesBoardPage({ params }: { params: { org: string } }
           )}
         </div>
         <Link
-          href={`/${params.org}/stories/new`}
+          href={`/${resolvedParams.org}/stories/new`}
           className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#a93226] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus size={16} />
@@ -209,7 +210,7 @@ export default function StoriesBoardPage({ params }: { params: { org: string } }
       {/* View tabs */}
       <div className="flex gap-1 border-b border-[#e2ddd4] shrink-0 overflow-x-auto">
         <Link
-          href={`/${params.org}/stories/list`}
+          href={`/${resolvedParams.org}/stories/list`}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"
         >
           <LayoutList size={15} />
@@ -220,14 +221,14 @@ export default function StoriesBoardPage({ params }: { params: { org: string } }
           Board
         </span>
         <Link
-          href={`/${params.org}/stories/features/board`}
+          href={`/${resolvedParams.org}/stories/features/board`}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"
         >
           <Layers size={15} />
           Features
         </Link>
         <Link
-          href={`/${params.org}/stories/epics/board`}
+          href={`/${resolvedParams.org}/stories/epics/board`}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"
         >
           <GitBranch size={15} />
@@ -253,7 +254,7 @@ export default function StoriesBoardPage({ params }: { params: { org: string } }
           <h3 className="text-lg font-semibold text-[#5a5040] mb-2">Noch keine User Stories</h3>
           <p className="text-[#a09080] mb-6 text-sm">Erstelle deine erste User Story.</p>
           <Link
-            href={`/${params.org}/stories/new`}
+            href={`/${resolvedParams.org}/stories/new`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a3a7a] hover:bg-[#a93226] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
@@ -296,7 +297,7 @@ export default function StoriesBoardPage({ params }: { params: { org: string } }
                     <StoryCard
                       key={story.id}
                       story={story}
-                      org={params.org}
+                      org={resolvedParams.org}
                       dragging={dragId === story.id}
                       onDragStart={(id) => { setDragId(id); dragCounters.current = {}; }}
                       onDragEnd={() => { setDragId(null); setDragOverStatus(null); dragCounters.current = {}; }}

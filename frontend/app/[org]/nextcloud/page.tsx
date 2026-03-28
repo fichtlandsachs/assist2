@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { use, useState, useRef } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/client";
@@ -87,7 +87,7 @@ function FileList({
   uploadError: string | null;
   uploadSuccess: string | null;
   onClearStatus: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
 }) {
   const [dragging, setDragging] = useState(false);
 
@@ -196,8 +196,9 @@ function FileList({
   );
 }
 
-export default function NextcloudPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function NextcloudPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const [tab, setTab] = useState<Tab>("org");
 
   const orgFiles = useSWR<NextcloudFileList>(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
@@ -40,8 +40,9 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export default function DocsPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function DocsPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const { data: stories } = useSWR<UserStory[]>(
     org ? `/api/v1/user-stories?org_id=${org.id}` : null,
     fetcher

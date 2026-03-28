@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
@@ -144,8 +144,9 @@ function WorkflowCard({
   );
 }
 
-export default function WorkflowsPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function WorkflowsPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
 
   const { data: workflows, isLoading, error } = useSWR<WorkflowDefinition[]>(
     org ? `/api/v1/organizations/${org.id}/workflows` : null,

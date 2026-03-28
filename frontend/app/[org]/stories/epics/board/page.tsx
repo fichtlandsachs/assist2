@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { use, useState, useRef } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
@@ -31,8 +31,9 @@ function EpicCard({ epic, dragging, onDragStart, onDragEnd }: {
   );
 }
 
-export default function EpicsBoardPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function EpicsBoardPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<EpicStatus | null>(null);
   const dragCounters = useRef<Record<string, number>>({});
@@ -95,9 +96,9 @@ export default function EpicsBoardPage({ params }: { params: { org: string } }) 
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-[#e2ddd4] shrink-0 overflow-x-auto">
-        <Link href={`/${params.org}/stories/list`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"><LayoutList size={15} /> Liste</Link>
-        <Link href={`/${params.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"><Columns size={15} /> Board</Link>
-        <Link href={`/${params.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"><Layers size={15} /> Features</Link>
+        <Link href={`/${resolvedParams.org}/stories/list`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"><LayoutList size={15} /> Liste</Link>
+        <Link href={`/${resolvedParams.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"><Columns size={15} /> Board</Link>
+        <Link href={`/${resolvedParams.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"><Layers size={15} /> Features</Link>
         <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#c0392b] text-[#c0392b] whitespace-nowrap"><GitBranch size={15} /> Epics</span>
       </div>
 

@@ -1,25 +1,20 @@
 # Stage 1: base
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 WORKDIR /app
 
-# Stage 2: dependencies
-FROM base AS dependencies
-COPY package.json ./
-RUN npm install --only=production
-
-# Stage 3: builder
+# Stage 2: builder
 FROM base AS builder
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 4: production
-FROM node:20-alpine AS production
+# Stage 3: production
+FROM node:24-alpine AS production
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 nodejs && \

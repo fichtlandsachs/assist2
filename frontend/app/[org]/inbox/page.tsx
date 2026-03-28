@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { use, useState, useMemo } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher, getAccessToken } from "@/lib/api/client";
 import useSWR from "swr";
@@ -47,8 +47,9 @@ interface ThreadGroup {
   senders: string[];     // unique sender names/emails
 }
 
-export default function InboxPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function InboxPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const [selectedThreadKey, setSelectedThreadKey] = useState<string | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [search, setSearch] = useState("");

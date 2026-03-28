@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
@@ -1671,8 +1671,9 @@ const ROLE_TABS: Record<DemoRole, ActiveTab[]> = {
 export default function StoryDetailPage({
   params,
 }: {
-  params: { org: string; id: string };
+  params: Promise<{ org: string; id: string }>;
 }) {
+  const resolvedParams = use(params);
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1694,7 +1695,7 @@ export default function StoryDetailPage({
   const [initialized, setInitialized] = useState(false);
 
   const { data: story, isLoading, mutate } = useSWR<UserStory>(
-    `/api/v1/user-stories/${params.id}`,
+    `/api/v1/user-stories/${resolvedParams.id}`,
     fetcher,
     {
       onSuccess: (data) => {
@@ -1766,7 +1767,7 @@ export default function StoryDetailPage({
       if (dorPassed !== story.dor_passed) patch.dor_passed = dorPassed;
       if (epicId !== story.epic_id) patch.epic_id = epicId;
 
-      const saved = await apiRequest<UserStory>(`/api/v1/user-stories/${params.id}`, {
+      const saved = await apiRequest<UserStory>(`/api/v1/user-stories/${resolvedParams.id}`, {
         method: "PATCH",
         body: JSON.stringify(patch),
       });
@@ -1816,7 +1817,7 @@ export default function StoryDetailPage({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-4">
           <Link
-            href={`/${params.org}/stories`}
+            href={`/${resolvedParams.org}/stories`}
             className="p-2 rounded-sm text-[#a09080] hover:text-[#5a5040] hover:bg-[#f7f4ee] transition-colors"
           >
             <ArrowLeft size={18} />
@@ -1904,9 +1905,9 @@ export default function StoryDetailPage({
       {/* Split panel */}
       {showSplitPanel && (
         <SplitStoryPanel
-          storyId={params.id}
+          storyId={resolvedParams.id}
           orgId={story.organization_id}
-          orgSlug={params.org}
+          orgSlug={resolvedParams.org}
           onClose={() => setShowSplitPanel(false)}
         />
       )}
@@ -2110,7 +2111,7 @@ export default function StoryDetailPage({
               description={description}
               acceptanceCriteria={acceptanceCriteria}
               onApply={handleApplySuggestion}
-              storyId={params.id}
+              storyId={resolvedParams.id}
               persistedScore={story.quality_score}
               onScorePersisted={() => void mutate()}
             />
@@ -2120,22 +2121,22 @@ export default function StoryDetailPage({
 
       {/* DoD tab */}
       {activeTab === "dod" && (
-        <DefinitionOfDoneSection storyId={params.id} initialDod={story.definition_of_done} />
+        <DefinitionOfDoneSection storyId={resolvedParams.id} initialDod={story.definition_of_done} />
       )}
 
       {/* Tests tab */}
       {activeTab === "tests" && (
-        <TestCasesSection storyId={params.id} storyStatus={story.status} />
+        <TestCasesSection storyId={resolvedParams.id} storyStatus={story.status} />
       )}
 
       {/* Features tab */}
       {activeTab === "features" && (
-        <FeaturesSection storyId={params.id} orgId={story.organization_id} />
+        <FeaturesSection storyId={resolvedParams.id} orgId={story.organization_id} />
       )}
 
       {/* Docs tab */}
       {activeTab === "docs" && (
-        <StoryDocsSection storyId={params.id} refreshTrigger={docsRefreshTrigger} />
+        <StoryDocsSection storyId={resolvedParams.id} refreshTrigger={docsRefreshTrigger} />
       )}
     </div>
   );
