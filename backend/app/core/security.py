@@ -79,6 +79,37 @@ async def validate_authentik_token(token: str) -> dict:
         raise UnauthorizedException(detail="Could not validate credentials")
 
 
+async def validate_admin_token(token: str) -> dict:
+    """
+    Validate an Authentik OIDC JWT issued for the admin application.
+    Raises UnauthorizedException on invalid/expired tokens.
+    """
+    try:
+        jwks = await _fetch_jwks()
+        header = pyjwt.get_unverified_header(token)
+        kid = header.get("kid")
+        alg = header.get("alg", "RS256")
+        settings = get_settings()
+
+        for key_data in jwks.get("keys", []):
+            if kid is None or key_data.get("kid") == kid:
+                signing_key = pyjwt.PyJWK(key_data).key
+                return pyjwt.decode(
+                    token,
+                    signing_key,
+                    algorithms=[alg],
+                    audience=settings.AUTHENTIK_ADMIN_CLIENT_ID,
+                    options={"verify_exp": True},
+                )
+
+        raise pyjwt.InvalidKeyError("No matching key found in JWKS")
+    except pyjwt.ExpiredSignatureError:
+        raise UnauthorizedException(detail="Token has expired")
+    except pyjwt.InvalidTokenError as e:
+        logger.debug(f"Admin token validation failed: {e}")
+        raise UnauthorizedException(detail="Could not validate credentials")
+
+
 # ── Token hashing (kept for any future use) ───────────────────────────────────
 def hash_token(token: str) -> str:
     """Create a SHA-256 hex hash of a token for secure storage."""

@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     AUTHENTIK_BACKEND_CLIENT_SECRET: str = ""
     AUTHENTIK_JWKS_URL: str = ""
     AUTHENTIK_APP_SLUG: str = "backend"  # Slug of the OAuth2 Application created in Authentik UI
+    AUTHENTIK_ADMIN_CLIENT_ID: str = ""
+    AUTHENTIK_ADMIN_CLIENT_SECRET: str = ""
 
     # Stirling PDF
     STIRLING_PDF_URL: str = "http://assist2-stirling-pdf:8080"
