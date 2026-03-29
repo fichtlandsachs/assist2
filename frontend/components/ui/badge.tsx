@@ -62,6 +62,27 @@ const badgeVariants = cva(
         rag_direct:     "text-[#526b5e] bg-[rgba(82,107,94,.07)]",
         rag_context:    "text-[#4a5568] bg-[rgba(74,85,104,.06)]",
         llm:            "text-[#5a5040] bg-[#ece8e0] border-[#cec8bc]",
+
+        // ── Story / Feature ──────────────────────────────────────
+        priority_low:      "text-[#526b5e] bg-[rgba(82,107,94,.08)]",
+        priority_medium:   "text-[#4a5568] bg-[rgba(74,85,104,.06)]",
+        priority_high:     "text-[#7a6450] bg-[rgba(122,100,80,.08)]",
+        priority_critical: "text-[#8b5e52] bg-[rgba(139,94,82,.08)]",
+
+        status_draft:       "text-[#a09080] bg-[rgba(160,144,128,.08)]",
+        status_in_review:   "text-[#7a6450] bg-[rgba(122,100,80,.08)]",
+        status_ready:       "text-[#526b5e] bg-[rgba(82,107,94,.08)]",
+        status_in_progress: "text-[#8b5e52] bg-[rgba(139,94,82,.08)]",
+        status_testing:     "text-[#6b4fa0] bg-[rgba(107,79,160,.08)]",
+        status_done:        "text-[#526b5e] bg-[rgba(82,107,94,.14)]",
+        status_archived:    "text-[#a09080] bg-[rgba(160,144,128,.06)]",
+
+        quality_high: "text-[#526b5e] bg-[rgba(82,107,94,.08)]",
+        quality_mid:  "text-[#7a6450] bg-[rgba(122,100,80,.08)]",
+        quality_low:  "text-[#8b5e52] bg-[rgba(139,94,82,.08)]",
+
+        story_points: "text-[#a09080] bg-[#f7f4ee] border-[#e2ddd4]",
+        dor_passed:   "text-[#526b5e] bg-[rgba(82,107,94,.08)]",
       },
       size: {
         sm:      "text-[6px] px-1.5 py-px",
@@ -192,6 +213,89 @@ export function DocStatusBadge({
   return (
     <Badge variant={status} className={className}>
       {labelMap[status]}
+    </Badge>
+  );
+}
+
+// ── Story / Feature convenience exports ───────────────────────────
+
+import type { StoryPriority, StoryStatus } from "@/types";
+import { AlertTriangle } from "lucide-react";
+
+const PRIORITY_VARIANT: Record<StoryPriority, "priority_low" | "priority_medium" | "priority_high" | "priority_critical"> = {
+  low:      "priority_low",
+  medium:   "priority_medium",
+  high:     "priority_high",
+  critical: "priority_critical",
+};
+
+const PRIORITY_LABEL: Record<StoryPriority, string> = {
+  low: "Niedrig", medium: "Mittel", high: "Hoch", critical: "Kritisch",
+};
+
+const STATUS_VARIANT: Record<StoryStatus, "status_draft" | "status_in_review" | "status_ready" | "status_in_progress" | "status_testing" | "status_done" | "status_archived"> = {
+  draft:       "status_draft",
+  in_review:   "status_in_review",
+  ready:       "status_ready",
+  in_progress: "status_in_progress",
+  testing:     "status_testing",
+  done:        "status_done",
+  archived:    "status_archived",
+};
+
+const STATUS_LABEL: Record<StoryStatus, string> = {
+  draft:       "Entwurf",
+  in_review:   "Überarbeitung",
+  ready:       "Bereit",
+  in_progress: "In Arbeit",
+  testing:     "Test",
+  done:        "Fertig",
+  archived:    "Archiviert",
+};
+
+/** Priority badge — low / medium / high / critical */
+export function PriorityBadge({ priority, className }: { priority: StoryPriority; className?: string }) {
+  return (
+    <Badge variant={PRIORITY_VARIANT[priority]} className={className}>
+      {PRIORITY_LABEL[priority]}
+    </Badge>
+  );
+}
+
+/** Story / Feature status badge */
+export function StatusBadge({ status, className }: { status: StoryStatus; className?: string }) {
+  return (
+    <Badge variant={STATUS_VARIANT[status]} className={className}>
+      {STATUS_LABEL[status]}
+    </Badge>
+  );
+}
+
+/** Story points badge — "X SP" */
+export function StoryPointsBadge({ points, className }: { points: number; className?: string }) {
+  return (
+    <Badge variant="story_points" className={className}>
+      {points} SP
+    </Badge>
+  );
+}
+
+/** Quality score badge — colour depends on score value */
+export function QualityScoreBadge({ score, className }: { score: number; className?: string }) {
+  const variant = score >= 80 ? "quality_high" : score >= 60 ? "quality_mid" : "quality_low";
+  return (
+    <Badge variant={variant} className={cn("gap-0.5", className)}>
+      {score < 80 && <AlertTriangle size={8} />}
+      {score}
+    </Badge>
+  );
+}
+
+/** Definition of Ready passed badge */
+export function DoRBadge({ className }: { className?: string }) {
+  return (
+    <Badge variant="dor_passed" className={className}>
+      ✓ DoR
     </Badge>
   );
 }

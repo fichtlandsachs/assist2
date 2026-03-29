@@ -4,9 +4,10 @@ import { use, useState, useRef } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
-import type { Feature, FeatureStatus, StoryPriority } from "@/types";
+import type { Feature, FeatureStatus } from "@/types";
 import Link from "next/link";
-import { LayoutList, Columns, Plus, Layers, GitBranch, BookOpen } from "lucide-react";
+import { LayoutList, Columns, Plus, Layers, GitBranch } from "lucide-react";
+import { FeatureCard } from "@/components/stories/FeatureCard";
 
 const COLUMNS: { status: FeatureStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
   { status: "draft",       label: "Entwurf",   color: "bg-[#f7f4ee] text-[#5a5040] border-[#e2ddd4]",                        dot: "bg-[#cec8bc]",  dropHighlight: "ring-2 ring-[#a09080] bg-[#f7f4ee]" },
@@ -16,62 +17,6 @@ const COLUMNS: { status: FeatureStatus; label: string; color: string; dot: strin
   { status: "archived",    label: "Archiviert",color: "bg-[#f7f4ee] text-[#a09080] border-[#e2ddd4]",                        dot: "bg-[#cec8bc]",  dropHighlight: "ring-2 ring-[#a09080] bg-[#f7f4ee]" },
 ];
 
-const PRIORITY_COLORS: Record<StoryPriority, string> = {
-  low: "bg-[#f7f4ee] text-[#a09080]", medium: "bg-[rgba(74,85,104,.06)] text-[#4a5568]",
-  high: "bg-[rgba(122,100,80,.1)] text-[#7a6450]", critical: "bg-[rgba(139,94,82,.08)] text-[#8b5e52]",
-};
-
-const PRIORITY_LABELS: Record<StoryPriority, string> = {
-  low: "Niedrig", medium: "Mittel", high: "Hoch", critical: "Kritisch",
-};
-
-function FeatureCard({
-  feature,
-  dragging,
-  onDragStart,
-  onDragEnd,
-}: {
-  feature: Feature;
-  dragging: boolean;
-  onDragStart: (id: string) => void;
-  onDragEnd: () => void;
-}) {
-  return (
-    <div
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", feature.id);
-        onDragStart(feature.id);
-      }}
-      onDragEnd={onDragEnd}
-      className={`bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-3.5 hover:border-[rgba(139,94,82,.3)] transition-all cursor-grab active:cursor-grabbing select-none ${dragging ? "opacity-40 scale-95" : ""}`}
-    >
-      <p className="text-sm font-semibold text-[#1c1810] line-clamp-2 mb-2.5 leading-snug">
-        {feature.title}
-      </p>
-      {feature.description && (
-        <p className="text-xs text-[#a09080] line-clamp-2 mb-2.5 leading-relaxed">{feature.description}</p>
-      )}
-      <div className="flex flex-wrap items-center gap-1">
-        <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${PRIORITY_COLORS[feature.priority]}`}>
-          {PRIORITY_LABELS[feature.priority]}
-        </span>
-        {feature.story_points !== null && (
-          <span className="px-1.5 py-0.5 rounded-sm bg-[#f7f4ee] text-[#a09080] text-xs font-medium">
-            {feature.story_points} SP
-          </span>
-        )}
-      </div>
-      {feature.story_title && (
-        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-[#e2ddd4]">
-          <BookOpen size={10} className="text-[#a09080] shrink-0" />
-          <span className="text-xs text-[#a09080] truncate">{feature.story_title}</span>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function FeaturesBoardPage({ params }: { params: Promise<{ org: string }> }) {
   const resolvedParams = use(params);

@@ -7,6 +7,8 @@ import useSWR from "swr";
 import type { UserStory, StoryStatus, StoryPriority, TestCase, TestResult, DoDItem, Feature, FeatureStatus, Epic } from "@/types";
 import { AISuggestPanel } from "@/components/stories/AISuggestPanel";
 import { EpicSelector } from "@/components/stories/EpicSelector";
+import { DoDItem as DoDItemComponent } from "@/components/stories/DoDItem";
+import { AISuggestionItem } from "@/components/stories/AISuggestionItem";
 import { ArrowLeft, Save, Pencil, X, Plus, CheckCircle, XCircle, Sparkles, GripVertical, GitBranch, ClipboardCheck, Trash2, FileText, RefreshCw, Users, Package, Lock } from "lucide-react";
 import { SplitStoryPanel } from "@/components/stories/SplitStoryPanel";
 import Link from "next/link";
@@ -451,23 +453,13 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
           {items.length > 0 && (
             <div className="space-y-1.5">
               {items.map((item, i) => (
-                <div key={i} className={`flex items-start gap-3 px-3 py-2.5 rounded-sm border transition-colors group ${item.done ? "bg-[rgba(82,107,94,.1)] border-[rgba(82,107,94,.3)]" : "bg-[#faf9f6] border-[#e2ddd4]"}`}>
-                  <button
-                    onClick={() => void toggleItem(i)}
-                    className={`shrink-0 mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${item.done ? "bg-[#526b5e] border-[#526b5e]" : "border-[#cec8bc] hover:border-[#526b5e]"}`}
-                  >
-                    {item.done && <CheckCircle size={10} className="text-white" />}
-                  </button>
-                  <span className={`flex-1 min-w-0 text-sm break-words ${item.done ? "line-through text-[#a09080]" : "text-[#5a5040]"}`}>
-                    {item.text}
-                  </span>
-                  <button
-                    onClick={() => void removeItem(i)}
-                    className="shrink-0 p-0.5 text-[#cec8bc] hover:text-[#8b5e52] opacity-0 group-hover:opacity-100 transition-all rounded-sm"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
+                <DoDItemComponent
+                  key={i}
+                  text={item.text}
+                  done={item.done}
+                  onToggle={() => void toggleItem(i)}
+                  onDelete={() => void removeItem(i)}
+                />
               ))}
             </div>
           )}
@@ -499,7 +491,7 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
           ) : (
             <>
               <Sparkles size={16} />
-              Vorschläge generieren
+              Vorschläge
             </>
           )}
         </button>
@@ -538,21 +530,12 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
                 </button>
               </div>
               {aiSuggestions.map((s, i) => (
-                <div key={i} className="flex items-start gap-2 px-3 py-2.5 border border-[#e2ddd4] rounded-sm bg-[#faf9f6] hover:border-[rgba(139,94,82,.3)] transition-colors">
-                  {s.category && (
-                    <span className="shrink-0 px-1.5 py-0.5 bg-[rgba(139,94,82,.08)] text-[#8b5e52] rounded-sm text-xs font-medium">
-                      {s.category}
-                    </span>
-                  )}
-                  <span className="flex-1 min-w-0 text-sm text-[#5a5040] break-words">{s.text}</span>
-                  <button
-                    onClick={() => void addFromSuggestion(s)}
-                    className="shrink-0 flex items-center gap-1 px-2 py-1 bg-[#8b5e52] hover:bg-[#7a5248] text-white rounded-sm text-xs font-medium transition-colors"
-                  >
-                    <Plus size={11} />
-                    Hinzufügen
-                  </button>
-                </div>
+                <AISuggestionItem
+                  key={i}
+                  text={s.text}
+                  category={s.category}
+                  onAdd={() => void addFromSuggestion(s)}
+                />
               ))}
             </>
           )}

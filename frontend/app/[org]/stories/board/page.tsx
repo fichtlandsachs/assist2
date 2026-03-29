@@ -4,9 +4,10 @@ import { use, useState, useRef } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
-import type { UserStory, StoryStatus, StoryPriority } from "@/types";
+import type { UserStory, StoryStatus } from "@/types";
 import Link from "next/link";
 import { LayoutList, Columns, Plus, GitBranch, AlertTriangle, Layers } from "lucide-react";
+import { StoryCard } from "@/components/stories/StoryCard";
 
 const COLUMNS: { status: StoryStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
   { status: "draft",       label: "Entwurf",        color: "bg-[#f7f4ee] text-[#5a5040] border-[#e2ddd4]",                        dot: "bg-[#cec8bc]",   dropHighlight: "ring-2 ring-[#a09080] bg-[#f7f4ee]" },
@@ -18,94 +19,8 @@ const COLUMNS: { status: StoryStatus; label: string; color: string; dot: string;
   { status: "archived",    label: "Archiviert",      color: "bg-[#f7f4ee] text-[#a09080] border-[#e2ddd4]",                       dot: "bg-[#cec8bc]",   dropHighlight: "ring-2 ring-[#cec8bc] bg-[#f7f4ee]" },
 ];
 
-const PRIORITY_COLORS: Record<StoryPriority, string> = {
-  low:      "bg-[#f7f4ee] text-[#a09080]",
-  medium:   "bg-[rgba(74,85,104,.06)] text-[#4a5568]",
-  high:     "bg-[rgba(122,100,80,.1)] text-[#7a6450]",
-  critical: "bg-[rgba(139,94,82,.08)] text-[#8b5e52]",
-};
-
-const PRIORITY_LABELS: Record<StoryPriority, string> = {
-  low: "Niedrig", medium: "Mittel", high: "Hoch", critical: "Kritisch",
-};
-
 function getQualityScore(story: UserStory): number | null {
   return story.quality_score ?? null;
-}
-
-function StoryCard({
-  story,
-  org,
-  dragging,
-  onDragStart,
-  onDragEnd,
-}: {
-  story: UserStory;
-  org: string;
-  dragging: boolean;
-  onDragStart: (id: string) => void;
-  onDragEnd: () => void;
-}) {
-  const score = getQualityScore(story);
-  const lowScore = score !== null && score < 80;
-
-  return (
-    <div
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", story.id);
-        onDragStart(story.id);
-      }}
-      onDragEnd={onDragEnd}
-      className={`bg-[#faf9f6] rounded-sm border p-3.5 transition-all cursor-grab active:cursor-grabbing select-none ${
-        dragging ? "opacity-40 scale-95" : ""
-      } ${lowScore ? "border-[#7a6450] hover:border-[#7a6450]" : "border-[#e2ddd4] hover:border-[rgba(139,94,82,.3)]"}`}
-    >
-      <Link
-        href={`/${org}/stories/${story.id}`}
-        className="block text-sm font-semibold text-[#1c1810] hover:text-[#8b5e52] transition-colors line-clamp-2 mb-2.5 leading-snug"
-        onClick={(e) => e.stopPropagation()}
-        draggable={false}
-      >
-        {story.title}
-      </Link>
-
-      {story.description && (
-        <p className="text-xs text-[#a09080] line-clamp-2 mb-2.5 leading-relaxed">{story.description}</p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-1">
-        <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${PRIORITY_COLORS[story.priority]}`}>
-          {PRIORITY_LABELS[story.priority]}
-        </span>
-        {story.story_points !== null && (
-          <span className="px-1.5 py-0.5 rounded-sm bg-[#f7f4ee] text-[#a09080] text-xs font-medium">
-            {story.story_points} SP
-          </span>
-        )}
-        {score !== null && (
-          <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium flex items-center gap-0.5 ${
-            score >= 80 ? "bg-[rgba(82,107,94,.1)] text-[#526b5e]" :
-            score >= 50 ? "bg-[rgba(122,100,80,.1)] text-[#7a6450]" :
-            "bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
-          }`}>
-            {score < 80 && <AlertTriangle size={9} />}
-            {score}
-          </span>
-        )}
-        {story.dor_passed && (
-          <span className="px-1.5 py-0.5 rounded-sm bg-[rgba(82,107,94,.1)] text-[#526b5e] text-xs font-medium">✓ DoR</span>
-        )}
-        {story.is_split && (
-          <span className="px-1.5 py-0.5 rounded-sm bg-[rgba(122,100,80,.1)] text-[#7a6450] text-xs font-medium flex items-center gap-0.5">
-            <GitBranch size={10} />
-            Aufgeteilt
-          </span>
-        )}
-      </div>
-    </div>
-  );
 }
 
 export default function StoriesBoardPage({ params }: { params: Promise<{ org: string }> }) {
@@ -120,6 +35,18 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
     org ? `/api/v1/user-stories?org_id=${org.id}` : null,
     fetcher
   );
+
+  async function handleValidate(storyId: string) {
+    try {
+      const updated = await apiRequest<UserStory>(
+        `/api/v1/user-stories/${storyId}/validate`,
+        { method: "POST" }
+      );
+      mutate((prev) => prev?.map((s) => s.id === storyId ? { ...s, quality_score: updated.quality_score } : s), false);
+    } finally {
+      await mutate();
+    }
+  }
 
   async function handleStatusChange(storyId: string, newStatus: StoryStatus) {
     const story = stories?.find((s) => s.id === storyId);
@@ -301,6 +228,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
                       dragging={dragId === story.id}
                       onDragStart={(id) => { setDragId(id); dragCounters.current = {}; }}
                       onDragEnd={() => { setDragId(null); setDragOverStatus(null); dragCounters.current = {}; }}
+                      onValidate={handleValidate}
                     />
                   ))}
                 </div>
