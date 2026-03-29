@@ -11,6 +11,7 @@ from app.routers import agents, auth, epics, features, groups, integrations, mem
 from app.routers.pdf_settings import router as pdf_settings_router
 from app.routers.nextcloud import router as nextcloud_router
 from app.routers.ai import router as ai_router
+from app.routers.superadmin import router as superadmin_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -98,3 +99,4 @@ app.include_router(admin_config.router, prefix="/api/v1", tags=["AdminConfig"])
 app.include_router(pdf_settings_router, prefix="/api/v1", tags=["PDF Settings"])
 app.include_router(nextcloud_router, prefix="/api/v1", tags=["Nextcloud"])
 app.include_router(ai_router, prefix="/api/v1", tags=["AI"])
+app.include_router(superadmin_router)
