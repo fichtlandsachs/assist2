@@ -893,6 +893,115 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
 }
 
 // ---------------------------------------------------------------------------
+// StoryPromptSection — KI-Implementierungsprompt aus Story-Daten
+// ---------------------------------------------------------------------------
+
+function StoryPromptSection({ story, orgId }: { story: UserStory; orgId: string }) {
+  const { data: features } = useSWR<Feature[]>(
+    `/api/v1/features?org_id=${orgId}&story_id=${story.id}`,
+    fetcher
+  );
+  const { data: testCases } = useSWR<TestCase[]>(
+    `/api/v1/user-stories/${story.id}/test-cases`,
+    fetcher
+  );
+  const [copied, setCopied] = useState(false);
+
+  let dod: { text: string; done: boolean }[] = [];
+  try {
+    if (story.definition_of_done) {
+      const parsed = JSON.parse(story.definition_of_done as string);
+      if (Array.isArray(parsed)) dod = parsed;
+    }
+  } catch { /* ignore */ }
+
+  const lines: string[] = [];
+  lines.push(`# Implementierungsauftrag: ${story.title}`);
+  lines.push("");
+
+  if (story.description) {
+    lines.push("## User Story");
+    lines.push(story.description);
+    lines.push("");
+  }
+
+  if (story.acceptance_criteria) {
+    lines.push("## Akzeptanzkriterien");
+    lines.push(story.acceptance_criteria);
+    lines.push("");
+  }
+
+  if (features && features.length > 0) {
+    lines.push("## Zu implementierende Features");
+    features.forEach(f => {
+      lines.push(`- **${f.title}**${f.description ? `: ${f.description}` : ""}`);
+    });
+    lines.push("");
+  }
+
+  if (testCases && testCases.length > 0) {
+    lines.push("## Testfälle");
+    testCases.forEach(tc => {
+      lines.push(`- ${tc.title}`);
+      if (tc.steps) lines.push(`  Schritte: ${tc.steps}`);
+      if (tc.expected_result) lines.push(`  Erwartetes Ergebnis: ${tc.expected_result}`);
+    });
+    lines.push("");
+  }
+
+  if (dod.length > 0) {
+    lines.push("## Definition of Done");
+    dod.forEach(item => {
+      lines.push(`- [${item.done ? "x" : " "}] ${item.text}`);
+    });
+    lines.push("");
+  }
+
+  lines.push("## Hinweise");
+  lines.push("- Implementiere alle Features vollständig und teste sie gegen die Akzeptanzkriterien.");
+  lines.push("- Stelle sicher, dass alle Testfälle erfolgreich durchlaufen.");
+  lines.push("- Beachte die Definition of Done vor dem Abschluss.");
+
+  const prompt = lines.join("\n");
+
+  function handleCopy() {
+    void navigator.clipboard.writeText(prompt).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] overflow-hidden">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#e2ddd4]">
+        <div className="flex items-center gap-2">
+          <Sparkles size={15} className="text-[#a09080]" />
+          <h2 className="text-base font-semibold text-[#1c1810]">KI-Implementierungsprompt</h2>
+        </div>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#f7f4ee] rounded-sm text-xs font-medium transition-colors"
+        >
+          {copied ? <CheckCircle size={12} className="text-[#526b5e]" /> : <ClipboardCheck size={12} />}
+          {copied ? "Kopiert!" : "Kopieren"}
+        </button>
+      </div>
+      <div className="p-4 sm:p-6">
+        <p className="text-xs text-[#a09080] mb-3">
+          Dieser Prompt fasst alle relevanten Story-Informationen zusammen und kann direkt in einem KI-Assistenten (z.B. Claude, ChatGPT, Copilot) verwendet werden.
+        </p>
+        <textarea
+          readOnly
+          value={prompt}
+          rows={20}
+          className="w-full px-3 py-2 text-sm font-mono border border-[#e2ddd4] rounded-sm bg-white text-[#5a5040] resize-y outline-none focus:border-[rgba(139,94,82,.3)]"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // StoryDocsSection — links: Dokumentation, rechts: Regenerieren-Panel
 // ---------------------------------------------------------------------------
 
@@ -1629,7 +1738,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
 // Main Page
 // ---------------------------------------------------------------------------
 
-type ActiveTab = "story" | "dod" | "tests" | "features" | "docs";
+type ActiveTab = "story" | "dod" | "tests" | "features" | "docs" | "prompt";
 
 type DemoRole = "user" | "ba" | "architect" | "developer" | "tester" | "release";
 
@@ -1645,8 +1754,8 @@ const DEMO_ROLES: { id: DemoRole; label: string; description: string; color: str
 const ROLE_TABS: Record<DemoRole, ActiveTab[]> = {
   user:      ["story", "dod", "tests", "features", "docs"],
   ba:        ["story", "dod", "tests", "features", "docs"],
-  architect: ["story", "dod", "features", "docs"],
-  developer: ["story", "dod", "tests", "features"],
+  architect: ["story", "dod", "features", "docs", "prompt"],
+  developer: ["story", "dod", "tests", "features", "prompt"],
   tester:    ["story", "tests"],
   release:   ["story", "tests", "features", "docs"],
 };
@@ -1660,6 +1769,7 @@ export default function StoryDetailPage({
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; general?: string }>({});
   const [docsRefreshTrigger, setDocsRefreshTrigger] = useState(0);
   const [showSplitPanel, setShowSplitPanel] = useState(false);
@@ -1765,6 +1875,19 @@ export default function StoryDetailPage({
     }
   }
 
+  async function handleDelete() {
+    if (!confirm("User Story wirklich löschen? Alle Testfälle und Features werden ebenfalls gelöscht.")) return;
+    setDeleting(true);
+    try {
+      await apiRequest(`/api/v1/user-stories/${resolvedParams.id}`, { method: "DELETE" });
+      router.push(`/${resolvedParams.org}/stories`);
+    } catch {
+      setFieldErrors({ general: "Fehler beim Löschen." });
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (isLoading || !story) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -1779,6 +1902,7 @@ export default function StoryDetailPage({
     { id: "tests",    label: "Testfälle" },
     { id: "dod",      label: "Definition of Done" },
     { id: "docs",     label: "Dokumentation" },
+    { id: "prompt",   label: "KI-Prompt" },
   ];
 
   const visibleTabIds = ROLE_TABS[demoRole];
@@ -1866,13 +1990,27 @@ export default function StoryDetailPage({
               </button>
             </>
           ) : (
-            <button
-              onClick={() => setEditing(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm font-medium transition-colors"
-            >
-              <Pencil size={16} />
-              Bearbeiten
-            </button>
+            <>
+              <button
+                onClick={() => setEditing(true)}
+                className="flex items-center gap-2 px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm font-medium transition-colors"
+              >
+                <Pencil size={16} />
+                Bearbeiten
+              </button>
+              <button
+                onClick={() => void handleDelete()}
+                disabled={deleting}
+                className="flex items-center gap-2 px-4 py-2 border border-[rgba(139,94,82,.3)] text-[#8b5e52] hover:bg-[rgba(139,94,82,.08)] disabled:opacity-50 rounded-sm text-sm font-medium transition-colors"
+              >
+                {deleting ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#8b5e52] border-t-transparent" />
+                ) : (
+                  <Trash2 size={16} />
+                )}
+                Löschen
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -2120,6 +2258,11 @@ export default function StoryDetailPage({
       {/* Docs tab */}
       {activeTab === "docs" && (
         <StoryDocsSection storyId={resolvedParams.id} refreshTrigger={docsRefreshTrigger} />
+      )}
+
+      {/* KI-Prompt tab */}
+      {activeTab === "prompt" && (
+        <StoryPromptSection story={story} orgId={story.organization_id} />
       )}
     </div>
   );
