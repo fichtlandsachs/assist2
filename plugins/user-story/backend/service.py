@@ -7,6 +7,8 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.context_analyzer import analyze_context
+from app.ai.complexity_scorer import score_complexity
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.services.n8n_client import n8n_client
 
@@ -15,6 +17,7 @@ from .schemas import (
     AIDeliveryResponse,
     StoryCreate,
     StoryFilter,
+    StoryScoreResponse,
     StoryUpdate,
     TestCaseCreate,
     TestCaseUpdate,
@@ -268,6 +271,28 @@ class StoryService:
             story_id=story_id,
             status="triggered",
             triggered_at=datetime.now(timezone.utc),
+        )
+
+    async def score(
+        self,
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        story_id: uuid.UUID,
+    ) -> StoryScoreResponse:
+        """Run heuristic scoring on a story. No DB write, no LLM."""
+        story = await self.get(db, org_id, story_id)
+
+        ac_string = "\n".join(story.acceptance_criteria or [])
+        context = analyze_context(story.title, story.description, ac_string)
+        complexity = score_complexity(context)
+
+        return StoryScoreResponse(
+            level=complexity.level,
+            confidence=complexity.confidence,
+            clarity=context.clarity,
+            complexity=context.complexity,
+            risk=context.risk,
+            domain=context.domain,
         )
 
 
