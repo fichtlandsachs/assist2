@@ -190,3 +190,16 @@ class TestCaseRead(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------------------
+# Scoring
+# ---------------------------------------------------------------------------
+
+class StoryScoreResponse(BaseModel):
+    level: str       # "low" | "medium" | "high"
+    confidence: float
+    clarity: float
+    complexity: float
+    risk: float
+    domain: str      # "technical" | "business" | "security" | "generic"
