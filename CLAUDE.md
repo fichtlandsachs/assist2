@@ -59,6 +59,26 @@ Backend → PostgreSQL 16 (primary DB)
 
 Infrastructure is defined in `infra/docker-compose.yml` (production) and `infra/docker-compose.dev.yml` (dev overrides). Runtime secrets live in `infra/.env`.
 
+## Docker — Pflichtregeln
+
+**Niemals `docker run` verwenden.** Alle Container werden ausschließlich über Docker Compose verwaltet:
+
+```bash
+# Einzelnen Service starten/neu starten
+cd infra && docker compose -f docker-compose.yml up -d <service>
+
+# Mehrere Services
+cd infra && docker compose -f docker-compose.yml up -d backend frontend
+
+# Image neu bauen und starten
+cd infra && docker compose -f docker-compose.yml up -d --build <service>
+
+# Logs
+docker logs assist2-<service> --tail 20
+```
+
+Container die nicht über Compose gestartet werden, haben keine `com.docker.compose.project`-Labels und erscheinen nicht im Monitoring (Hostinger). Neue Services müssen zuerst in `infra/docker-compose.yml` definiert werden, bevor sie gestartet werden.
+
 ### Backend (`backend/`)
 
 FastAPI app with async SQLAlchemy (PostgreSQL + asyncpg). Standard layered structure:

@@ -45,14 +45,14 @@ COMPONENTS = [
         "label": "Identity Provider",
         "internal_url": "http://assist2-authentik-server:9000",
         "health_path": "/-/health/ready/",
-        "admin_url": "/authentik/",
+        "admin_url": "https://authentik.fichtlworks.com/if/admin/",
     },
     {
         "name": "n8n",
         "label": "Workflow Engine",
         "internal_url": "http://assist2-n8n:5678",
         "health_path": "/healthz",
-        "admin_url": "/n8n/",
+        "admin_url": None,
     },
     {
         "name": "LiteLLM",
@@ -66,7 +66,7 @@ COMPONENTS = [
         "label": "Dateiverwaltung",
         "internal_url": "http://assist2-nextcloud",
         "health_path": "/status.php",
-        "admin_url": None,
+        "admin_url": "https://nextcloud.fichtlworks.com",
     },
     {
         "name": "Stirling PDF",

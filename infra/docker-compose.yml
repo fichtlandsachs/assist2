@@ -20,6 +20,7 @@ volumes:
   assist2_pdf_cache:
   assist2_nextcloud_data:
   assist2_nextcloud_db_data:
+  assist2_openwebui_data:
 
 services:
   postgres:
@@ -172,6 +173,7 @@ services:
       AUTHENTIK_BACKEND_CLIENT_SECRET: ${AUTHENTIK_BACKEND_CLIENT_SECRET}
       AUTHENTIK_JWKS_URL: ${AUTHENTIK_JWKS_URL}
       AUTHENTIK_APP_SLUG: ${AUTHENTIK_APP_SLUG:-backend}
+      AUTHENTIK_ADMIN_CLIENT_ID: ${AUTHENTIK_ADMIN_CLIENT_ID}
       STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
       WHISPER_URL: ${WHISPER_URL:-http://assist2-whisper:9000}
       LITELLM_URL: ${LITELLM_URL:-http://litellm:4000}
@@ -412,4 +414,33 @@ services:
       - proxy
     labels:
       - "traefik.enable=false"
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: assist2-openwebui
+    restart: unless-stopped
+    environment:
+      OPENAI_API_BASE_URL: http://assist2-litellm:4000/v1
+      OPENAI_API_KEY: ${LITELLM_API_KEY:-sk-assist2}
+      WEBUI_SECRET_KEY: ${OPENWEBUI_SECRET_KEY}
+      ENABLE_OLLAMA_API: "false"
+      ENABLE_SIGNUP: "false"
+      WEBUI_AUTH: "false"
+      DEFAULT_USER_ROLE: user
+      WEBUI_NAME: "Assist2 Chat"
+    volumes:
+      - assist2_openwebui_data:/app/backend/data
+    networks:
+      - proxy
+      - internal
+    depends_on:
+      - litellm
+    labels:
+      - "traefik.enable=false"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 

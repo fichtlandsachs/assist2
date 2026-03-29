@@ -1,6 +1,7 @@
 """AI utility routes — transcription, chat streaming, story extraction."""
 import json
 import logging
+import re
 from typing import AsyncIterator
 
 import anthropic
@@ -21,7 +22,9 @@ router = APIRouter()
 CHAT_SYSTEM_PROMPTS: dict[str, str] = {
     "chat": (
         "Du bist ein hilfreicher KI-Assistent für ein agiles Entwicklungsteam. "
-        "Antworte präzise, professionell und auf Deutsch, es sei denn, der Nutzer schreibt in einer anderen Sprache."
+        "Antworte präzise, professionell und auf Deutsch, es sei denn, der Nutzer schreibt in einer anderen Sprache. "
+        "Wenn der Nutzer ein Bild (Mockup, Screenshot, Wireframe) einfügt, beschreibe es detailliert als UX/UI-Mockup: "
+        "Layout, Komponenten, Benutzerfluss und mögliche Anforderungen, die sich daraus ableiten lassen."
     ),
     "docs": (
         "Du bist ein Experte für technische Dokumentation. "
@@ -37,19 +40,41 @@ EXTRACT_SYSTEM_PROMPT = (
     "Du bist ein Experte für agile Anforderungsanalyse. "
     "Analysiere das folgende Transkript eines Gesprächs und extrahiere strukturierte Informationen. "
     "Antworte NUR mit einem JSON-Objekt in exakt diesem Format:\n"
-    '{"story": ["Als ... möchte ich ... damit ..."], '
+    '{"title": "Kurzer prägnanter Titel der User Story", '
+    '"story": ["Als ... möchte ich ... damit ..."], '
     '"accept": ["Gegeben ..., wenn ..., dann ..."], '
     '"tests": ["TC-01: ..."], '
-    '"release": ["v1.0: ..."]}\n'
-    "Wenn keine Information für eine Kategorie vorhanden ist, gib ein leeres Array zurück."
+    '"release": ["v1.0: ..."], '
+    '"features": [{"title": "Feature-Titel", "description": "Kurze Beschreibung"}]}\n'
+    "Wenn keine Information für eine Kategorie vorhanden ist, gib ein leeres Array zurück. "
+    "Der title ist immer ein kurzer, prägnanter Satz (max. 80 Zeichen). "
+    "Features sind konkrete, implementierbare Teilfunktionen der User Story."
 )
 
 
 # ── Request schemas ───────────────────────────────────────────────────────────
 
+class ChatImageSource(BaseModel):
+    type: str = "base64"
+    media_type: str
+    data: str
+
+
+class ChatContentBlock(BaseModel):
+    type: str  # "text" or "image"
+    text: str | None = None
+    source: ChatImageSource | None = None
+
+
 class ChatMessage(BaseModel):
     role: str
-    content: str
+    content: str | list[ChatContentBlock]
+
+    def to_text(self) -> str:
+        """Extract plain text for transcript/compact use."""
+        if isinstance(self.content, str):
+            return self.content
+        return " ".join(b.text for b in self.content if b.type == "text" and b.text)
 
 
 class ChatRequest(BaseModel):
@@ -61,6 +86,10 @@ class ChatRequest(BaseModel):
 class ExtractStoryRequest(BaseModel):
     transcript: str
     org_id: str | None = None
+
+
+class CompactChatRequest(BaseModel):
+    messages: list[ChatMessage]
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -95,7 +124,18 @@ async def chat_stream(
     """Stream an Anthropic chat response as Server-Sent Events."""
     settings = get_settings()
     system_prompt = CHAT_SYSTEM_PROMPTS.get(body.mode, CHAT_SYSTEM_PROMPTS["chat"])
-    messages = [{"role": m.role, "content": m.content} for m in body.messages]
+
+    def _build_content(m: ChatMessage) -> str | list:
+        if isinstance(m.content, str):
+            return m.content
+        return [
+            ({"type": "image", "source": {"type": b.source.type, "media_type": b.source.media_type, "data": b.source.data}}
+             if b.type == "image" and b.source
+             else {"type": "text", "text": b.text or ""})
+            for b in m.content
+        ]
+
+    messages = [{"role": m.role, "content": _build_content(m)} for m in body.messages]
 
     async def event_stream() -> AsyncIterator[str]:
         try:
@@ -116,33 +156,89 @@ async def chat_stream(
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
+@router.post("/ai/compact-chat")
+async def compact_chat(
+    body: CompactChatRequest,
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Summarize a chat conversation into a compact context for AI requests."""
+    if len(body.messages) < 2:
+        return {"summary": ""}
+
+    settings = get_settings()
+    transcript = "\n".join(
+        f"{'Nutzer' if m.role == 'user' else 'KI'}: {m.to_text()}"
+        for m in body.messages
+    )
+
+    system = (
+        "Du bist ein Experte für Gesprächszusammenfassungen. "
+        "Fasse das folgende Gespräch in einem kompakten, strukturierten Kontext zusammen. "
+        "Behalte alle wichtigen Informationen, Anforderungen und Entscheidungen. "
+        "Schreibe in der dritten Person und verwende Stichpunkte wo sinnvoll. "
+        "Maximale Länge: 500 Wörter."
+    )
+    try:
+        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+        msg = await client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1024,
+            system=system,
+            messages=[{"role": "user", "content": transcript}],
+        )
+        summary = msg.content[0].text if msg.content else ""
+        return {"summary": summary}
+    except Exception as exc:
+        logger.error("AI compact-chat error: %s", exc)
+        raise HTTPException(status_code=503, detail="KI-Service nicht erreichbar")
+
+
 @router.post("/ai/extract-story")
 async def extract_story(
     body: ExtractStoryRequest,
     current_user: User = Depends(get_current_user),
 ) -> dict:
     """Extract structured story data from a conversation transcript."""
+    empty = {"title": "", "story": [], "accept": [], "tests": [], "release": []}
     if len(body.transcript) < 80:
-        return {"story": [], "accept": [], "tests": [], "release": []}
+        return empty
 
     settings = get_settings()
-    client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-    response = await client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        system=EXTRACT_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": body.transcript}],
-    )
-    raw = response.content[0].text.strip()
+    try:
+        from openai import AsyncOpenAI
+        oai = AsyncOpenAI(
+            api_key=settings.LITELLM_API_KEY or "sk-assist2",
+            base_url=f"{settings.LITELLM_URL}/v1",
+        )
+        resp = await oai.chat.completions.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2048,
+            messages=[
+                {"role": "system", "content": EXTRACT_SYSTEM_PROMPT},
+                {"role": "user", "content": body.transcript},
+            ],
+        )
+        raw = (resp.choices[0].message.content or "").strip()
+    except Exception as exc:
+        logger.error("AI extract-story error: %s", exc)
+        return empty
+
+    # Strip markdown code fences if present
+    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+    raw = raw.strip()
+
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError:
-        logger.warning("AI extract-story returned non-JSON: %s", raw[:200])
-        return {"story": [], "accept": [], "tests": [], "release": []}
+    except json.JSONDecodeError as e:
+        logger.warning("AI extract-story JSON error: %s | raw: %s", e, raw[:500])
+        return empty
 
     return {
+        "title": data.get("title", ""),
         "story": data.get("story", []),
         "accept": data.get("accept", []),
         "tests": data.get("tests", []),
         "release": data.get("release", []),
+        "features": data.get("features", []),
     }

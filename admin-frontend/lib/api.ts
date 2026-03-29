@@ -1,5 +1,5 @@
 import type { ComponentStatus, OrgMetrics } from "@/types";
-import { getSession } from "@/lib/auth";
+import { getSession, clearSession } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -20,6 +20,7 @@ async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (resp.status === 401 || resp.status === 403) {
+    clearSession();
     window.location.href = "/login";
     throw new Error("Unauthorized");
   }
