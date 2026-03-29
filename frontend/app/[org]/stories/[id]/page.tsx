@@ -1776,6 +1776,8 @@ export default function StoryDetailPage({
   const [activeTab, setActiveTab] = useState<ActiveTab>("story");
   const [demoRole, setDemoRole] = useState<DemoRole>("user");
   const [showRolePicker, setShowRolePicker] = useState(false);
+  const [score, setScore] = useState<{ level: "low" | "medium" | "high"; confidence: number; clarity: number; complexity: number; risk: number; domain: string } | null>(null);
+  const [isScoring, setIsScoring] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -1888,6 +1890,22 @@ export default function StoryDetailPage({
     }
   }
 
+  async function handleScore() {
+    setIsScoring(true);
+    setScore(null);
+    try {
+      const result = await apiRequest<{ level: "low" | "medium" | "high"; confidence: number; clarity: number; complexity: number; risk: number; domain: string }>(
+        `/api/v1/user-stories/${resolvedParams.id}/score`,
+        { method: "POST" }
+      );
+      setScore(result);
+    } catch {
+      setFieldErrors({ general: "Scoring fehlgeschlagen." });
+    } finally {
+      setIsScoring(false);
+    }
+  }
+
   if (isLoading || !story) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -1970,6 +1988,18 @@ export default function StoryDetailPage({
           {editing ? (
             <>
               <button
+                onClick={() => void handleScore()}
+                disabled={isScoring}
+                className="flex items-center gap-2 px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] disabled:opacity-50 rounded-sm text-sm font-medium transition-colors"
+              >
+                {isScoring ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#5a5040] border-t-transparent" />
+                ) : (
+                  <ClipboardCheck size={16} />
+                )}
+                Prüfen
+              </button>
+              <button
                 onClick={() => void handleSave()}
                 disabled={saving}
                 className="flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[#8b5e52] text-white rounded-sm text-sm font-medium transition-colors"
@@ -1991,6 +2021,18 @@ export default function StoryDetailPage({
             </>
           ) : (
             <>
+              <button
+                onClick={() => void handleScore()}
+                disabled={isScoring}
+                className="flex items-center gap-2 px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] disabled:opacity-50 rounded-sm text-sm font-medium transition-colors"
+              >
+                {isScoring ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#5a5040] border-t-transparent" />
+                ) : (
+                  <ClipboardCheck size={16} />
+                )}
+                Prüfen
+              </button>
               <button
                 onClick={() => setEditing(true)}
                 className="flex items-center gap-2 px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm font-medium transition-colors"
@@ -2031,6 +2073,43 @@ export default function StoryDetailPage({
           orgSlug={resolvedParams.org}
           onClose={() => setShowSplitPanel(false)}
         />
+      )}
+
+      {/* Score panel */}
+      {score && (
+        <div className="px-4 py-3 bg-[#faf9f6] border border-[#e2ddd4] rounded-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-[#a09080] uppercase tracking-wide">Story Scoring</span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold ${
+                score.level === "low"
+                  ? "bg-[rgba(82,107,94,.1)] text-[#526b5e]"
+                  : score.level === "medium"
+                  ? "bg-[rgba(122,100,80,.1)] text-[#7a6450]"
+                  : "bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
+              }`}>
+                {score.level === "low" ? "Niedrig" : score.level === "medium" ? "Mittel" : "Hoch"}
+              </span>
+              <span className="text-xs text-[#a09080] capitalize">{score.domain}</span>
+            </div>
+            <button onClick={() => setScore(null)} className="text-[#a09080] hover:text-[#5a5040] text-sm leading-none">×</button>
+          </div>
+          <div className="space-y-2">
+            {([
+              { label: "Klarheit", value: score.clarity },
+              { label: "Komplexität", value: score.complexity },
+              { label: "Risiko", value: score.risk },
+            ] as { label: string; value: number }[]).map(({ label, value }) => (
+              <div key={label} className="flex items-center gap-3">
+                <span className="text-xs text-[#a09080] w-20 shrink-0">{label}</span>
+                <div className="flex-1 h-1.5 bg-[#e2ddd4] rounded-full overflow-hidden">
+                  <div className="h-full rounded-full bg-[#8b5e52]" style={{ width: `${Math.round(value * 100)}%` }} />
+                </div>
+                <span className="text-xs text-[#a09080] w-8 text-right">{Math.round(value * 100)}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Demo role switcher */}
