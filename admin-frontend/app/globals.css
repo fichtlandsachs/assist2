@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #faf9f6;
+  --paper-warm: #f7f4ee;
+  --paper-rule: #e2ddd4;
+  --ink: #1c1810;
+  --ink-mid: #5a5040;
+  --ink-faint: #a09080;
+  --warn: #8b5e52;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+}
