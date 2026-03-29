@@ -30,6 +30,7 @@ from app.schemas.user_story import (
     StorySplitSuggestion,
     StorySplitSave,
     StorySplitResult,
+    StoryScoreResponse,
     UserStoryCreate,
     UserStoryRead,
     UserStoryUpdate,
@@ -51,6 +52,8 @@ from app.services import confluence_service
 from app.services import org_integrations_service as integrations_svc
 from app.services.nextcloud_service import nextcloud_service
 from app.models.organization import Organization
+from app.ai.context_analyzer import analyze_context
+from app.ai.complexity_scorer import score_complexity
 from app.core.exceptions import NotFoundException
 from app.tasks.agent_tasks import analyze_story_task
 from app.tasks.pdf_tasks import generate_story_pdf
@@ -280,6 +283,36 @@ async def delete_user_story(
         raise NotFoundException("User story not found")
     await db.delete(story)
     await db.commit()
+
+
+@router.post(
+    "/user-stories/{story_id}/score",
+    response_model=StoryScoreResponse,
+    summary="Score Story Quality (Heuristic)",
+)
+async def score_user_story(
+    story_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> StoryScoreResponse:
+    """Run heuristic scoring on a story. No DB write, no LLM."""
+    stmt = select(UserStory).where(UserStory.id == story_id)
+    result = await db.execute(stmt)
+    story = result.scalar_one_or_none()
+    if story is None:
+        raise NotFoundException("User story not found")
+
+    context = analyze_context(story.title, story.description, story.acceptance_criteria)
+    complexity = score_complexity(context)
+
+    return StoryScoreResponse(
+        level=complexity.level,
+        confidence=complexity.confidence,
+        clarity=context.clarity,
+        complexity=context.complexity,
+        risk=context.risk,
+        domain=context.domain,
+    )
 
 
 @router.post(

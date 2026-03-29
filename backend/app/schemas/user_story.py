@@ -165,3 +165,12 @@ class AIDoDSuggestion(BaseModel):
 
 class AIDoDSuggestResponse(BaseModel):
     suggestions: list[AIDoDSuggestion]
+
+
+class StoryScoreResponse(BaseModel):
+    level: str       # "low" | "medium" | "high"
+    confidence: float
+    clarity: float
+    complexity: float
+    risk: float
+    domain: str      # "technical" | "business" | "security" | "generic"
