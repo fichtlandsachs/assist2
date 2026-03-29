@@ -211,4 +211,8 @@ async def upload_nextcloud_file(
         resp = await client.put(url, content=content, auth=auth)
         resp.raise_for_status()
 
+    # Trigger RAG indexing for this org asynchronously
+    from app.tasks.rag_tasks import index_org_documents
+    index_org_documents.delay(str(org_id), org.slug)
+
     return NextcloudUploadResult(ok=True, path=dest_path)

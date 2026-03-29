@@ -23,7 +23,7 @@ volumes:
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: assist2-postgres
     restart: unless-stopped
     environment:
@@ -173,6 +173,9 @@ services:
       AUTHENTIK_JWKS_URL: ${AUTHENTIK_JWKS_URL}
       AUTHENTIK_APP_SLUG: ${AUTHENTIK_APP_SLUG:-backend}
       STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
+      WHISPER_URL: ${WHISPER_URL:-http://assist2-whisper:9000}
+      LITELLM_URL: ${LITELLM_URL:-http://litellm:4000}
+      LITELLM_API_KEY: ${LITELLM_API_KEY}
       NEXTCLOUD_URL: ${NEXTCLOUD_URL:-https://nextcloud.fichtlworks.com}
       NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
       NEXTCLOUD_ADMIN_APP_PASSWORD: ${NEXTCLOUD_ADMIN_APP_PASSWORD}
@@ -209,6 +212,9 @@ services:
       N8N_API_KEY: ${N8N_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
+      WHISPER_URL: ${WHISPER_URL:-http://assist2-whisper:9000}
+      LITELLM_URL: ${LITELLM_URL:-http://litellm:4000}
+      LITELLM_API_KEY: ${LITELLM_API_KEY}
     networks:
       - internal
     healthcheck:
@@ -340,3 +346,18 @@ services:
       timeout: 10s
       retries: 5
       start_period: 120s
+
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: assist2-whisper
+    restart: unless-stopped
+    environment:
+      ASR_MODEL: small
+      ASR_ENGINE: faster_whisper
+      ASR_QUANTIZATION: int8
+    networks:
+      - internal
+      - proxy
+    labels:
+      - "traefik.enable=false"
+

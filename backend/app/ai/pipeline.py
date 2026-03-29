@@ -54,7 +54,7 @@ class ProviderClient:
             except Exception as exc:
                 # Fallback to Anthropic on quota/permission errors
                 _exc_type = type(exc).__name__
-                if any(k in _exc_type for k in ("RateLimit", "PermissionDenied", "QuotaExceeded", "AuthenticationError")):
+                if any(k in _exc_type for k in ("RateLimit", "PermissionDenied", "QuotaExceeded", "AuthenticationError", "APIConnection", "ConnectError", "Connection")):
                     logger.warning("OpenAI call failed (%s: %s) — falling back to Anthropic", _exc_type, exc)
                     return self._call_anthropic_fallback(max_tokens, temperature, messages)
                 raise

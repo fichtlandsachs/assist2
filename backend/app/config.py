@@ -66,6 +66,13 @@ class Settings(BaseSettings):
     NEXTCLOUD_ADMIN_USER: str = "admin"
     NEXTCLOUD_ADMIN_APP_PASSWORD: str = ""  # Nextcloud App Password für WebDAV + OCS
 
+    # Whisper ASR
+    WHISPER_URL: str = "http://assist2-whisper:9000"
+
+    # LiteLLM (internal AI gateway)
+    LITELLM_URL: str = "http://litellm:4000"
+    LITELLM_API_KEY: str = ""
+
     # Sync defaults (used as initial value when creating connections)
     MAIL_SYNC_INTERVAL_MINUTES: int = 15
     CALENDAR_SYNC_INTERVAL_MINUTES: int = 30

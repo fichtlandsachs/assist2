@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { use, useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { mutate as swrMutate } from "swr";
 import { useOrg } from "@/lib/hooks/useOrg";
@@ -21,7 +21,7 @@ const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
-  return <p className="mt-1 text-xs text-red-600">{msg}</p>;
+  return <p className="mt-1 text-xs text-[#8b5e52]">{msg}</p>;
 }
 
 function DroppableTextarea({
@@ -83,7 +83,7 @@ function DroppableTextarea({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1.5">
+      <label htmlFor={id} className="block text-sm font-medium text-[#5a5040] mb-1.5">
         {label}
       </label>
       <textarea
@@ -96,16 +96,16 @@ function DroppableTextarea({
         onDrop={handleDrop}
         placeholder={placeholder}
         rows={rows}
-        className={`w-full px-3 py-2 text-sm border rounded-lg resize-y overflow-hidden outline-none transition-colors ${
+        className={`w-full px-3 py-2 text-sm border rounded-sm resize-y overflow-hidden outline-none transition-colors ${
           isDragOver
-            ? "border-brand-400 bg-brand-50 ring-2 ring-brand-200"
+            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] ring-2 ring-[rgba(139,94,82,.3)]"
             : error
-            ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-100"
-            : "border-slate-300 bg-white focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
+            : "border-[#cec8bc] bg-[#faf9f6] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
         }`}
       />
       {isDragOver && (
-        <p className="text-xs text-brand-600 mt-1">Loslassen zum Übernehmen</p>
+        <p className="text-xs text-[#8b5e52] mt-1">Loslassen zum Übernehmen</p>
       )}
       <FieldError msg={error} />
     </div>
@@ -153,9 +153,9 @@ function DroppableInput({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1.5">
+      <label htmlFor={id} className="block text-sm font-medium text-[#5a5040] mb-1.5">
         {label}
-        <span className="text-red-500 ml-0.5">*</span>
+        <span className="text-[#8b5e52] ml-0.5">*</span>
       </label>
       <input
         id={id}
@@ -166,12 +166,12 @@ function DroppableInput({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         placeholder={placeholder}
-        className={`w-full px-3 py-2 text-sm border rounded-lg outline-none transition-colors ${
+        className={`w-full px-3 py-2 text-sm border rounded-sm outline-none transition-colors ${
           isDragOver
-            ? "border-brand-400 bg-brand-50 ring-2 ring-brand-200"
+            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] ring-2 ring-[rgba(139,94,82,.3)]"
             : error
-            ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-100"
-            : "border-slate-300 bg-white focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
+            : "border-[#cec8bc] bg-[#faf9f6] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
         }`}
       />
       <FieldError msg={error} />
@@ -179,8 +179,9 @@ function DroppableInput({
   );
 }
 
-export default function NewStoryPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function NewStoryPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const router = useRouter();
 
   const [title, setTitle] = useState("");
@@ -234,7 +235,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
       );
       // Pre-seed SWR cache so detail page renders instantly without a loading spinner
       await swrMutate(`/api/v1/user-stories/${story.id}`, story, false);
-      router.push(`/${params.org}/stories/${story.id}`);
+      router.push(`/${resolvedParams.org}/stories/${story.id}`);
     } catch (err: unknown) {
       const msg = (err as { error?: string })?.error;
       setFieldErrors({ general: msg ?? "Fehler beim Speichern." });
@@ -248,14 +249,14 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          href={`/${params.org}/stories`}
-          className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          href={`/${resolvedParams.org}/stories`}
+          className="p-2 rounded-sm text-[#a09080] hover:text-[#5a5040] hover:bg-[#f7f4ee] transition-colors"
         >
           <ArrowLeft size={18} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Neue User Story</h1>
-          <p className="text-slate-500 text-sm">Erstelle eine neue Story mit Assistent-Unterstützung</p>
+          <h1 className="text-xl font-bold text-[#1c1810]">Neue User Story</h1>
+          <p className="text-[#a09080] text-sm">Erstelle eine neue Story mit Assistent-Unterstützung</p>
         </div>
       </div>
 
@@ -263,7 +264,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
         {/* LEFT: Form */}
         <form onSubmit={(e) => void handleSave(e)} className="space-y-4">
-          <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 space-y-5">
+          <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 space-y-5">
             <DroppableInput
               id="title"
               label="Titel"
@@ -275,7 +276,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
             />
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Sprachaufnahme:</span>
+              <span className="text-xs text-[#a09080]">Sprachaufnahme:</span>
               <VoiceRecorder
                 onTranscription={(text) => setDescription((prev) => prev ? `${prev}\n${text}` : text)}
               />
@@ -303,14 +304,14 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="priority" className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label htmlFor="priority" className="block text-sm font-medium text-[#5a5040] mb-1.5">
                   Priorität
                 </label>
                 <select
                   id="priority"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as StoryPriority)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white"
+                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)] bg-[#faf9f6]"
                 >
                   {PRIORITY_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -321,7 +322,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
               </div>
 
               <div>
-                <label htmlFor="story_points" className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label htmlFor="story_points" className="block text-sm font-medium text-[#5a5040] mb-1.5">
                   Story Points
                 </label>
                 <input
@@ -332,7 +333,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
                   value={storyPoints}
                   onChange={(e) => setStoryPoints(e.target.value)}
                   placeholder="z.B. 5"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white"
+                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)] bg-[#faf9f6]"
                 />
               </div>
             </div>
@@ -347,7 +348,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
           </div>
 
           {fieldErrors.general && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="p-3 bg-[rgba(139,94,82,.08)] border border-[#e2ddd4] rounded-sm text-[#8b5e52] text-sm">
               {fieldErrors.general}
             </div>
           )}
@@ -356,7 +357,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
             <button
               type="submit"
               disabled={saving || !org}
-              className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#5a5068] hover:bg-[#7a5248] disabled:bg-[#cec8bc] text-white rounded-sm text-sm font-medium transition-colors"
             >
               {saving ? (
                 <>
@@ -371,8 +372,8 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
               )}
             </button>
             <Link
-              href={`/${params.org}/stories`}
-              className="px-5 py-2.5 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors"
+              href={`/${resolvedParams.org}/stories`}
+              className="px-5 py-2.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm font-medium transition-colors"
             >
               Abbrechen
             </Link>
@@ -380,7 +381,7 @@ export default function NewStoryPage({ params }: { params: { org: string } }) {
         </form>
 
         {/* RIGHT: AI Suggestions */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+        <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
           <AISuggestPanel
             title={title}
             description={description}

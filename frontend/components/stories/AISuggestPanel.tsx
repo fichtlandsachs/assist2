@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { apiRequest } from "@/lib/api/client";
 import type { AISuggestion } from "@/types";
-import { Sparkles, AlertTriangle, GripVertical, CheckCircle, ListChecks, CopyPlus } from "lucide-react";
+import { Sparkles, AlertTriangle, GripVertical, CheckCircle, ListChecks, CopyPlus, Database, Brain } from "lucide-react";
 
 interface AISuggestPanelProps {
   title: string;
@@ -253,6 +253,32 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
       {/* Results — real when available, ghost skeleton when not yet analysed */}
       <div className={`mt-4 space-y-4 flex-1 overflow-y-auto transition-opacity duration-300 ${!suggestion && !loading ? "opacity-30 pointer-events-none select-none" : "opacity-100"}`}>
 
+        {/* Source badge */}
+        {suggestion && (
+          suggestion.source === "rag_direct" ? (
+            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <Database size={13} className="text-emerald-600 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-emerald-700">Aus Org-Wissensbank</p>
+                <p className="text-xs text-emerald-600">Direkte Antwort aus indexierten Dokumenten — kein KI-Aufruf nötig.</p>
+              </div>
+            </div>
+          ) : suggestion.source === "rag_context" ? (
+            <div className="flex items-center gap-2 px-3 py-2 bg-violet-50 border border-violet-200 rounded-lg">
+              <Database size={13} className="text-violet-500 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-violet-700">Org-Wissen eingeflossen</p>
+                <p className="text-xs text-violet-600">KI hat relevante Dokumente aus eurer Nextcloud-Ablage einbezogen.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
+              <Brain size={13} className="text-slate-400 shrink-0" />
+              <p className="text-xs text-slate-500">KI-generiert — kein passendes Org-Wissen gefunden.</p>
+            </div>
+          )
+        )}
+
         {/* Quality score */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
@@ -330,9 +356,13 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
 
         {/* Explanation */}
         {suggestion?.explanation ? (
-          <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
-            <p className="text-xs font-semibold text-blue-700 mb-1">Erklärung</p>
-            <p className="text-xs text-blue-800 leading-relaxed">{suggestion.explanation}</p>
+          <div className={`p-3 rounded-lg border ${suggestion.source === "rag_direct" ? "bg-emerald-50 border-emerald-100" : "bg-blue-50 border-blue-100"}`}>
+            <p className={`text-xs font-semibold mb-1 ${suggestion.source === "rag_direct" ? "text-emerald-700" : "text-blue-700"}`}>
+              {suggestion.source === "rag_direct" ? "Antwort aus Wissensbank" : "Erklärung"}
+            </p>
+            <p className={`text-xs leading-relaxed ${suggestion.source === "rag_direct" ? "text-emerald-800" : "text-blue-800"}`}>
+              {suggestion.explanation}
+            </p>
           </div>
         ) : (
           <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg space-y-1.5">

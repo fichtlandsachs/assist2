@@ -16,6 +16,7 @@ from app.models.calendar_connection import CalendarConnection, CalendarProvider
 from app.models.calendar_event import CalendarEvent, EventStatus
 from app.models.test_case import TestCase, TestResult
 from app.models.pdf_settings import PdfSettings
+from app.models.document_chunk import DocumentChunk
 
 __all__ = [
     "User",
@@ -52,4 +53,5 @@ __all__ = [
     "TestCase",
     "TestResult",
     "PdfSettings",
+    "DocumentChunk",
 ]

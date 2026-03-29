@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { Mic, Square } from "lucide-react";
+import { getAccessToken, API_BASE } from "@/lib/api/client";
 
 interface VoiceRecorderProps {
   onTranscription: (text: string) => void;
@@ -20,11 +21,29 @@ export function VoiceRecorder({ onTranscription }: VoiceRecorderProps) {
     mediaRecorder.ondataavailable = (e) => chunksRef.current.push(e.data);
     mediaRecorder.onstop = async () => {
       setProcessing(true);
-      // Send to /api/v1/ai/transcribe when Whisper API is configured
-      // For now show placeholder
-      onTranscription("Transkription ist verfügbar sobald der WHISPER_API_KEY konfiguriert ist.");
-      setProcessing(false);
-      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      const form = new FormData();
+      form.append("file", blob, "recording.webm");
+      try {
+        const token = getAccessToken();
+        const res = await fetch(`${API_BASE}/api/v1/ai/transcribe`, {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: form,
+          // No Content-Type header — browser sets multipart boundary automatically
+        });
+        if (res.ok) {
+          const data = await res.json() as { text: string };
+          onTranscription(data.text);
+        } else {
+          onTranscription("");
+        }
+      } catch {
+        onTranscription("");
+      } finally {
+        setProcessing(false);
+        stream.getTracks().forEach(t => t.stop());
+      }
     };
     mediaRecorder.start();
     setRecording(true);

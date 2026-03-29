@@ -99,3 +99,29 @@ async def _dispatch_calendar() -> dict:
 def dispatch_calendar_sync_task():
     """Dispatch calendar sync for all connections whose interval has elapsed."""
     return asyncio.run(_dispatch_calendar())
+
+
+async def _dispatch_rag_index() -> dict:
+    from app.models.organization import Organization
+    engine = _make_engine()
+    SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    try:
+        async with SessionLocal() as db:
+            result = await db.execute(
+                select(Organization.id, Organization.slug).where(Organization.deleted_at.is_(None))
+            )
+            orgs = result.fetchall()
+    finally:
+        await engine.dispose()
+
+    from app.tasks.rag_tasks import index_org_documents
+    for org_id, org_slug in orgs:
+        index_org_documents.delay(str(org_id), org_slug)
+
+    return {"dispatched": len(orgs)}
+
+
+@celery.task(name="sync_dispatcher.dispatch_rag_index")
+def dispatch_rag_index() -> dict:
+    """Daily: trigger RAG indexing for all active orgs."""
+    return asyncio.run(_dispatch_rag_index())

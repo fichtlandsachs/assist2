@@ -238,7 +238,8 @@ export interface AISuggestion {
   acceptance_criteria: string | null;
   explanation: string;
   dor_issues: string[];
-  quality_score: number;
+  quality_score: number | null;
+  source?: "rag_direct" | "rag_context" | "llm";
 }
 
 // ─── Pagination ──────────────────────────────────────────────────

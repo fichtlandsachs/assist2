@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 interface NavItem {
   label: string;
   href: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
   badge?: string | number;
   badgeVariant?: "orange" | "teal" | "yellow";
 }

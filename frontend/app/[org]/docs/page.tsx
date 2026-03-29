@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
@@ -32,7 +32,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={copy}
-      className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition-colors"
+      className="flex items-center gap-1 text-xs text-[#a09080] hover:text-[#5a5040] transition-colors"
     >
       <Copy size={12} />
       {copied ? "Kopiert!" : "Kopieren"}
@@ -40,8 +40,9 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export default function DocsPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function DocsPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const { data: stories } = useSWR<UserStory[]>(
     org ? `/api/v1/user-stories?org_id=${org.id}` : null,
     fetcher
@@ -169,20 +170,20 @@ export default function DocsPage({ params }: { params: { org: string } }) {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dokumentation</h1>
-        <p className="text-slate-500 mt-1 text-sm">
+        <h1 className="text-2xl font-bold text-[#1c1810]">Dokumentation</h1>
+        <p className="text-[#a09080] mt-1 text-sm">
           Generierte Dokumentation für User Stories
         </p>
       </div>
 
       {/* Story selection + generate */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
-        <h2 className="text-base font-semibold text-slate-900">Story auswählen</h2>
+      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6 space-y-4">
+        <h2 className="text-base font-semibold text-[#1c1810]">Story auswählen</h2>
 
         {!stories ? (
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8b5e52]" />
         ) : stories.length === 0 ? (
-          <p className="text-sm text-slate-500">Keine User Stories vorhanden. Erstelle zuerst eine Story.</p>
+          <p className="text-sm text-[#a09080]">Keine User Stories vorhanden. Erstelle zuerst eine Story.</p>
         ) : (
           <div className="flex gap-3">
             <select
@@ -195,7 +196,7 @@ export default function DocsPage({ params }: { params: { org: string } }) {
                 setPdfPath(null);
                 setPdfError(null);
               }}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="flex-1 px-3 py-2 border border-[#cec8bc] rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[#8b5e52]"
             >
               <option value="">-- Story wählen --</option>
               {stories.map((s) => (
@@ -207,7 +208,7 @@ export default function DocsPage({ params }: { params: { org: string } }) {
             <button
               onClick={() => void handleGenerate()}
               disabled={!selectedStoryId || generating}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#7a5248] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
             >
               <Sparkles size={16} />
               {generating ? "Generiere…" : "Generieren"}
@@ -216,7 +217,7 @@ export default function DocsPage({ params }: { params: { org: string } }) {
         )}
 
         {selectedStory && (
-          <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600 space-y-1">
+          <div className="bg-[#f7f4ee] rounded-sm p-3 text-sm text-[#5a5040] space-y-1">
             <p><span className="font-medium">Titel:</span> {selectedStory.title}</p>
             {selectedStory.description && (
               <p><span className="font-medium">Beschreibung:</span> {selectedStory.description}</p>
@@ -229,7 +230,7 @@ export default function DocsPage({ params }: { params: { org: string } }) {
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+          <div className="bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] text-[#8b5e52] text-sm rounded-sm px-4 py-3">
             {error}
           </div>
         )}
@@ -240,38 +241,38 @@ export default function DocsPage({ params }: { params: { org: string } }) {
         <>
           <div className="space-y-4">
             {/* Summary */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                  <FileText size={18} className="text-brand-600" />
+                <h2 className="text-base font-semibold text-[#1c1810] flex items-center gap-2">
+                  <FileText size={18} className="text-[#8b5e52]" />
                   Zusammenfassung
                 </h2>
                 <CopyButton text={result.summary} />
               </div>
-              <p className="text-sm text-slate-700 leading-relaxed">{result.summary}</p>
+              <p className="text-sm text-[#5a5040] leading-relaxed">{result.summary}</p>
             </div>
 
             {/* Changelog */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-slate-900">Changelog-Eintrag</h2>
+                <h2 className="text-base font-semibold text-[#1c1810]">Changelog-Eintrag</h2>
                 <CopyButton text={result.changelog_entry} />
               </div>
-              <pre className="text-sm text-slate-700 bg-slate-50 rounded-lg p-3 whitespace-pre-wrap font-mono">
+              <pre className="text-sm text-[#5a5040] bg-[#f7f4ee] rounded-sm p-3 whitespace-pre-wrap font-mono">
                 {result.changelog_entry}
               </pre>
             </div>
 
             {/* PDF Outline */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-slate-900">Dokumentgliederung</h2>
+                <h2 className="text-base font-semibold text-[#1c1810]">Dokumentgliederung</h2>
                 <CopyButton text={result.pdf_outline.map((item, i) => `${i + 1}. ${item}`).join("\n")} />
               </div>
               <ol className="space-y-2">
                 {result.pdf_outline.map((item, index) => (
-                  <li key={index} className="flex items-center gap-3 text-sm text-slate-700">
-                    <span className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold shrink-0">
+                  <li key={index} className="flex items-center gap-3 text-sm text-[#5a5040]">
+                    <span className="w-6 h-6 rounded-full bg-[rgba(139,94,82,.08)] text-[#8b5e52] flex items-center justify-center text-xs font-bold shrink-0">
                       {index + 1}
                     </span>
                     {item}
@@ -281,26 +282,26 @@ export default function DocsPage({ params }: { params: { org: string } }) {
             </div>
 
             {/* Technical Notes */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-slate-900">Technische Hinweise</h2>
+                <h2 className="text-base font-semibold text-[#1c1810]">Technische Hinweise</h2>
                 <CopyButton text={result.technical_notes} />
               </div>
-              <p className="text-sm text-slate-700 leading-relaxed">{result.technical_notes}</p>
+              <p className="text-sm text-[#5a5040] leading-relaxed">{result.technical_notes}</p>
             </div>
           </div>
 
           {/* Save panel */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
-            <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
-              <Save size={16} className="text-slate-500" />
+          <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6 space-y-4">
+            <h2 className="text-base font-semibold text-[#1c1810] flex items-center gap-2">
+              <Save size={16} className="text-[#a09080]" />
               Dokumentation speichern
             </h2>
 
             {/* Confluence option */}
             {confluenceConfig?.configured && (
-              <div className="space-y-3 border border-slate-200 rounded-lg p-4 bg-slate-50">
-                <p className="text-sm font-medium text-slate-700 flex items-center gap-2">
+              <div className="space-y-3 border border-[#e2ddd4] rounded-sm p-4 bg-[#f7f4ee]">
+                <p className="text-sm font-medium text-[#5a5040] flex items-center gap-2">
                   <img
                     src="https://cdn.worldvectorlogo.com/logos/confluence-1.svg"
                     alt="Confluence"
@@ -308,18 +309,18 @@ export default function DocsPage({ params }: { params: { org: string } }) {
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />
                   In Confluence veröffentlichen
-                  <span className="text-xs font-normal text-slate-400">(optional)</span>
+                  <span className="text-xs font-normal text-[#a09080]">(optional)</span>
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                    <label className="block text-xs font-medium text-[#5a5040] mb-1">
                       Space
                     </label>
                     <select
                       value={confluenceSpaceKey}
                       onChange={(e) => setConfluenceSpaceKey(e.target.value)}
-                      className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 bg-white"
+                      className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-1 focus:ring-[#8b5e52] bg-[#faf9f6]"
                     >
                       <option value="">— Kein Confluence —</option>
                       {confluenceConfig.spaces.map((sp) => (
@@ -330,16 +331,16 @@ export default function DocsPage({ params }: { params: { org: string } }) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                    <label className="block text-xs font-medium text-[#5a5040] mb-1">
                       Übergeordnete Seite ID
-                      <span className="font-normal text-slate-400 ml-1">(optional)</span>
+                      <span className="font-normal text-[#a09080] ml-1">(optional)</span>
                     </label>
                     <input
                       type="text"
                       value={confluenceParentPageId}
                       onChange={(e) => setConfluenceParentPageId(e.target.value)}
                       placeholder="z.B. 12345678"
-                      className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 bg-white"
+                      className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-1 focus:ring-[#8b5e52] bg-[#faf9f6]"
                     />
                   </div>
                 </div>
@@ -347,29 +348,29 @@ export default function DocsPage({ params }: { params: { org: string } }) {
             )}
 
             {confluenceConfig && !confluenceConfig.configured && (
-              <p className="text-xs text-slate-400 flex items-center gap-1.5">
+              <p className="text-xs text-[#a09080] flex items-center gap-1.5">
                 Confluence nicht konfiguriert —
-                setze <code className="bg-slate-100 px-1 rounded">CONFLUENCE_BASE_URL</code>,{" "}
-                <code className="bg-slate-100 px-1 rounded">CONFLUENCE_USER</code> und{" "}
-                <code className="bg-slate-100 px-1 rounded">CONFLUENCE_API_TOKEN</code> in der <code className="bg-slate-100 px-1 rounded">.env</code>.
+                setze <code className="bg-[#f7f4ee] px-1 rounded-sm">CONFLUENCE_BASE_URL</code>,{" "}
+                <code className="bg-[#f7f4ee] px-1 rounded-sm">CONFLUENCE_USER</code> und{" "}
+                <code className="bg-[#f7f4ee] px-1 rounded-sm">CONFLUENCE_API_TOKEN</code> in der <code className="bg-[#f7f4ee] px-1 rounded-sm">.env</code>.
               </p>
             )}
 
             {saveError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <div className="p-3 bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] rounded-sm text-[#8b5e52] text-sm">
                 {saveError}
               </div>
             )}
 
             {result.nextcloud_path && (
-              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(74,85,104,.06)] border border-[#e2ddd4] rounded-sm text-[#4a5568] text-sm">
                 <Folder size={16} className="shrink-0" />
                 <span className="flex-1">PDF in Nextcloud: <span className="font-mono text-xs">{result.nextcloud_path.split("/").pop()}</span></span>
               </div>
             )}
 
             {saved && result.confluence_page_url && (
-              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[#e2ddd4] rounded-sm text-[#526b5e] text-sm">
                 <CheckCircle size={16} className="shrink-0" />
                 <span>In Confluence veröffentlicht:</span>
                 <a
@@ -384,20 +385,20 @@ export default function DocsPage({ params }: { params: { org: string } }) {
             )}
 
             {saved && !result.confluence_page_url && (
-              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[#e2ddd4] rounded-sm text-[#526b5e] text-sm">
                 <CheckCircle size={16} className="shrink-0" />
                 Dokumentation gespeichert.
               </div>
             )}
 
             {pdfError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <div className="p-3 bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] rounded-sm text-[#8b5e52] text-sm">
                 {pdfError}
               </div>
             )}
 
             {pdfPath && (
-              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[#e2ddd4] rounded-sm text-[#526b5e] text-sm">
                 <CheckCircle size={16} className="shrink-0" />
                 <span>PDF gespeichert in Nextcloud: <span className="font-mono text-xs">{pdfPath}</span></span>
               </div>
@@ -407,7 +408,7 @@ export default function DocsPage({ params }: { params: { org: string } }) {
               <button
                 onClick={() => void handleSave()}
                 disabled={saving}
-                className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[rgba(139,94,82,.08)] text-white rounded-sm text-sm font-medium transition-colors"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -419,7 +420,7 @@ export default function DocsPage({ params }: { params: { org: string } }) {
               <button
                 onClick={() => void handleGeneratePdf()}
                 disabled={pdfGenerating}
-                className="flex items-center gap-2 px-5 py-2.5 bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#5a5040] hover:bg-[#1c1810] disabled:opacity-50 text-white rounded-sm text-sm font-medium transition-colors"
               >
                 {pdfGenerating ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />

@@ -4,7 +4,7 @@ import { useOrg } from "@/lib/hooks/useOrg";
 import { useAuth } from "@/lib/auth/context";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import {
   Brain, Database, MessageSquare, GitMerge, Shield, BarChart2,
   Save, Clock, CheckCircle, XCircle, ChevronDown, ChevronUp,
@@ -48,13 +48,13 @@ function Toggle({
     <label className="flex items-center gap-3 cursor-pointer select-none">
       <div
         onClick={() => onChange(!checked)}
-        className={`relative w-11 h-6 rounded-full transition-colors ${checked ? "bg-brand-600" : "bg-slate-300"}`}
+        className={`relative w-11 h-6 rounded-full transition-colors ${checked ? "bg-[#5a5068]" : "bg-[#e2ddd4]"}`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-5" : ""}`}
+          className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${checked ? "translate-x-5" : ""}`}
         />
       </div>
-      <span className="text-sm text-slate-700">{label}</span>
+      <span className="text-sm text-[#5a5040]">{label}</span>
     </label>
   );
 }
@@ -69,13 +69,13 @@ function Slider({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-sm text-slate-600">{label}</span>
-        <span className="text-sm font-semibold text-slate-900">{fmt(value)}</span>
+        <span className="text-sm text-[#5a5040]">{label}</span>
+        <span className="text-sm font-semibold text-[#1c1810]">{fmt(value)}</span>
       </div>
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(parseFloat(e.target.value))}
-        className="w-full accent-brand-600"
+        className="w-full accent-[#5a5068]"
       />
     </div>
   );
@@ -90,18 +90,18 @@ function SectionHeader({
   return (
     <div className="flex items-center justify-between mb-5">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-brand-50 rounded-lg"><Icon size={18} className="text-brand-600" /></div>
+        <div className="p-2 bg-[rgba(139,94,82,.08)] rounded-sm"><Icon size={18} className="text-[#8b5e52]" /></div>
         <div>
-          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+          <h2 className="text-base font-semibold text-[#1c1810]">{title}</h2>
           {version > 0 && (
-            <span className="text-xs text-slate-400">Version {version}</span>
+            <span className="text-xs text-[#a09080]">Version {version}</span>
           )}
         </div>
       </div>
       <button
         onClick={onSave}
         disabled={saving}
-        className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-[#5a5068] hover:bg-[#5a5068] disabled:opacity-50 text-white rounded-sm text-sm font-medium transition-colors"
       >
         <Save size={14} />
         {saving ? "Speichern…" : "Speichern"}
@@ -138,25 +138,25 @@ function LearningSensitivitySection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6">
+    <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
       <SectionHeader title="Lernverhalten" icon={Brain} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">Lernmodus</label>
+          <label className="block text-sm font-medium text-[#5a5040] mb-2">Lernmodus</label>
           <select
             value={mode}
             onChange={e => setMode(e.target.value)}
-            className="w-full max-w-xs border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full max-w-xs border border-[#cec8bc] rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b5e52]"
           >
             <option value="conservative">Conservative — langsam, sicher</option>
             <option value="balanced">Balanced — ausgewogen</option>
             <option value="aggressive">Aggressive — schnell, risikobereit</option>
           </select>
         </div>
-        <div className={`rounded-lg p-3 text-xs ${
-          mode === "conservative" ? "bg-blue-50 text-blue-700" :
-          mode === "balanced" ? "bg-amber-50 text-amber-700" :
-          "bg-red-50 text-red-700"
+        <div className={`rounded-sm p-3 text-xs ${
+          mode === "conservative" ? "bg-[rgba(74,85,104,.06)] text-[#4a5568]" :
+          mode === "balanced" ? "bg-[rgba(122,100,80,.1)] text-[#7a6450]" :
+          "bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
         }`}>
           {mode === "conservative" && "Das System lernt vorsichtig und ändert Verhalten nur bei hoher Sicherheit."}
           {mode === "balanced" && "Das System lernt ausgewogen — gute Balance zwischen Stabilität und Optimierung."}
@@ -206,13 +206,13 @@ function RetrievalSection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6">
+    <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
       <SectionHeader title="Retrieval-Einstellungen" icon={Database} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-5">
         <Slider label="Top-K Ergebnisse" value={topK} min={1} max={50} step={1}
           onChange={setTopK} format={v => `${Math.round(v)}`} />
-        <div className="border-t border-slate-100 pt-4">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Ranking-Gewichtungen</p>
+        <div className="border-t border-[#e2ddd4] pt-4">
+          <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide mb-3">Ranking-Gewichtungen</p>
           <div className="space-y-4">
             <Slider label="Ähnlichkeit (Similarity)" value={simW} min={0} max={1} onChange={setSimW} format={v => `${Math.round(v * 100)}%`} />
             <Slider label="Aktualität (Recency)" value={recW} min={0} max={1} onChange={setRecW} format={v => `${Math.round(v * 100)}%`} />
@@ -220,9 +220,9 @@ function RetrievalSection({
             <Slider label="Organisations-Kontext" value={orgW} min={0} max={1} onChange={setOrgW} format={v => `${Math.round(v * 100)}%`} />
           </div>
         </div>
-        <div className="border-t border-slate-100 pt-4">
+        <div className="border-t border-[#e2ddd4] pt-4">
           <Toggle checked={lbr} onChange={setLbr} label="Learning-based Ranking aktivieren" />
-          <p className="text-xs text-slate-400 mt-1 ml-14">Passt Ranking-Gewichtungen automatisch anhand von Nutzungsmustern an.</p>
+          <p className="text-xs text-[#a09080] mt-1 ml-14">Passt Ranking-Gewichtungen automatisch anhand von Nutzungsmustern an.</p>
         </div>
       </div>
     </div>
@@ -265,7 +265,7 @@ function PromptLearningSection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6">
+    <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
       <SectionHeader title="Prompt-Learning" icon={MessageSquare} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-5">
         <Toggle checked={enabled} onChange={setEnabled} label="Prompt-Learning aktivieren" />
@@ -315,7 +315,7 @@ function WorkflowLearningSection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6">
+    <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
       <SectionHeader title="Workflow-Learning" icon={GitMerge} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-4">
         <Toggle checked={enabled} onChange={setEnabled} label="Workflow-Optimierung aktivieren" />
@@ -323,7 +323,7 @@ function WorkflowLearningSection({
           <div className="pt-2">
             <Toggle checked={autoSuggestions} onChange={setAutoSuggestions}
               label="Automatische Optimierungsvorschläge erlauben" />
-            <p className="text-xs text-slate-400 mt-1 ml-14">
+            <p className="text-xs text-[#a09080] mt-1 ml-14">
               Wenn aktiv, schlägt das System Workflow-Optimierungen vor — ohne automatische Anwendung.
             </p>
           </div>
@@ -372,22 +372,22 @@ function GovernanceSection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6">
+    <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
       <SectionHeader title="Governance & Freigabe" icon={Shield} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-4">
-        <p className="text-sm text-slate-500 mb-4">
+        <p className="text-sm text-[#a09080] mb-4">
           Definiere, welche Änderungen eine explizite Freigabe erfordern, bevor sie in Produktion gehen.
         </p>
-        <div className="space-y-3 border border-slate-100 rounded-lg p-4 bg-slate-50">
+        <div className="space-y-3 border border-[#e2ddd4] rounded-sm p-4 bg-[#f7f4ee]">
           <Toggle checked={promptApproval} onChange={setPromptApproval} label="Prompt-Updates freigabepflichtig" />
           <Toggle checked={rankingApproval} onChange={setRankingApproval} label="Ranking-Änderungen freigabepflichtig" />
           <Toggle checked={workflowApproval} onChange={setWorkflowApproval} label="Workflow-Änderungen freigabepflichtig" />
         </div>
         <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Freigabe-Rollen</p>
+          <p className="text-xs font-semibold text-[#a09080] uppercase tracking-wide mb-2">Freigabe-Rollen</p>
           <div className="flex flex-wrap gap-2">
             {((p.approver_roles as string[]) ?? ["admin", "architect_ai", "security_ai"]).map(role => (
-              <span key={role} className="px-2 py-1 bg-brand-50 text-brand-700 rounded text-xs font-medium">
+              <span key={role} className="px-2 py-1 bg-[rgba(139,94,82,.08)] text-[#8b5e52] rounded-sm text-xs font-medium">
                 {role}
               </span>
             ))}
@@ -432,17 +432,17 @@ function LLMTriggerSection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6">
+    <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
       <SectionHeader title="LLM-Trigger-Regeln" icon={Brain} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-5">
         <Slider label="Minimale Eingabelänge (Zeichen)" value={minInputLen} min={0} max={500} step={10}
           onChange={setMinInputLen} format={v => `${Math.round(v)} Zeichen`} />
         <Slider label="Inaktivitätsschwelle (Sekunden)" value={idleThresh} min={0} max={3600} step={30}
           onChange={setIdleThresh} format={v => `${Math.round(v)} s`} />
-        <div className="border-t border-slate-100 pt-4">
+        <div className="border-t border-[#e2ddd4] pt-4">
           <Toggle checked={retrievalOnly} onChange={setRetrievalOnly} label="Retrieval-only Modus (kein LLM)" />
           {retrievalOnly && (
-            <p className="text-xs text-amber-600 bg-amber-50 rounded p-2 mt-2 ml-14">
+            <p className="text-xs text-[#7a6450] bg-[rgba(122,100,80,.1)] rounded-sm p-2 mt-2 ml-14">
               Achtung: Im Retrieval-only Modus werden keine KI-Generierungen durchgeführt.
             </p>
           )}
@@ -472,22 +472,22 @@ function AnalyticsSection({
   return (
     <div className="space-y-3">
       {configTypes.map(ct => (
-        <div key={ct} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div key={ct} className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] overflow-hidden">
           <button
             onClick={() => setExpanded(expanded === ct ? null : ct)}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f7f4ee] transition-colors"
           >
-            <span className="text-sm font-semibold text-slate-800">{labels[ct]}</span>
-            {expanded === ct ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+            <span className="text-sm font-semibold text-[#1c1810]">{labels[ct]}</span>
+            {expanded === ct ? <ChevronUp size={16} className="text-[#a09080]" /> : <ChevronDown size={16} className="text-[#a09080]" />}
           </button>
           {expanded === ct && (
-            <div className="border-t border-slate-100 px-5 pb-4">
+            <div className="border-t border-[#e2ddd4] px-5 pb-4">
               {!history || history.length === 0 ? (
-                <p className="text-sm text-slate-400 py-4 text-center">Keine Änderungen aufgezeichnet.</p>
+                <p className="text-sm text-[#a09080] py-4 text-center">Keine Änderungen aufgezeichnet.</p>
               ) : (
                 <table className="w-full text-xs mt-3">
                   <thead>
-                    <tr className="text-slate-500 border-b border-slate-100">
+                    <tr className="text-[#a09080] border-b border-[#e2ddd4]">
                       <th className="text-left pb-2 font-medium">Zeitpunkt</th>
                       <th className="text-left pb-2 font-medium">Geändert von</th>
                       <th className="text-left pb-2 font-medium">Aktion</th>
@@ -495,18 +495,18 @@ function AnalyticsSection({
                   </thead>
                   <tbody>
                     {history.map(h => (
-                      <tr key={h.id} className="border-b border-slate-50 last:border-0">
-                        <td className="py-2 text-slate-600 flex items-center gap-1">
-                          <Clock size={11} className="text-slate-400" />
+                      <tr key={h.id} className="border-b border-[#f7f4ee] last:border-0">
+                        <td className="py-2 text-[#5a5040] flex items-center gap-1">
+                          <Clock size={11} className="text-[#a09080]" />
                           {new Date(h.timestamp).toLocaleString("de-DE")}
                         </td>
-                        <td className="py-2 text-slate-500 truncate max-w-[120px]">
+                        <td className="py-2 text-[#a09080] truncate max-w-[120px]">
                           {h.changed_by_id ? h.changed_by_id.slice(0, 8) + "…" : "System"}
                         </td>
                         <td className="py-2">
                           {h.previous_value
-                            ? <span className="flex items-center gap-1 text-amber-600"><CheckCircle size={11} />Aktualisiert</span>
-                            : <span className="flex items-center gap-1 text-green-600"><CheckCircle size={11} />Erstellt</span>}
+                            ? <span className="flex items-center gap-1 text-[#7a6450]"><CheckCircle size={11} />Aktualisiert</span>
+                            : <span className="flex items-center gap-1 text-[#526b5e]"><CheckCircle size={11} />Erstellt</span>}
                         </td>
                       </tr>
                     ))}
@@ -534,8 +534,9 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "analytics", label: "Analytics",       icon: BarChart2 },
 ];
 
-export default function AdminPage({ params }: { params: { org: string } }) {
-  const { org } = useOrg(params.org);
+export default function AdminPage({ params }: { params: Promise<{ org: string }> }) {
+  const resolvedParams = use(params);
+  const { org } = useOrg(resolvedParams.org);
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("learning");
 
@@ -558,9 +559,9 @@ export default function AdminPage({ params }: { params: { org: string } }) {
   if (user && !user.is_superuser) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
-        <Shield size={40} className="text-slate-300 mb-3" />
-        <h2 className="text-lg font-semibold text-slate-700">Kein Zugriff</h2>
-        <p className="text-sm text-slate-400 mt-1">Dieser Bereich ist nur für Administratoren zugänglich.</p>
+        <Shield size={40} className="text-[#cec8bc] mb-3" />
+        <h2 className="text-lg font-semibold text-[#5a5040]">Kein Zugriff</h2>
+        <p className="text-sm text-[#a09080] mt-1">Dieser Bereich ist nur für Administratoren zugänglich.</p>
       </div>
     );
   }
@@ -574,15 +575,15 @@ export default function AdminPage({ params }: { params: { org: string } }) {
     <div className="space-y-6 min-w-0">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Admin-Konfiguration</h1>
-        <p className="text-slate-500 mt-1 text-sm">
+        <h1 className="text-2xl font-bold text-[#1c1810]">Admin-Konfiguration</h1>
+        <p className="text-[#a09080] mt-1 text-sm">
           Steuere das Lernverhalten, Retrieval-Gewichtungen und Governance-Regeln der Plattform.
           Alle Änderungen sind versioniert und auditierbar.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
+      <div className="flex gap-1 border-b border-[#e2ddd4] overflow-x-auto">
         {TABS.map(tab => {
           const Icon = tab.icon;
           return (
@@ -591,8 +592,8 @@ export default function AdminPage({ params }: { params: { org: string } }) {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                 activeTab === tab.id
-                  ? "border-brand-600 text-brand-600"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
+                  ? "border-[#8b5e52] text-[#8b5e52]"
+                  : "border-transparent text-[#a09080] hover:text-[#5a5040]"
               }`}
             >
               <Icon size={15} />
@@ -605,7 +606,7 @@ export default function AdminPage({ params }: { params: { org: string } }) {
       {/* Tab content */}
       {!config ? (
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8b5e52]" />
         </div>
       ) : (
         <div className="space-y-4">
