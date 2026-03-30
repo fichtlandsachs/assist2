@@ -22,6 +22,7 @@ volumes:
   assist2_litellm_db_data:
   assist2_nextcloud_db_data:
   assist2_openwebui_data:
+  assist2_pgadmin_data:
 
 services:
   postgres:
@@ -386,6 +387,7 @@ services:
       - assist2_pdf_cache:/app/pdf_cache
     networks:
       - internal
+      - proxy
 
   nextcloud-db:
     image: mariadb:10.11
@@ -446,8 +448,49 @@ services:
     networks:
       - internal
       - proxy
-    labels:
-      - "traefik.enable=false"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: assist2-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      SCRIPT_NAME: /pgadmin
+    volumes:
+      - assist2_pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - internal
+      - proxy
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: assist2-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: assist2-nextcloud-db
+      PMA_PORT: 3306
+      PMA_ABSOLUTE_URI: https://admin.fichtlworks.com/phpmyadmin/
+    networks:
+      - internal
+      - proxy
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: assist2-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: assist2-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      URL_PREFIX: /redis
+      HTTP_USER: admin
+      HTTP_PASSWORD: ${PGADMIN_PASSWORD}
+    networks:
+      - internal
+      - proxy
 
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
