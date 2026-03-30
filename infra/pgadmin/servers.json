@@ -1,0 +1,31 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Platform DB",
+      "Group": "assist2",
+      "Host": "assist2-postgres",
+      "Port": 5432,
+      "MaintenanceDB": "platform_db",
+      "Username": "platform",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "Authentik DB",
+      "Group": "assist2",
+      "Host": "assist2-authentik-db",
+      "Port": 5432,
+      "MaintenanceDB": "authentik",
+      "Username": "authentik",
+      "SSLMode": "prefer"
+    },
+    "3": {
+      "Name": "LiteLLM DB",
+      "Group": "assist2",
+      "Host": "assist2-litellm-postgres",
+      "Port": 5432,
+      "MaintenanceDB": "litellm_db",
+      "Username": "litellm",
+      "SSLMode": "prefer"
+    }
+  }
+}
