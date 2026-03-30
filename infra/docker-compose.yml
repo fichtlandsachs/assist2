@@ -352,11 +352,11 @@ services:
       DB_POSTGRESDB_USER: ${POSTGRES_USER}
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
-      N8N_HOST: assist2.${DOMAIN}
+      N8N_HOST: admin.${DOMAIN}
       N8N_PORT: 5678
       N8N_PROTOCOL: https
       N8N_PATH: /n8n/
-      WEBHOOK_URL: https://assist2.${DOMAIN}/n8n/
+      WEBHOOK_URL: https://admin.${DOMAIN}/n8n/
       N8N_API_KEY: ${N8N_API_KEY}
       N8N_LOG_LEVEL: info
     volumes:
@@ -414,7 +414,11 @@ services:
     container_name: assist2-nextcloud
     restart: unless-stopped
     environment:
-      NEXTCLOUD_TRUSTED_DOMAINS: nextcloud.${DOMAIN}
+      NEXTCLOUD_TRUSTED_DOMAINS: nextcloud.${DOMAIN} admin.${DOMAIN}
+      OVERWRITEHOST: admin.${DOMAIN}
+      OVERWRITEPROTOCOL: https
+      OVERWRITEWEBROOT: /nextcloud
+      OVERWRITECLIURL: https://admin.${DOMAIN}/nextcloud
       NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER}
       NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
       NEXTCLOUD_TRUSTED_PROXIES: "172.16.0.0/12 10.0.0.0/8"
