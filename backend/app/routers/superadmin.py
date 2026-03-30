@@ -52,14 +52,14 @@ COMPONENTS = [
         "label": "Workflow Engine",
         "internal_url": "http://assist2-n8n:5678",
         "health_path": "/healthz",
-        "admin_url": None,
+        "admin_url": "https://assist2.fichtlworks.com/n8n/",
     },
     {
         "name": "LiteLLM",
         "label": "AI Proxy",
         "internal_url": "http://assist2-litellm:4000",
         "health_path": "/health/liveliness",
-        "admin_url": None,
+        "admin_url": "https://litellm.fichtlworks.com/ui",
     },
     {
         "name": "Nextcloud",
