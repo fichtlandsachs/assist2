@@ -93,7 +93,7 @@ COMPONENTS = [
         "name": "phpMyAdmin",
         "label": "MariaDB UI",
         "internal_url": "http://assist2-phpmyadmin:80",
-        "health_path": "/phpmyadmin/",
+        "health_path": "/",
         "admin_url": "https://admin.fichtlworks.com/phpmyadmin",
     },
     {
