@@ -318,6 +318,7 @@ services:
       - "traefik.http.services.litellm.loadbalancer.server.port=4000"
       - "traefik.http.routers.litellm.middlewares=litellm-auth@docker"
       - "traefik.http.middlewares.litellm-auth.basicauth.users=${LITELLM_UI_AUTH}"
+      - "traefik.docker.network=assist-proxy"
 
   litellm-postgres:
     image: postgres:16-alpine
@@ -422,6 +423,7 @@ services:
     volumes:
       - assist2_nextcloud_data:/var/www/html
     networks:
+      - proxy
       - internal
     depends_on:
       nextcloud-db:
