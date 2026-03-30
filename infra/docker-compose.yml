@@ -19,6 +19,7 @@ volumes:
   assist2_pdf_templates:
   assist2_pdf_cache:
   assist2_nextcloud_data:
+  assist2_litellm_db_data:
   assist2_nextcloud_db_data:
   assist2_openwebui_data:
 
@@ -289,6 +290,7 @@ services:
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       LITELLM_MASTER_KEY: ${LITELLM_API_KEY:-sk-assist2}
+      DATABASE_URL: postgresql://litellm:${LITELLM_DB_PASSWORD}@assist2-litellm-postgres:5432/litellm_db
     command:
       - "--config"
       - "/app/config.yaml"
@@ -299,11 +301,41 @@ services:
     networks:
       - proxy
       - internal
+    depends_on:
+      litellm-postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4000/health/liveliness"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.litellm.rule=Host(`litellm.fichtlworks.com`)"
+      - "traefik.http.routers.litellm.entrypoints=websecure"
+      - "traefik.http.routers.litellm.tls.certresolver=letsencrypt"
+      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
+      - "traefik.http.routers.litellm.middlewares=litellm-auth@docker"
+      - "traefik.http.middlewares.litellm-auth.basicauth.users=${LITELLM_UI_AUTH}"
+
+  litellm-postgres:
+    image: postgres:16-alpine
+    container_name: assist2-litellm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: litellm_db
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${LITELLM_DB_PASSWORD}
+    volumes:
+      - assist2_litellm_db_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm -d litellm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
       start_period: 30s
 
   n8n:
