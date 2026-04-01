@@ -6,6 +6,8 @@ import { API_BASE, getAccessToken } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Send, Sparkles, FileText, CheckSquare, TestTube, Tag, GripVertical, ImagePlus, X, Plus } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -24,8 +26,45 @@ interface StoryData {
   features: { title: string; description: string | null }[];
 }
 
-type ChatMode = "chat" | "docs" | "tasks";
+type ChatMode = "chat" | "docs" | "tasks" | "jira";
 type WorkspaceTab = "story";
+
+interface JiraStoryPanel {
+  ticket_key: string;
+  project: string;
+  source_summary: string;
+  generated_at: string;
+  content: string;
+}
+
+interface SavedJiraStory {
+  id: string;
+  ticket_key: string;
+  status: string;
+}
+
+function parseJiraPanel(text: string): JiraStoryPanel | null {
+  const match = text.match(/<<<USERSTORY_PANEL\n([\s\S]*?)\nUSERSTORY_PANEL>>>/);
+  if (!match) return null;
+  const block = match[1];
+  const getField = (key: string) => {
+    const m = block.match(new RegExp(`^${key}:\\s*(.+)$`, "m"));
+    return m ? m[1].trim() : "";
+  };
+  const contentStart = block.indexOf("\n\n");
+  const content = contentStart >= 0 ? block.slice(contentStart + 2).trim() : block;
+  return {
+    ticket_key: getField("ticket_key"),
+    project: getField("project"),
+    source_summary: getField("source_summary"),
+    generated_at: getField("generated_at"),
+    content,
+  };
+}
+
+function stripJiraPanel(text: string): string {
+  return text.replace(/<<<USERSTORY_PANEL[\s\S]*?USERSTORY_PANEL>>>/g, "").trim();
+}
 
 // ── Main page ──────────────────────────────────────────────────────────────
 
@@ -40,6 +79,10 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
   const [storyData, setStoryData] = useState<StoryData | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [jiraPanel, setJiraPanel] = useState<JiraStoryPanel | null>(null);
+  const [savedStory, setSavedStory] = useState<SavedJiraStory | null>(null);
+  const [savingJira, setSavingJira] = useState(false);
+  const [writingJira, setWritingJira] = useState(false);
   const [recording, setRecording] = useState(false);
   const [storyPct, setStoryPct] = useState(50);
   const [pendingImages, setPendingImages] = useState<{ mediaType: string; data: string }[]>([]);
@@ -226,6 +269,19 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
     }
   }, [messages]);
 
+  // ── Parse <<<USERSTORY_PANEL markers in jira mode ───────────────────────
+
+  useEffect(() => {
+    if (mode !== "jira") return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant") return;
+    const panel = parseJiraPanel(last.content);
+    if (panel) {
+      setJiraPanel(panel);
+      setSavedStory(null);
+    }
+  }, [messages, mode]);
+
   // ── Create story in DB ───────────────────────────────────────────────────
 
   const createStory = useCallback(async () => {
@@ -255,6 +311,77 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
       setCreating(false);
     }
   }, [storyData, org]);
+
+  // ── Jira story: save to workspace + write back ──────────────────────────
+
+  const saveJiraStory = useCallback(async () => {
+    if (!jiraPanel || !org) return;
+    setSavingJira(true);
+    try {
+      const token = getAccessToken();
+      const resp = await fetch(`${API_BASE}/api/v1/jira/stories`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          ticket_key: jiraPanel.ticket_key,
+          project: jiraPanel.project,
+          source_summary: jiraPanel.source_summary,
+          content: jiraPanel.content,
+          status: "draft",
+          org_id: org.id,
+        }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const created = await resp.json();
+      setSavedStory({ id: created.id, ticket_key: created.ticket_key, status: created.status });
+    } catch (err) {
+      console.error("Save Jira story error:", err);
+    } finally {
+      setSavingJira(false);
+    }
+  }, [jiraPanel, org]);
+
+  const writeToJira = useCallback(async () => {
+    if (!jiraPanel || !savedStory) return;
+    setWritingJira(true);
+    try {
+      const token = getAccessToken();
+      const resp = await fetch(`${API_BASE}/api/v1/jira/write`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          ticket_key: jiraPanel.ticket_key,
+          ticket_id: "",
+          summary: "",
+          description: jiraPanel.content,
+        }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      if (savedStory.id) {
+        const patchResp = await fetch(`${API_BASE}/api/v1/jira/stories/${savedStory.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ status: "published" }),
+        });
+        if (patchResp.ok) {
+          setSavedStory(prev => prev ? { ...prev, status: "published" } : prev);
+        }
+      }
+    } catch (err) {
+      console.error("Write to Jira error:", err);
+    } finally {
+      setWritingJira(false);
+    }
+  }, [jiraPanel, savedStory]);
 
   // ── Voice recording ──────────────────────────────────────────────────────
 
@@ -321,7 +448,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
               className="flex items-center gap-2 px-4 py-2 border-b"
               style={{ borderColor: "var(--paper-rule)", background: "var(--paper-warm)" }}
             >
-              {(["chat", "docs", "tasks"] as ChatMode[]).map(m => (
+              {(["chat", "docs", "tasks", "jira"] as ChatMode[]).map(m => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
@@ -336,7 +463,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                     border: `0.5px solid ${mode === m ? "var(--ink)" : "transparent"}`,
                   }}
                 >
-                  {m === "chat" ? "Chat" : m === "docs" ? "Dokumente" : "Aufgaben"}
+                  {m === "chat" ? "Chat" : m === "docs" ? "Dokumente" : m === "tasks" ? "Aufgaben" : "Jira"}
                 </button>
               ))}
             </div>
@@ -378,8 +505,23 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                       />
                     ))}
                     {m.role === "assistant" ? (
-                      <div style={{ fontSize: "14px", lineHeight: "1.6", fontFamily: "var(--font-body)", whiteSpace: "pre-wrap" }}>
-                        {m.content}
+                      <div style={{ fontSize: "14px", lineHeight: "1.6", fontFamily: "var(--font-body)" }}>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            p: ({ children }) => <p style={{ margin: "0 0 0.5em" }}>{children}</p>,
+                            strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+                            ul: ({ children }) => <ul style={{ paddingLeft: "1.2em", margin: "0.3em 0" }}>{children}</ul>,
+                            ol: ({ children }) => <ol style={{ paddingLeft: "1.2em", margin: "0.3em 0" }}>{children}</ol>,
+                            li: ({ children }) => <li style={{ margin: "0.1em 0" }}>{children}</li>,
+                            code: ({ children, className }) => className
+                              ? <code style={{ display: "block", background: "rgba(0,0,0,.06)", borderRadius: 2, padding: "0.4em 0.6em", fontSize: "12px", fontFamily: "var(--font-mono)", whiteSpace: "pre-wrap" }}>{children}</code>
+                              : <code style={{ background: "rgba(0,0,0,.06)", borderRadius: 2, padding: "0 0.3em", fontSize: "12px", fontFamily: "var(--font-mono)" }}>{children}</code>,
+                            h1: ({ children }) => <p style={{ fontWeight: 600, margin: "0.4em 0 0.2em" }}>{children}</p>,
+                            h2: ({ children }) => <p style={{ fontWeight: 600, margin: "0.4em 0 0.2em" }}>{children}</p>,
+                            h3: ({ children }) => <p style={{ fontWeight: 600, margin: "0.3em 0 0.1em" }}>{children}</p>,
+                          }}
+                        >{mode === "jira" ? stripJiraPanel(m.content) : m.content}</ReactMarkdown>
                         {streaming && i === messages.length - 1 && (
                           <span className="inline-block w-1.5 h-3.5 ml-0.5 align-text-bottom animate-pulse"
                             style={{ background: "var(--ink-faint)" }} />
@@ -509,59 +651,128 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
             className="flex flex-col overflow-hidden"
             style={{ width: `${storyPct}%`, background: "var(--paper-warm)" }}
           >
-            <div
-              className="flex items-center justify-between px-4 py-2 border-b"
-              style={{ borderColor: "var(--paper-rule)" }}
-            >
-              <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "13px", color: "var(--ink)" }}>
-                User Story
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={extractStory}
-                disabled={extracting || messages.length < 2}
-              >
-                <Sparkles size={10} />
-                {extracting ? "Extrahiere…" : "Extrahieren"}
-              </Button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-              {!storyData && (
-                <p
-                  className="text-center opacity-40 mt-8"
-                  style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--ink-mid)" }}
+            {mode === "jira" ? (
+              <>
+                <div
+                  className="flex items-center justify-between px-4 py-2 border-b"
+                  style={{ borderColor: "var(--paper-rule)" }}
                 >
-                  Führe ein Gespräch und klicke auf „Extrahieren", um eine User Story zu generieren.
-                </p>
-              )}
+                  <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "13px", color: "var(--ink)" }}>
+                    Jira Story
+                  </span>
+                  {jiraPanel && (
+                    <Badge variant="outline" style={{ fontFamily: "var(--font-mono)", fontSize: "10px" }}>
+                      {jiraPanel.ticket_key}
+                    </Badge>
+                  )}
+                </div>
 
-              {storyData && (
-                <>
-                  {storyData.title && (
-                    <p style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "14px", color: "var(--ink)", marginBottom: "0.5em" }}>
-                      {storyData.title}
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                  {!jiraPanel ? (
+                    <p
+                      className="text-center opacity-40 mt-8"
+                      style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--ink-mid)" }}
+                    >
+                      Wähle ein Jira-Ticket und generiere eine User Story.
+                    </p>
+                  ) : (
+                    <>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--ink-faint)" }}>
+                        {jiraPanel.source_summary}
+                      </p>
+                      <div style={{ fontSize: "13px", lineHeight: "1.6", fontFamily: "var(--font-body)", color: "var(--ink)" }}>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            p: ({ children }) => <p style={{ margin: "0 0 0.5em" }}>{children}</p>,
+                            strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+                            ul: ({ children }) => <ul style={{ paddingLeft: "1.2em", margin: "0.3em 0" }}>{children}</ul>,
+                            li: ({ children }) => <li style={{ margin: "0.1em 0" }}>{children}</li>,
+                            h2: ({ children }) => <p style={{ fontWeight: 600, margin: "0.4em 0 0.2em" }}>{children}</p>,
+                            h3: ({ children }) => <p style={{ fontWeight: 600, margin: "0.3em 0 0.1em" }}>{children}</p>,
+                          }}
+                        >{jiraPanel.content}</ReactMarkdown>
+                      </div>
+                      <div className="pt-2 flex flex-col gap-2">
+                        {!savedStory ? (
+                          <Button size="sm" onClick={saveJiraStory} disabled={savingJira} className="w-full">
+                            <Plus size={10} />
+                            {savingJira ? "Wird gespeichert…" : "In Workspace speichern"}
+                          </Button>
+                        ) : (
+                          <>
+                            <p style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--ink-faint)", textAlign: "center" }}>
+                              {savedStory.status === "published" ? "✓ In Jira veröffentlicht" : `Gespeichert als ${savedStory.ticket_key}`}
+                            </p>
+                            {savedStory.status !== "published" && (
+                              <Button size="sm" onClick={writeToJira} disabled={writingJira} className="w-full">
+                                {writingJira ? "Wird übertragen…" : "In Jira schreiben"}
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className="flex items-center justify-between px-4 py-2 border-b"
+                  style={{ borderColor: "var(--paper-rule)" }}
+                >
+                  <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "13px", color: "var(--ink)" }}>
+                    User Story
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={extractStory}
+                    disabled={extracting || messages.length < 2}
+                  >
+                    <Sparkles size={10} />
+                    {extracting ? "Extrahiere…" : "Extrahieren"}
+                  </Button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                  {!storyData && (
+                    <p
+                      className="text-center opacity-40 mt-8"
+                      style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--ink-mid)" }}
+                    >
+                      Führe ein Gespräch und klicke auf „Extrahieren", um eine User Story zu generieren.
                     </p>
                   )}
-                  <StorySection icon={<FileText size={11} />} label="User Story" variant="direct" items={storyData.story} />
-                  <StorySection icon={<CheckSquare size={11} />} label="Akzeptanzkriterien" variant="open" items={storyData.accept} />
-                  <StorySection icon={<TestTube size={11} />} label="Testfälle" variant="partial" items={storyData.tests} />
-                  <StorySection icon={<Tag size={11} />} label="Release" variant="llm" items={storyData.release} />
-                  <div className="pt-2">
-                    <Button
-                      size="sm"
-                      onClick={createStory}
-                      disabled={creating}
-                      className="w-full"
-                    >
-                      <Plus size={10} />
-                      {creating ? "Wird angelegt…" : "Story anlegen"}
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
+
+                  {storyData && (
+                    <>
+                      {storyData.title && (
+                        <p style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "14px", color: "var(--ink)", marginBottom: "0.5em" }}>
+                          {storyData.title}
+                        </p>
+                      )}
+                      <StorySection icon={<FileText size={11} />} label="User Story" variant="direct" items={storyData.story} />
+                      <StorySection icon={<CheckSquare size={11} />} label="Akzeptanzkriterien" variant="open" items={storyData.accept} />
+                      <StorySection icon={<TestTube size={11} />} label="Testfälle" variant="partial" items={storyData.tests} />
+                      <StorySection icon={<Tag size={11} />} label="Release" variant="llm" items={storyData.release} />
+                      <div className="pt-2">
+                        <Button
+                          size="sm"
+                          onClick={createStory}
+                          disabled={creating}
+                          className="w-full"
+                        >
+                          <Plus size={10} />
+                          {creating ? "Wird angelegt…" : "Story anlegen"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
