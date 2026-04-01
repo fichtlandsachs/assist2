@@ -6,8 +6,6 @@ import { API_BASE, getAccessToken } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Send, Sparkles, FileText, CheckSquare, TestTube, Tag, GripVertical, ImagePlus, X, Plus } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -359,7 +357,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                   className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className="max-w-[75%] rounded-sm px-3 py-2 space-y-2"
+                    className="max-w-[90%] rounded-sm px-3 py-2 space-y-2"
                     style={{
                       background: m.role === "user" ? "var(--ink)" : "var(--paper-warm)",
                       color: m.role === "user" ? "var(--paper)" : "var(--ink)",
@@ -367,7 +365,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                       fontFamily: "var(--font-body)",
                       fontSize: "14px",
                       lineHeight: "1.6",
-                      whiteSpace: "pre-wrap",
+                      whiteSpace: m.role === "user" ? "pre-wrap" : "normal",
                     }}
                   >
                     {m.images?.map((img, j) => (
@@ -380,24 +378,8 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                       />
                     ))}
                     {m.role === "assistant" ? (
-                      <div style={{ fontSize: "14px", lineHeight: "1.6", fontFamily: "var(--font-body)" }}>
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            p: ({ children }) => <p style={{ margin: "0 0 0.5em" }}>{children}</p>,
-                            strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
-                            em: ({ children }) => <em>{children}</em>,
-                            ul: ({ children }) => <ul style={{ paddingLeft: "1.2em", margin: "0.3em 0" }}>{children}</ul>,
-                            ol: ({ children }) => <ol style={{ paddingLeft: "1.2em", margin: "0.3em 0" }}>{children}</ol>,
-                            li: ({ children }) => <li style={{ margin: "0.1em 0" }}>{children}</li>,
-                            code: ({ children, className }) => className
-                              ? <code style={{ display: "block", background: "rgba(0,0,0,.06)", borderRadius: 2, padding: "0.4em 0.6em", fontSize: "12px", fontFamily: "var(--font-mono)", whiteSpace: "pre-wrap" }}>{children}</code>
-                              : <code style={{ background: "rgba(0,0,0,.06)", borderRadius: 2, padding: "0 0.3em", fontSize: "12px", fontFamily: "var(--font-mono)" }}>{children}</code>,
-                            h1: ({ children }) => <p style={{ fontWeight: 600, margin: "0.4em 0 0.2em" }}>{children}</p>,
-                            h2: ({ children }) => <p style={{ fontWeight: 600, margin: "0.4em 0 0.2em" }}>{children}</p>,
-                            h3: ({ children }) => <p style={{ fontWeight: 600, margin: "0.3em 0 0.1em" }}>{children}</p>,
-                          }}
-                        >{m.content}</ReactMarkdown>
+                      <div style={{ fontSize: "14px", lineHeight: "1.6", fontFamily: "var(--font-body)", whiteSpace: "pre-wrap" }}>
+                        {m.content}
                         {streaming && i === messages.length - 1 && (
                           <span className="inline-block w-1.5 h-3.5 ml-0.5 align-text-bottom animate-pulse"
                             style={{ background: "var(--ink-faint)" }} />
