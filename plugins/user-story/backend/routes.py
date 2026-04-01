@@ -19,6 +19,7 @@ from .schemas import (
     StoryList,
     StoryPriority,
     StoryRead,
+    StoryScoreResponse,
     StoryStatus,
     StoryUpdate,
     TestCaseCreate,
@@ -166,6 +167,20 @@ async def trigger_ai_delivery(
     db: AsyncSession = Depends(get_db),
 ) -> AIDeliveryResponse:
     return await story_service.trigger_ai_delivery(db, org_id, story_id, user_id=current_user.id)
+
+
+@router.post(
+    "/{story_id}/score",
+    response_model=StoryScoreResponse,
+    summary="Score Story Quality (Heuristic)",
+)
+async def score_story(
+    org_id: uuid.UUID,
+    story_id: uuid.UUID,
+    current_user: User = Depends(require_permission("story:read")),
+    db: AsyncSession = Depends(get_db),
+) -> StoryScoreResponse:
+    return await story_service.score(db, org_id, story_id)
 
 
 # ---------------------------------------------------------------------------

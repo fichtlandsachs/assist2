@@ -1,5 +1,3 @@
-version: "3.9"
-
 networks:
   proxy:
     name: assist-proxy
@@ -84,6 +82,11 @@ services:
     container_name: assist2-authentik-server
     restart: unless-stopped
     command: server
+    deploy:
+      resources:
+        limits:
+          cpus: "0.8"
+          memory: 600M
     environment:
       AUTHENTIK_REDIS__HOST: assist2-redis
       AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
@@ -125,6 +128,11 @@ services:
     container_name: assist2-authentik-worker
     restart: unless-stopped
     command: worker
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
     environment:
       AUTHENTIK_REDIS__HOST: assist2-redis
       AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
@@ -135,6 +143,7 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_LOG_LEVEL: info
+      AUTHENTIK_WORKER_MULTIPLIER: "1"
     volumes:
       - assist2_authentik_media:/media
       - assist2_authentik_templates:/templates
@@ -152,6 +161,12 @@ services:
       dockerfile: Dockerfile
     container_name: assist2-backend
     restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@assist2-postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@assist2-redis:6379/0
@@ -204,7 +219,12 @@ services:
       dockerfile: Dockerfile
     container_name: assist2-worker
     restart: unless-stopped
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=4
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@assist2-postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@assist2-redis:6379/0
@@ -278,7 +298,7 @@ services:
       - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
       - "traefik.http.services.admin.loadbalancer.server.port=3001"
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3001"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -292,6 +312,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       LITELLM_MASTER_KEY: ${LITELLM_API_KEY:-sk-assist2}
       DATABASE_URL: postgresql://litellm:${LITELLM_DB_PASSWORD}@assist2-litellm-postgres:5432/litellm_db
+      SERVER_ROOT_PATH: /litellm
     command:
       - "--config"
       - "/app/config.yaml"
@@ -306,11 +327,11 @@ services:
       litellm-postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4000/health/liveliness"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health/liveliness')"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.litellm.rule=Host(`litellm.fichtlworks.com`)"
@@ -341,9 +362,14 @@ services:
       start_period: 30s
 
   n8n:
-    image: n8nio/n8n:latest
+    image: n8nio/n8n:1.51.1
     container_name: assist2-n8n
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.8"
+          memory: 512M
     environment:
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: assist2-postgres
@@ -378,6 +404,11 @@ services:
     image: stirlingtools/stirling-pdf:latest
     container_name: assist2-stirling-pdf
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 700M
     environment:
       DOCKER_ENABLE_SECURITY: "false"
       SECURITY_ENABLELOGIN: "false"
@@ -445,6 +476,12 @@ services:
     image: onerahmet/openai-whisper-asr-webservice:latest
     container_name: assist2-whisper
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 900M
+    entrypoint: ["/app/.venv/bin/python", "-c", "import uvicorn; from app.webservice import app; uvicorn.run(app, host='0.0.0.0', port=9000, root_path='/whisper')"]
     environment:
       ASR_MODEL: small
       ASR_ENGINE: faster_whisper
@@ -456,7 +493,8 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: assist2-pgadmin
-    restart: unless-stopped
+    restart: "no"
+    profiles: ["tools"]
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
@@ -472,7 +510,8 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     container_name: assist2-phpmyadmin
-    restart: unless-stopped
+    restart: "no"
+    profiles: ["tools"]
     environment:
       PMA_HOST: assist2-nextcloud-db
       PMA_PORT: 3306
@@ -484,7 +523,8 @@ services:
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: assist2-redis-commander
-    restart: unless-stopped
+    restart: "no"
+    profiles: ["tools"]
     environment:
       REDIS_HOST: assist2-redis
       REDIS_PORT: 6379
@@ -499,7 +539,8 @@ services:
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: assist2-openwebui
-    restart: unless-stopped
+    restart: "no"
+    profiles: ["optional"]
     environment:
       OPENAI_API_BASE_URL: http://assist2-litellm:4000/v1
       OPENAI_API_KEY: ${LITELLM_API_KEY:-sk-assist2}

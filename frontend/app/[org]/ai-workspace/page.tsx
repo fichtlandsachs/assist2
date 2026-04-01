@@ -5,7 +5,7 @@ import { useOrg } from "@/lib/hooks/useOrg";
 import { API_BASE, getAccessToken } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Mic, MicOff, Send, Sparkles, FileText, CheckSquare, TestTube, Tag, GripVertical, ImagePlus, X } from "lucide-react";
+import { Mic, MicOff, Send, Sparkles, FileText, CheckSquare, TestTube, Tag, GripVertical, ImagePlus, X, Plus } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -18,27 +18,30 @@ interface Message {
 }
 
 interface StoryData {
+  title: string;
   story: string[];
   accept: string[];
   tests: string[];
   release: string[];
+  features: { title: string; description: string | null }[];
 }
 
 type ChatMode = "chat" | "docs" | "tasks";
-type WorkspaceTab = "story" | "openwebui";
+type WorkspaceTab = "story";
 
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function AiWorkspacePage({ params }: { params: Promise<{ org: string }> }) {
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
-  const [tab, setTab] = useState<WorkspaceTab>("story");
+  const [tab] = useState<WorkspaceTab>("story");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<ChatMode>("chat");
   const [streaming, setStreaming] = useState(false);
   const [storyData, setStoryData] = useState<StoryData | null>(null);
   const [extracting, setExtracting] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [recording, setRecording] = useState(false);
   const [storyPct, setStoryPct] = useState(50);
   const [pendingImages, setPendingImages] = useState<{ mediaType: string; data: string }[]>([]);
@@ -225,6 +228,36 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
     }
   }, [messages]);
 
+  // ── Create story in DB ───────────────────────────────────────────────────
+
+  const createStory = useCallback(async () => {
+    if (!storyData || !org) return;
+    setCreating(true);
+    try {
+      const token = getAccessToken();
+      const resp = await fetch(`${API_BASE}/api/v1/user-stories?org_id=${org.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          title: storyData.title || storyData.story[0]?.slice(0, 80) || "Neue User Story",
+          description: storyData.story.join("\n"),
+          acceptance_criteria: storyData.accept.join("\n"),
+          priority: "medium",
+        }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const created = await resp.json();
+      window.location.href = `/${org.slug}/stories/${created.id}`;
+    } catch (err) {
+      console.error("Create story error:", err);
+    } finally {
+      setCreating(false);
+    }
+  }, [storyData, org]);
+
   // ── Voice recording ──────────────────────────────────────────────────────
 
   const toggleRecording = useCallback(async () => {
@@ -278,42 +311,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: "var(--paper)" }}>
 
-      {/* ── Tab bar ── */}
-      <div
-        className="flex items-center gap-1 px-4 py-2 border-b shrink-0"
-        style={{ borderColor: "var(--paper-rule)", background: "var(--paper-warm)" }}
-      >
-        {(["story", "openwebui"] as WorkspaceTab[]).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="px-3 py-1 rounded-sm transition-colors"
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "8px",
-              letterSpacing: ".06em",
-              textTransform: "uppercase",
-              background: tab === t ? "var(--ink)" : "transparent",
-              color: tab === t ? "var(--paper)" : "var(--ink-faint)",
-              border: `0.5px solid ${tab === t ? "var(--ink)" : "transparent"}`,
-            }}
-          >
-            {t === "story" ? "Story-Assistent" : "Freier Chat"}
-          </button>
-        ))}
-      </div>
-
-      {/* ── OpenWebUI iframe ── */}
-      {tab === "openwebui" && (
-        <iframe
-          src="https://chat.fichtlworks.com"
-          className="flex-1 w-full border-0"
-          allow="microphone; clipboard-read; clipboard-write"
-          title="KI Chat"
-        />
-      )}
-
-      {/* ── Story-Assistent (original workspace) ── */}
+      {/* ── Story-Assistent ── */}
       {tab === "story" && (
         <div ref={splitContainerRef} className="flex flex-1 overflow-hidden">
 
@@ -382,8 +380,24 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                       />
                     ))}
                     {m.role === "assistant" ? (
-                      <div className="prose prose-sm max-w-none" style={{ color: "var(--ink)" }}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                      <div style={{ fontSize: "14px", lineHeight: "1.6", fontFamily: "var(--font-body)" }}>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            p: ({ children }) => <p style={{ margin: "0 0 0.5em" }}>{children}</p>,
+                            strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+                            em: ({ children }) => <em>{children}</em>,
+                            ul: ({ children }) => <ul style={{ paddingLeft: "1.2em", margin: "0.3em 0" }}>{children}</ul>,
+                            ol: ({ children }) => <ol style={{ paddingLeft: "1.2em", margin: "0.3em 0" }}>{children}</ol>,
+                            li: ({ children }) => <li style={{ margin: "0.1em 0" }}>{children}</li>,
+                            code: ({ children, className }) => className
+                              ? <code style={{ display: "block", background: "rgba(0,0,0,.06)", borderRadius: 2, padding: "0.4em 0.6em", fontSize: "12px", fontFamily: "var(--font-mono)", whiteSpace: "pre-wrap" }}>{children}</code>
+                              : <code style={{ background: "rgba(0,0,0,.06)", borderRadius: 2, padding: "0 0.3em", fontSize: "12px", fontFamily: "var(--font-mono)" }}>{children}</code>,
+                            h1: ({ children }) => <p style={{ fontWeight: 600, margin: "0.4em 0 0.2em" }}>{children}</p>,
+                            h2: ({ children }) => <p style={{ fontWeight: 600, margin: "0.4em 0 0.2em" }}>{children}</p>,
+                            h3: ({ children }) => <p style={{ fontWeight: 600, margin: "0.3em 0 0.1em" }}>{children}</p>,
+                          }}
+                        >{m.content}</ReactMarkdown>
                         {streaming && i === messages.length - 1 && (
                           <span className="inline-block w-1.5 h-3.5 ml-0.5 align-text-bottom animate-pulse"
                             style={{ background: "var(--ink-faint)" }} />
@@ -543,10 +557,26 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
 
               {storyData && (
                 <>
+                  {storyData.title && (
+                    <p style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "14px", color: "var(--ink)", marginBottom: "0.5em" }}>
+                      {storyData.title}
+                    </p>
+                  )}
                   <StorySection icon={<FileText size={11} />} label="User Story" variant="direct" items={storyData.story} />
                   <StorySection icon={<CheckSquare size={11} />} label="Akzeptanzkriterien" variant="open" items={storyData.accept} />
                   <StorySection icon={<TestTube size={11} />} label="Testfälle" variant="partial" items={storyData.tests} />
                   <StorySection icon={<Tag size={11} />} label="Release" variant="llm" items={storyData.release} />
+                  <div className="pt-2">
+                    <Button
+                      size="sm"
+                      onClick={createStory}
+                      disabled={creating}
+                      className="w-full"
+                    >
+                      <Plus size={10} />
+                      {creating ? "Wird angelegt…" : "Story anlegen"}
+                    </Button>
+                  </div>
                 </>
               )}
             </div>
