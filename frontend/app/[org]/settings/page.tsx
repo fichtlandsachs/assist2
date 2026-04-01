@@ -2,9 +2,10 @@
 
 import { use, useState, useEffect } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
+import { useAuth } from "@/lib/auth/context";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
-import type { UserStory } from "@/types";
+import type { User, UserStory } from "@/types";
 import {
   Building2, Mail, CalendarDays, AlertCircle,
   Layers, Cloud, CheckCircle, Trash2, Plus, Eye, EyeOff, RefreshCw,
@@ -690,11 +691,73 @@ function AISection({ orgId, settings }: { orgId: string; settings: IntegrationSe
   );
 }
 
+// ── Section: Atlassian Connection ─────────────────────────────────────────
+
+function AtlassianConnectionSection({ user }: { user: User }) {
+  const { loginWithAtlassian } = useAuth();
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const isConnected = !!user.atlassian_account_id;
+
+  const disconnect = async () => {
+    setDisconnecting(true);
+    setMsg(null);
+    try {
+      await apiRequest("/api/v1/auth/atlassian/disconnect", { method: "POST" });
+      setMsg("Atlassian-Verbindung getrennt.");
+      window.location.reload();
+    } catch (e: unknown) {
+      const err = e as { error?: string };
+      setMsg(err?.error ?? "Fehler beim Trennen der Verbindung.");
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
+  return (
+    <div className="rounded-sm p-4 space-y-3" style={{ border: "0.5px solid var(--paper-rule)", background: "var(--paper-warm)" }}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-mid)" }}>Atlassian</p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--ink-faint)", marginTop: "2px" }}>
+            {isConnected
+              ? `Verbunden als ${user.atlassian_email ?? user.email}`
+              : "Nicht verbunden"}
+          </p>
+        </div>
+        {isConnected ? (
+          <button
+            onClick={() => void disconnect()}
+            disabled={disconnecting}
+            className="px-3 py-1.5 rounded-sm transition-colors disabled:opacity-50"
+            style={{ fontFamily: "var(--font-mono)", fontSize: "8px", letterSpacing: ".06em", textTransform: "uppercase", border: "0.5px solid #8b5e52", color: "#8b5e52" }}
+          >
+            {disconnecting ? "Trenne…" : "Trennen"}
+          </button>
+        ) : (
+          <button
+            onClick={loginWithAtlassian}
+            className="px-3 py-1.5 rounded-sm transition-colors"
+            style={{ fontFamily: "var(--font-mono)", fontSize: "8px", letterSpacing: ".06em", textTransform: "uppercase", border: "0.5px solid var(--paper-rule)", color: "var(--ink)" }}
+          >
+            Verbinden
+          </button>
+        )}
+      </div>
+      {msg && (
+        <p style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--ink-faint)" }}>{msg}</p>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function SettingsPage({ params }: { params: Promise<{ org: string }> }) {
   const resolvedParams = use(params);
   const { org, mutate: mutateOrg } = useOrg(resolvedParams.org);
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("general");
 
   const { data: integrationSettings, mutate: mutateIntegrations } = useSWR<IntegrationSettings>(
@@ -743,6 +806,12 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
             <>
               <h2 className="text-base font-semibold text-[#1c1810] mb-5">Allgemeine Einstellungen</h2>
               <GeneralSection org={org} mutateOrg={mutateOrg} />
+              {user && (
+                <div className="mt-6 max-w-lg space-y-2">
+                  <h3 className="text-sm font-semibold text-[#1c1810]">Verknüpfte Konten</h3>
+                  <AtlassianConnectionSection user={user} />
+                </div>
+              )}
             </>
           )}
           {activeTab === "email" && (

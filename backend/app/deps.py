@@ -92,3 +92,23 @@ def require_permission(permission: str):
             detail=f"Permission '{permission}' required for this operation"
         )
     return check
+
+
+from app.services.atlassian_token import atlassian_token_store
+
+
+async def get_atlassian_token(
+    current_user: User = Depends(get_current_user),
+) -> tuple[str, str]:
+    """
+    Dependency for Jira routes.
+    Returns (access_token, cloud_id). Transparently refreshes if near expiry.
+    Raises 403 when no Atlassian account is linked.
+    """
+    data = await atlassian_token_store.get(current_user.id)
+    if not data:
+        raise ForbiddenException(
+            detail="Kein Atlassian-Account verknüpft. Bitte über Atlassian einloggen."
+        )
+    token = await atlassian_token_store.get_valid_token(current_user.id)
+    return token, data["cloud_id"]

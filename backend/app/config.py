@@ -52,6 +52,12 @@ class Settings(BaseSettings):
     AUTHENTIK_ADMIN_CLIENT_ID: str = ""
     AUTHENTIK_ADMIN_CLIENT_SECRET: str = ""
 
+    # Atlassian OAuth 2.0
+    ATLASSIAN_CLIENT_ID: str = ""
+    ATLASSIAN_CLIENT_SECRET: str = ""
+    ATLASSIAN_REDIRECT_URI: str = ""
+    ATLASSIAN_SCOPES: str = "read:me read:jira-work write:jira-work read:jira-user offline_access"
+
     # Stirling PDF
     STIRLING_PDF_URL: str = "http://assist2-stirling-pdf:8080"
     STIRLING_PDF_USERNAME: str = "admin"

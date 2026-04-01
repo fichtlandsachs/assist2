@@ -23,6 +23,8 @@ export interface User {
   is_superuser: boolean;
   created_at: string;
   identity_links?: IdentityLink[];
+  atlassian_account_id?: string | null;
+  atlassian_email?: string | null;
 }
 
 // ─── Organization ────────────────────────────────────────────────

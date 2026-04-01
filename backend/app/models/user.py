@@ -17,6 +17,8 @@ class User(UUIDMixin, TimestampMixin, Base):
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     authentik_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    atlassian_account_id: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True, index=True)
+    atlassian_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
     locale: Mapped[str] = mapped_column(String(10), default="de", nullable=False)

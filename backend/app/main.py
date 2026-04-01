@@ -12,6 +12,7 @@ from app.routers.pdf_settings import router as pdf_settings_router
 from app.routers.nextcloud import router as nextcloud_router
 from app.routers.ai import router as ai_router
 from app.routers.superadmin import router as superadmin_router
+from app.routers.auth_atlassian import router as auth_atlassian_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -100,3 +101,4 @@ app.include_router(pdf_settings_router, prefix="/api/v1", tags=["PDF Settings"])
 app.include_router(nextcloud_router, prefix="/api/v1", tags=["Nextcloud"])
 app.include_router(ai_router, prefix="/api/v1", tags=["AI"])
 app.include_router(superadmin_router)
+app.include_router(auth_atlassian_router, prefix="/api/v1")
