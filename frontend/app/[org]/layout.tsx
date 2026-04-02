@@ -49,9 +49,12 @@ export default function OrgLayout({
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
         <main
-          className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 relative"
           style={{ background: "var(--main-content-bg)" }}
         >
+          {/* Subtle dot grid overlay (src_agile style) */}
+          <div className="dot-grid-overlay pointer-events-none absolute inset-0 opacity-[0.03]"
+            style={{ backgroundImage: "radial-gradient(#000 0.5px, transparent 0.5px)", backgroundSize: "30px 30px" }} />
           {children}
         </main>
       </div>
