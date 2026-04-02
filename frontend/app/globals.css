@@ -32,6 +32,13 @@
   --nav-icon-stories:   var(--sidebar-text);
   --nav-icon-default:   var(--sidebar-text);
 
+  /* Primary action color (buttons, badges) */
+  --btn-primary:       #5a5068;
+  --btn-primary-hover: #7a5248;
+  --btn-primary-rgb:   90,80,104;
+  --btn-primary-muted: rgba(90,80,104,.08);
+  --accent-red-rgb:    139,94,82;
+
   /* Karl widget — dark/compact in Paperwork */
   --karl-bg:       rgba(255,255,255,.04);
   --karl-border:   rgba(255,255,255,.08);
@@ -146,6 +153,13 @@ button { cursor: pointer; font-family: var(--font-body); }
   --nav-icon-stories:   #f59e0b;
   --nav-icon-default:   #94a3b8;
 
+  /* Primary action color (buttons, badges) */
+  --btn-primary:       #534D5F;
+  --btn-primary-hover: #42405a;
+  --btn-primary-rgb:   83,77,95;
+  --btn-primary-muted: rgba(83,77,95,.08);
+  --accent-red-rgb:    83,77,95;
+
   /* Karl widget — white card, hard shadow in Agile */
   --karl-bg:       #FFFFFF;
   --karl-border:   #231F1F;
@@ -167,6 +181,49 @@ button { cursor: pointer; font-family: var(--font-body); }
 [data-theme="agile"] h6 {
   font-style: normal;
   font-weight: 600;
+}
+
+/* ── Agile neo-* overrides ── */
+[data-theme="agile"] .neo-card {
+  border-radius: 8px;
+  border: 2px solid rgba(35,31,31,.08);
+  box-shadow: 4px 4px 0 rgba(0,0,0,.06);
+}
+[data-theme="agile"] .neo-card:hover {
+  border-color: rgba(35,31,31,.2);
+  box-shadow: 4px 4px 0 rgba(0,0,0,.12);
+  transform: translateY(-1px);
+}
+[data-theme="agile"] .neo-btn {
+  border-radius: 6px;
+  border-width: 2px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-theme="agile"] .neo-btn:hover {
+  box-shadow: 2px 2px 0 rgba(0,0,0,.8);
+  transform: translateY(-1px);
+}
+[data-theme="agile"] .neo-btn--default {
+  background: var(--btn-primary);
+  border-color: var(--btn-primary);
+  box-shadow: 3px 3px 0 rgba(0,0,0,1);
+}
+[data-theme="agile"] .neo-btn--default:hover {
+  background: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
+  box-shadow: 4px 4px 0 rgba(0,0,0,1);
+}
+[data-theme="agile"] .neo-input {
+  border-radius: 6px;
+  border-width: 2px;
+  border-color: rgba(35,31,31,.12);
+}
+[data-theme="agile"] .neo-input:focus {
+  border-color: var(--btn-primary);
+  box-shadow: 2px 2px 0 rgba(0,0,0,.8);
 }
 
 /* ── Agile sidebar nav ── */
@@ -231,9 +288,9 @@ button { cursor: pointer; font-family: var(--font-body); }
 .neo-btn--default:hover { background: var(--ink-mid); }
 .neo-btn--outline { background: transparent; color: var(--ink); }
 .neo-btn--orange  { background: var(--accent-red); color: var(--paper); border-color: var(--accent-red); }
-.neo-btn--orange:hover { background: #7a5248; }
+.neo-btn--orange:hover { background: var(--btn-primary-hover); }
 .neo-btn--ghost   { background: transparent; border-color: transparent; box-shadow: none; }
-.neo-btn--ghost:hover { background: rgba(28,24,16,.06); }
+.neo-btn--ghost:hover { background: rgba(var(--btn-primary-rgb),.06); }
 .neo-btn--sm { font-size: 8px; padding: 3px 8px; }
 .neo-btn--lg { font-size: 10px; padding: 7px 16px; }
 

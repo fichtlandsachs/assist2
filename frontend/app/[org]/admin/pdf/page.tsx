@@ -53,7 +53,7 @@ export default function PdfAdminPage() {
   };
 
   if (!org || !settings) {
-    return <div className="p-8 text-[#a09080]">Lade Einstellungen…</div>;
+    return <div className="p-8 text-[var(--ink-faint)]">Lade Einstellungen…</div>;
   }
 
   const baseUrl = `/api/v1/organizations/${org.id}/pdf-settings`;
@@ -61,14 +61,14 @@ export default function PdfAdminPage() {
   return (
     <div className="max-w-2xl mx-auto p-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-[#1c1810]">PDF-Einstellungen</h1>
-        <p className="mt-1 text-sm text-[#a09080]">
+        <h1 className="text-2xl font-bold text-[var(--ink)]">PDF-Einstellungen</h1>
+        <p className="mt-1 text-sm text-[var(--ink-faint)]">
           Konfiguriert das automatisch generierte PDF für Userstories (Status: Done).
         </p>
       </div>
 
-      <section className="bg-[#faf9f6] border border-[#e2ddd4] rounded-sm p-6 space-y-6">
-        <h2 className="text-lg font-semibold text-[#1c1810]">Branding</h2>
+      <section className="bg-[var(--paper)] border border-[var(--paper-rule)] rounded-sm p-6 space-y-6">
+        <h2 className="text-lg font-semibold text-[var(--ink)]">Branding</h2>
         <PdfSettingsForm
           orgSlug={orgSlug}
           orgId={org.id}
@@ -77,8 +77,8 @@ export default function PdfAdminPage() {
         />
       </section>
 
-      <section className="bg-[#faf9f6] border border-[#e2ddd4] rounded-sm p-6 space-y-6">
-        <h2 className="text-lg font-semibold text-[#1c1810]">Templates</h2>
+      <section className="bg-[var(--paper)] border border-[var(--paper-rule)] rounded-sm p-6 space-y-6">
+        <h2 className="text-lg font-semibold text-[var(--ink)]">Templates</h2>
         <TemplateUpload
           label="Briefpapier (PDF, max. 5 MB)"
           accept="application/pdf"
@@ -97,15 +97,15 @@ export default function PdfAdminPage() {
         />
       </section>
 
-      <section className="bg-[#faf9f6] border border-[#e2ddd4] rounded-sm p-6">
-        <h2 className="text-lg font-semibold text-[#1c1810] mb-3">Vorschau</h2>
-        <p className="text-sm text-[#a09080] mb-4">
+      <section className="bg-[var(--paper)] border border-[var(--paper-rule)] rounded-sm p-6">
+        <h2 className="text-lg font-semibold text-[var(--ink)] mb-3">Vorschau</h2>
+        <p className="text-sm text-[var(--ink-faint)] mb-4">
           Generiert ein Beispiel-PDF mit den aktuellen Einstellungen.
         </p>
         <button
           onClick={handlePreview}
           disabled={previewLoading}
-          className="px-4 py-2 bg-[#1c1810] text-white text-sm rounded-sm hover:bg-[#5a5040] disabled:opacity-50"
+          className="px-4 py-2 bg-[var(--ink)] text-white text-sm rounded-sm hover:bg-[var(--ink-mid)] disabled:opacity-50"
         >
           {previewLoading ? "Wird generiert…" : "PDF-Vorschau öffnen"}
         </button>

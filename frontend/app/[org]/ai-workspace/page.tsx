@@ -613,8 +613,8 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                   className="p-2 rounded-sm transition-colors"
                   style={{
                     background: recording ? "rgba(192,57,43,.1)" : "transparent",
-                    border: `0.5px solid ${recording ? "#8b5e52" : "var(--paper-rule)"}`,
-                    color: recording ? "#8b5e52" : "var(--ink-faint)",
+                    border: `0.5px solid ${recording ? "var(--accent-red)" : "var(--paper-rule)"}`,
+                    color: recording ? "var(--accent-red)" : "var(--ink-faint)",
                   }}
                   title={recording ? "Aufnahme stoppen" : "Sprachaufnahme starten"}
                 >

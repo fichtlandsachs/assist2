@@ -16,9 +16,9 @@ import { cn } from "@/lib/utils";
 type CardAccent = "orange" | "yellow" | "teal" | "none";
 
 const accentClasses: Record<CardAccent, string> = {
-  orange: "border-l-[3px] border-l-[#8b5e52]",
-  yellow: "border-l-[3px] border-l-[#7a6450]",
-  teal:   "border-l-[3px] border-l-[#526b5e]",
+  orange: "border-l-[3px] border-l-[var(--accent-red)]",
+  yellow: "border-l-[3px] border-l-[var(--brown)]",
+  teal:   "border-l-[3px] border-l-[var(--green)]",
   none:   "",
 };
 
@@ -38,10 +38,10 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       ref={ref}
       className={cn(
         // Base
-        "border border-[#e2ddd4] rounded-sm bg-[#faf9f6]",
+        "border border-[var(--paper-rule)] rounded-sm bg-[var(--paper)]",
         // Hover
         hover && !flat
-          ? "transition-[border-color] duration-150 hover:border-[#cec8bc]"
+          ? "transition-[border-color] duration-150 hover:border-[var(--ink-faintest)]"
           : "",
         // Accent
         accentClasses[accent],
@@ -74,7 +74,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "[font-family:var(--font-serif)] italic font-normal text-xl leading-tight text-[#1c1810]",
+      "[font-family:var(--font-serif)] italic font-normal text-xl leading-tight text-[var(--ink)]",
       className
     )}
     {...props}
@@ -89,7 +89,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-[#a09080] leading-relaxed [font-family:var(--font-body)]", className)}
+    className={cn("text-sm text-[var(--ink-faint)] leading-relaxed [font-family:var(--font-body)]", className)}
     {...props}
   />
 ));
@@ -112,7 +112,7 @@ const CardFooter = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "flex items-center gap-3 px-6 py-4 border-t border-[#e2ddd4]",
+      "flex items-center gap-3 px-6 py-4 border-t border-[var(--paper-rule)]",
       className
     )}
     {...props}
@@ -127,7 +127,7 @@ const CardDivider = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <hr
     ref={ref}
-    className={cn("border-0 border-t border-[#e2ddd4] mx-6", className)}
+    className={cn("border-0 border-t border-[var(--paper-rule)] mx-6", className)}
     {...props}
   />
 ));
@@ -154,20 +154,20 @@ function StatCard({
   return (
     <Card accent={accent} className={cn("p-6", className)}>
       <div className="flex items-start justify-between mb-3">
-        <span className="[font-family:var(--font-mono)] text-[8px] text-[#a09080] uppercase tracking-widest">
+        <span className="[font-family:var(--font-mono)] text-[8px] text-[var(--ink-faint)] uppercase tracking-widest">
           {label}
         </span>
         {icon && (
-          <div className="w-8 h-8 border border-[#e2ddd4] rounded-sm flex items-center justify-center bg-[#f7f4ee]">
+          <div className="w-8 h-8 border border-[var(--paper-rule)] rounded-sm flex items-center justify-center bg-[var(--paper-warm)]">
             {icon}
           </div>
         )}
       </div>
-      <div className="[font-family:var(--font-serif)] italic font-normal text-4xl text-[#1c1810] leading-none mb-1">
+      <div className="[font-family:var(--font-serif)] italic font-normal text-4xl text-[var(--ink)] leading-none mb-1">
         {value}
       </div>
       {subtext && (
-        <div className="text-sm text-[#a09080] mt-1 [font-family:var(--font-body)]">{subtext}</div>
+        <div className="text-sm text-[var(--ink-faint)] mt-1 [font-family:var(--font-body)]">{subtext}</div>
       )}
     </Card>
   );

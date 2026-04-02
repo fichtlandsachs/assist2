@@ -14,8 +14,8 @@ const MONTHS = [
 ];
 
 const EVENT_COLORS = [
-  "bg-[#8b5e52]", "bg-[#4a5568]", "bg-[#526b5e]", "bg-[#7a6450]",
-  "bg-[#5a5068]", "bg-[#8b5e52]", "bg-[#8b5e52]", "bg-[#526b5e]",
+  "bg-[var(--accent-red)]", "bg-[var(--navy)]", "bg-[var(--green)]", "bg-[var(--brown)]",
+  "bg-[var(--btn-primary)]", "bg-[var(--accent-red)]", "bg-[var(--accent-red)]", "bg-[var(--green)]",
 ];
 
 function getMonthStart(year: number, month: number): Date {
@@ -165,20 +165,20 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1c1810]">Kalender</h1>
-          <p className="text-[#a09080] mt-1 text-sm">Termine und Ereignisse</p>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Kalender</h1>
+          <p className="text-[var(--ink-faint)] mt-1 text-sm">Termine und Ereignisse</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowConnectModal(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#f7f4ee] rounded-sm text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-sm font-medium transition-colors"
           >
             <Calendar size={15} />
             Kalender verbinden
           </button>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#7a5248] text-white rounded-sm text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
             Termin erstellen
@@ -187,30 +187,30 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
       </div>
 
       {/* Calendar */}
-      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] overflow-hidden">
+      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
         {/* Navigation */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2ddd4]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--paper-rule)]">
           <button
             onClick={prevMonth}
-            className="p-2 rounded-sm hover:bg-[#f7f4ee] text-[#5a5040] transition-colors"
+            className="p-2 rounded-sm hover:bg-[var(--paper-warm)] text-[var(--ink-mid)] transition-colors"
           >
             <ChevronLeft size={18} />
           </button>
-          <h2 className="text-lg font-semibold text-[#1c1810]">
+          <h2 className="text-lg font-semibold text-[var(--ink)]">
             {MONTHS[viewMonth]} {viewYear}
           </h2>
           <button
             onClick={nextMonth}
-            className="p-2 rounded-sm hover:bg-[#f7f4ee] text-[#5a5040] transition-colors"
+            className="p-2 rounded-sm hover:bg-[var(--paper-warm)] text-[var(--ink-mid)] transition-colors"
           >
             <ChevronRight size={18} />
           </button>
         </div>
 
         {/* Day headers */}
-        <div className="grid grid-cols-7 border-b border-[#e2ddd4]">
+        <div className="grid grid-cols-7 border-b border-[var(--paper-rule)]">
           {WEEKDAYS.map((d) => (
-            <div key={d} className="text-center text-xs font-semibold text-[#a09080] py-2 uppercase tracking-wide">
+            <div key={d} className="text-center text-xs font-semibold text-[var(--ink-faint)] py-2 uppercase tracking-wide">
               {d}
             </div>
           ))}
@@ -219,7 +219,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
         {/* Calendar grid */}
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8b5e52]" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-red)]" />
           </div>
         ) : (
           <div className="grid grid-cols-7">
@@ -231,16 +231,16 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                 <div
                   key={idx}
                   onClick={() => date && setSelectedDay(date)}
-                  className={`min-h-[90px] p-2 border-r border-b border-[#e2ddd4] last:border-r-0 transition-colors ${
-                    date ? "cursor-pointer hover:bg-[#f7f4ee]" : "bg-[#f7f4ee]/50"
-                  } ${isSelected ? "bg-[rgba(139,94,82,.08)]" : ""}`}
+                  className={`min-h-[90px] p-2 border-r border-b border-[var(--paper-rule)] last:border-r-0 transition-colors ${
+                    date ? "cursor-pointer hover:bg-[var(--paper-warm)]" : "bg-[var(--paper-warm)]/50"
+                  } ${isSelected ? "bg-[rgba(var(--accent-red-rgb),.08)]" : ""}`}
                 >
                   {date && (
                     <>
                       <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium mb-1 ${
                         isToday
-                          ? "bg-[#8b5e52] text-white"
-                          : "text-[#5a5040]"
+                          ? "bg-[var(--accent-red)] text-white"
+                          : "text-[var(--ink-mid)]"
                       }`}>
                         {date.getDate()}
                       </span>
@@ -255,7 +255,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                           </div>
                         ))}
                         {dayEvents.length > 3 && (
-                          <p className="text-xs text-[#a09080]">+{dayEvents.length - 3} mehr</p>
+                          <p className="text-xs text-[var(--ink-faint)]">+{dayEvents.length - 3} mehr</p>
                         )}
                       </div>
                     </>
@@ -269,30 +269,30 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
 
       {/* Selected day events panel */}
       {selectedDay && (
-        <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4">
+        <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[#1c1810]">
+            <h3 className="text-sm font-semibold text-[var(--ink)]">
               {selectedDay.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </h3>
-            <button onClick={() => setSelectedDay(null)} className="p-1 rounded-sm hover:bg-[#f7f4ee] text-[#a09080]">
+            <button onClick={() => setSelectedDay(null)} className="p-1 rounded-sm hover:bg-[var(--paper-warm)] text-[var(--ink-faint)]">
               <X size={16} />
             </button>
           </div>
           {eventsForDay(selectedDay).length === 0 ? (
-            <p className="text-sm text-[#a09080]">Keine Termine an diesem Tag.</p>
+            <p className="text-sm text-[var(--ink-faint)]">Keine Termine an diesem Tag.</p>
           ) : (
             <div className="space-y-2">
               {eventsForDay(selectedDay).map((ev) => (
                 <div key={ev.id} className="flex items-start gap-3">
                   <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${colorForEvent(ev)}`} />
                   <div>
-                    <p className="text-sm font-medium text-[#1c1810]">{ev.title}</p>
-                    <p className="text-xs text-[#a09080]">
+                    <p className="text-sm font-medium text-[var(--ink)]">{ev.title}</p>
+                    <p className="text-xs text-[var(--ink-faint)]">
                       {new Date(ev.start_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
                       {" – "}
                       {new Date(ev.end_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
                     </p>
-                    {ev.description && <p className="text-xs text-[#a09080] mt-0.5">{ev.description}</p>}
+                    {ev.description && <p className="text-xs text-[var(--ink-faint)] mt-0.5">{ev.description}</p>}
                   </div>
                 </div>
               ))}
@@ -303,24 +303,24 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
 
       {/* Connected Calendars */}
       {connections && connections.length > 0 && (
-        <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4">
-          <h3 className="text-sm font-semibold text-[#1c1810] mb-3">Verbundene Kalender</h3>
+        <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4">
+          <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Verbundene Kalender</h3>
           <div className="space-y-3">
             {connections.map((conn) => (
-              <div key={conn.id} className="flex flex-col gap-1 pb-3 border-b border-[#e2ddd4] last:border-0 last:pb-0">
+              <div key={conn.id} className="flex flex-col gap-1 pb-3 border-b border-[var(--paper-rule)] last:border-0 last:pb-0">
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${conn.is_active ? "bg-[#526b5e]" : "bg-[#e2ddd4]"}`} />
-                  <span className="text-sm font-medium text-[#1c1810]">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${conn.is_active ? "bg-[var(--green)]" : "bg-[var(--paper-rule)]"}`} />
+                  <span className="text-sm font-medium text-[var(--ink)]">
                     {conn.display_name ?? conn.email_address}
                   </span>
-                  <span className="text-xs text-[#a09080] capitalize">{conn.provider}</span>
+                  <span className="text-xs text-[var(--ink-faint)] capitalize">{conn.provider}</span>
                 </div>
                 {conn.display_name && (
-                  <p className="text-xs text-[#a09080] pl-4">{conn.email_address}</p>
+                  <p className="text-xs text-[var(--ink-faint)] pl-4">{conn.email_address}</p>
                 )}
                 {/* Sync Interval */}
                 <div className="flex items-center gap-2 mt-2 pl-4">
-                  <label className="text-xs text-[#a09080] whitespace-nowrap">Sync-Intervall:</label>
+                  <label className="text-xs text-[var(--ink-faint)] whitespace-nowrap">Sync-Intervall:</label>
                   <select
                     defaultValue={conn.sync_interval_minutes ?? 30}
                     onChange={async (e) => {
@@ -330,7 +330,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                         body: JSON.stringify({ sync_interval_minutes: interval }),
                       });
                     }}
-                    className="text-xs border border-[#e2ddd4] rounded-sm px-2 py-1 bg-[#faf9f6] text-[#5a5040]"
+                    className="text-xs border border-[var(--paper-rule)] rounded-sm px-2 py-1 bg-[var(--paper)] text-[var(--ink-mid)]"
                   >
                     <option value={15}>15 Minuten</option>
                     <option value={30}>30 Minuten</option>
@@ -347,74 +347,74 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
       {/* Create Event Modal */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-[#e2ddd4]">
-              <h3 className="text-base font-semibold text-[#1c1810]">Termin erstellen</h3>
-              <button onClick={() => setShowCreateForm(false)} className="p-1 rounded-sm hover:bg-[#f7f4ee] text-[#a09080]">
+          <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--paper-rule)]">
+              <h3 className="text-base font-semibold text-[var(--ink)]">Termin erstellen</h3>
+              <button onClick={() => setShowCreateForm(false)} className="p-1 rounded-sm hover:bg-[var(--paper-warm)] text-[var(--ink-faint)]">
                 <X size={18} />
               </button>
             </div>
             <form onSubmit={(e) => void handleCreateEvent(e)} className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[#5a5040] mb-1.5">
-                  Titel <span className="text-[#8b5e52]">*</span>
+                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
+                  Titel <span className="text-[var(--accent-red)]">*</span>
                 </label>
                 <input
                   type="text"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="Termin Titel"
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#5a5040] mb-1.5">
-                  Datum <span className="text-[#8b5e52]">*</span>
+                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
+                  Datum <span className="text-[var(--accent-red)]">*</span>
                 </label>
                 <input
                   type="date"
                   value={formDate}
                   onChange={(e) => setFormDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-[#5a5040] mb-1.5">Startzeit</label>
+                  <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">Startzeit</label>
                   <input
                     type="time"
                     value={formTime}
                     onChange={(e) => setFormTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
+                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#5a5040] mb-1.5">Endzeit</label>
+                  <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">Endzeit</label>
                   <input
                     type="time"
                     value={formEndTime}
                     onChange={(e) => setFormEndTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
+                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#5a5040] mb-1.5">Beschreibung</label>
+                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">Beschreibung</label>
                 <textarea
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="Optionale Beschreibung..."
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6] resize-none"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)] resize-none"
                 />
               </div>
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
                   disabled={saving || !formTitle.trim() || !formDate}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[rgba(139,94,82,.08)] text-white rounded-sm text-sm font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[rgba(var(--accent-red-rgb),.08)] text-white rounded-sm text-sm font-medium transition-colors"
                 >
                   {saving ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -424,7 +424,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                 <button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
-                  className="px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#f7f4ee] rounded-sm text-sm font-medium transition-colors"
+                  className="px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-sm font-medium transition-colors"
                 >
                   Abbrechen
                 </button>
@@ -437,24 +437,24 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
       {/* Connect Calendar Modal */}
       {showConnectModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-[#e2ddd4]">
-              <h3 className="text-base font-semibold text-[#1c1810]">Kalender verbinden</h3>
-              <button onClick={() => setShowConnectModal(false)} className="p-1 rounded-sm hover:bg-[#f7f4ee] text-[#a09080]">
+          <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--paper-rule)]">
+              <h3 className="text-base font-semibold text-[var(--ink)]">Kalender verbinden</h3>
+              <button onClick={() => setShowConnectModal(false)} className="p-1 rounded-sm hover:bg-[var(--paper-warm)] text-[var(--ink-faint)]">
                 <X size={18} />
               </button>
             </div>
             <form onSubmit={(e) => void handleConnect(e)} className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[#5a5040] mb-1.5">Anbieter</label>
+                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">Anbieter</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setConnectProvider("google")}
                     className={`flex-1 py-2 rounded-sm border text-sm font-medium transition-colors ${
                       connectProvider === "google"
-                        ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
-                        : "border-[#e2ddd4] hover:bg-[#f7f4ee] text-[#5a5040]"
+                        ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]"
+                        : "border-[var(--paper-rule)] hover:bg-[var(--paper-warm)] text-[var(--ink-mid)]"
                     }`}
                   >
                     🗓 Google
@@ -464,8 +464,8 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                     onClick={() => setConnectProvider("outlook")}
                     className={`flex-1 py-2 rounded-sm border text-sm font-medium transition-colors ${
                       connectProvider === "outlook"
-                        ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
-                        : "border-[#e2ddd4] hover:bg-[#f7f4ee] text-[#5a5040]"
+                        ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]"
+                        : "border-[var(--paper-rule)] hover:bg-[var(--paper-warm)] text-[var(--ink-mid)]"
                     }`}
                   >
                     📅 Outlook
@@ -473,15 +473,15 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#5a5040] mb-1.5">
-                  E-Mail-Adresse <span className="text-[#8b5e52]">*</span>
+                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
+                  E-Mail-Adresse <span className="text-[var(--accent-red)]">*</span>
                 </label>
                 <input
                   type="email"
                   value={connectEmail}
                   onChange={(e) => setConnectEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[#8b5e52] bg-[#faf9f6]"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
                   required
                 />
               </div>
@@ -489,7 +489,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                 <button
                   type="submit"
                   disabled={connecting || !connectEmail.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[rgba(139,94,82,.08)] text-white rounded-sm text-sm font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[rgba(var(--accent-red-rgb),.08)] text-white rounded-sm text-sm font-medium transition-colors"
                 >
                   {connecting ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -499,7 +499,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                 <button
                   type="button"
                   onClick={() => setShowConnectModal(false)}
-                  className="px-4 py-2 border border-[#cec8bc] text-[#5a5040] hover:bg-[#f7f4ee] rounded-sm text-sm font-medium transition-colors"
+                  className="px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-sm font-medium transition-colors"
                 >
                   Abbrechen
                 </button>

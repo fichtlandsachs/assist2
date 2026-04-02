@@ -21,7 +21,7 @@ const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
-  return <p className="mt-1 text-xs text-[#8b5e52]">{msg}</p>;
+  return <p className="mt-1 text-xs text-[var(--accent-red)]">{msg}</p>;
 }
 
 function DroppableTextarea({
@@ -83,7 +83,7 @@ function DroppableTextarea({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-[#5a5040] mb-1.5">
+      <label htmlFor={id} className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
         {label}
       </label>
       <textarea
@@ -98,14 +98,14 @@ function DroppableTextarea({
         rows={rows}
         className={`w-full px-3 py-2 text-sm border rounded-sm resize-y overflow-hidden outline-none transition-colors ${
           isDragOver
-            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] ring-2 ring-[rgba(139,94,82,.3)]"
+            ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] ring-2 ring-[rgba(var(--accent-red-rgb),.3)]"
             : error
-            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
-            : "border-[#cec8bc] bg-[#faf9f6] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
+            ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)]"
+            : "border-[var(--ink-faintest)] bg-[var(--paper)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)]"
         }`}
       />
       {isDragOver && (
-        <p className="text-xs text-[#8b5e52] mt-1">Loslassen zum Übernehmen</p>
+        <p className="text-xs text-[var(--accent-red)] mt-1">Loslassen zum Übernehmen</p>
       )}
       <FieldError msg={error} />
     </div>
@@ -153,9 +153,9 @@ function DroppableInput({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-[#5a5040] mb-1.5">
+      <label htmlFor={id} className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
         {label}
-        <span className="text-[#8b5e52] ml-0.5">*</span>
+        <span className="text-[var(--accent-red)] ml-0.5">*</span>
       </label>
       <input
         id={id}
@@ -168,10 +168,10 @@ function DroppableInput({
         placeholder={placeholder}
         className={`w-full px-3 py-2 text-sm border rounded-sm outline-none transition-colors ${
           isDragOver
-            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] ring-2 ring-[rgba(139,94,82,.3)]"
+            ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] ring-2 ring-[rgba(var(--accent-red-rgb),.3)]"
             : error
-            ? "border-[#8b5e52] bg-[rgba(139,94,82,.08)] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
-            : "border-[#cec8bc] bg-[#faf9f6] focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)]"
+            ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)]"
+            : "border-[var(--ink-faintest)] bg-[var(--paper)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)]"
         }`}
       />
       <FieldError msg={error} />
@@ -250,13 +250,13 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
       <div className="flex items-center gap-4">
         <Link
           href={`/${resolvedParams.org}/stories`}
-          className="p-2 rounded-sm text-[#a09080] hover:text-[#5a5040] hover:bg-[#f7f4ee] transition-colors"
+          className="p-2 rounded-sm text-[var(--ink-faint)] hover:text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] transition-colors"
         >
           <ArrowLeft size={18} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-[#1c1810]">Neue User Story</h1>
-          <p className="text-[#a09080] text-sm">Erstelle eine neue Story mit Assistent-Unterstützung</p>
+          <h1 className="text-xl font-bold text-[var(--ink)]">Neue User Story</h1>
+          <p className="text-[var(--ink-faint)] text-sm">Erstelle eine neue Story mit Assistent-Unterstützung</p>
         </div>
       </div>
 
@@ -264,7 +264,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
         {/* LEFT: Form */}
         <form onSubmit={(e) => void handleSave(e)} className="space-y-4">
-          <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 space-y-5">
+          <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-5">
             <DroppableInput
               id="title"
               label="Titel"
@@ -276,7 +276,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
             />
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#a09080]">Sprachaufnahme:</span>
+              <span className="text-xs text-[var(--ink-faint)]">Sprachaufnahme:</span>
               <VoiceRecorder
                 onTranscription={(text) => setDescription((prev) => prev ? `${prev}\n${text}` : text)}
               />
@@ -304,14 +304,14 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="priority" className="block text-sm font-medium text-[#5a5040] mb-1.5">
+                <label htmlFor="priority" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
                   Priorität
                 </label>
                 <select
                   id="priority"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as StoryPriority)}
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)] bg-[#faf9f6]"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)] bg-[var(--paper)]"
                 >
                   {PRIORITY_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -322,7 +322,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
               </div>
 
               <div>
-                <label htmlFor="story_points" className="block text-sm font-medium text-[#5a5040] mb-1.5">
+                <label htmlFor="story_points" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
                   Story Points
                 </label>
                 <input
@@ -333,7 +333,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
                   value={storyPoints}
                   onChange={(e) => setStoryPoints(e.target.value)}
                   placeholder="z.B. 5"
-                  className="w-full px-3 py-2 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-2 focus:ring-[rgba(139,94,82,.08)] bg-[#faf9f6]"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)] bg-[var(--paper)]"
                 />
               </div>
             </div>
@@ -348,7 +348,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
           </div>
 
           {fieldErrors.general && (
-            <div className="p-3 bg-[rgba(139,94,82,.08)] border border-[#e2ddd4] rounded-sm text-[#8b5e52] text-sm">
+            <div className="p-3 bg-[rgba(var(--accent-red-rgb),.08)] border border-[var(--paper-rule)] rounded-sm text-[var(--accent-red)] text-sm">
               {fieldErrors.general}
             </div>
           )}
@@ -357,7 +357,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
             <button
               type="submit"
               disabled={saving || !org}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#5a5068] hover:bg-[#7a5248] disabled:bg-[#cec8bc] text-white rounded-sm text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[var(--ink-faintest)] text-white rounded-sm text-sm font-medium transition-colors"
             >
               {saving ? (
                 <>
@@ -373,7 +373,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
             </button>
             <Link
               href={`/${resolvedParams.org}/stories`}
-              className="px-5 py-2.5 border border-[#cec8bc] text-[#5a5040] hover:bg-[#faf9f6] rounded-sm text-sm font-medium transition-colors"
+              className="px-5 py-2.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-sm font-medium transition-colors"
             >
               Abbrechen
             </Link>
@@ -381,7 +381,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
         </form>
 
         {/* RIGHT: AI Suggestions */}
-        <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+        <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
           <AISuggestPanel
             title={title}
             description={description}

@@ -15,11 +15,11 @@ const TRIGGER_LABELS: Record<string, string> = {
 };
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pending:   { label: "Ausstehend",   color: "bg-[#f7f4ee] text-[#5a5040]",                       icon: <Clock size={13} /> },
-  running:   { label: "Läuft",        color: "bg-[rgba(74,85,104,.06)] text-[#4a5568]",             icon: <RefreshCw size={13} className="animate-spin" /> },
-  success:   { label: "Erfolgreich",  color: "bg-[rgba(82,107,94,.1)] text-[#526b5e]",             icon: <CheckCircle2 size={13} /> },
-  failed:    { label: "Fehlgeschlagen",color: "bg-[rgba(139,94,82,.08)] text-[#8b5e52]",           icon: <XCircle size={13} /> },
-  cancelled: { label: "Abgebrochen",  color: "bg-[rgba(122,100,80,.1)] text-[#7a6450]",             icon: <AlertCircle size={13} /> },
+  pending:   { label: "Ausstehend",   color: "bg-[var(--paper-warm)] text-[var(--ink-mid)]",                       icon: <Clock size={13} /> },
+  running:   { label: "Läuft",        color: "bg-[rgba(74,85,104,.06)] text-[var(--navy)]",             icon: <RefreshCw size={13} className="animate-spin" /> },
+  success:   { label: "Erfolgreich",  color: "bg-[rgba(82,107,94,.1)] text-[var(--green)]",             icon: <CheckCircle2 size={13} /> },
+  failed:    { label: "Fehlgeschlagen",color: "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]",           icon: <XCircle size={13} /> },
+  cancelled: { label: "Abgebrochen",  color: "bg-[rgba(122,100,80,.1)] text-[var(--brown)]",             icon: <AlertCircle size={13} /> },
 };
 
 function ExecutionRow({ execution }: { execution: WorkflowExecution }) {
@@ -30,19 +30,19 @@ function ExecutionRow({ execution }: { execution: WorkflowExecution }) {
     : null;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 border-t border-[#e2ddd4] text-sm">
+    <div className="flex items-center gap-3 px-4 py-2.5 border-t border-[var(--paper-rule)] text-sm">
       <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${meta.color}`}>
         {meta.icon}
         {meta.label}
       </span>
-      <span className="text-[#a09080] text-xs">
+      <span className="text-[var(--ink-faint)] text-xs">
         {started.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}
       </span>
       {duration !== null && (
-        <span className="text-[#a09080] text-xs">{duration}s</span>
+        <span className="text-[var(--ink-faint)] text-xs">{duration}s</span>
       )}
       {execution.error_message && (
-        <span className="flex-1 text-xs text-[#8b5e52] truncate">{execution.error_message}</span>
+        <span className="flex-1 text-xs text-[var(--accent-red)] truncate">{execution.error_message}</span>
       )}
     </div>
   );
@@ -81,22 +81,22 @@ function WorkflowCard({
   }
 
   return (
-    <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] overflow-hidden">
+    <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
       <div className="flex items-start gap-4 p-4 sm:p-5">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${workflow.is_active ? "bg-[#526b5e]" : "bg-[#e2ddd4]"}`} />
-            <h3 className="font-semibold text-[#1c1810] text-sm">{workflow.name}</h3>
-            <span className="px-1.5 py-0.5 rounded-sm bg-[#f7f4ee] text-[#a09080] text-xs font-medium">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${workflow.is_active ? "bg-[var(--green)]" : "bg-[var(--paper-rule)]"}`} />
+            <h3 className="font-semibold text-[var(--ink)] text-sm">{workflow.name}</h3>
+            <span className="px-1.5 py-0.5 rounded-sm bg-[var(--paper-warm)] text-[var(--ink-faint)] text-xs font-medium">
               {TRIGGER_LABELS[workflow.trigger_type] ?? workflow.trigger_type}
             </span>
-            <span className="text-xs text-[#a09080]">v{workflow.version}</span>
+            <span className="text-xs text-[var(--ink-faint)]">v{workflow.version}</span>
           </div>
           {workflow.description && (
-            <p className="text-xs text-[#a09080] mt-0.5 line-clamp-2">{workflow.description}</p>
+            <p className="text-xs text-[var(--ink-faint)] mt-0.5 line-clamp-2">{workflow.description}</p>
           )}
           {triggerError && (
-            <p className="text-xs text-[#8b5e52] mt-1">{triggerError}</p>
+            <p className="text-xs text-[var(--accent-red)] mt-1">{triggerError}</p>
           )}
         </div>
 
@@ -105,7 +105,7 @@ function WorkflowCard({
             <button
               onClick={() => void handleTrigger()}
               disabled={triggering}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[#a09080] text-white rounded-sm text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[var(--ink-faint)] text-white rounded-sm text-xs font-medium transition-colors"
             >
               {triggering
                 ? <RefreshCw size={12} className="animate-spin" />
@@ -115,7 +115,7 @@ function WorkflowCard({
           )}
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="flex items-center gap-1 px-2 py-1.5 border border-[#e2ddd4] text-[#a09080] hover:bg-[#f7f4ee] rounded-sm text-xs transition-colors"
+            className="flex items-center gap-1 px-2 py-1.5 border border-[var(--paper-rule)] text-[var(--ink-faint)] hover:bg-[var(--paper-warm)] rounded-sm text-xs transition-colors"
           >
             Läufe
             {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -124,13 +124,13 @@ function WorkflowCard({
       </div>
 
       {expanded && (
-        <div className="border-t border-[#e2ddd4]">
+        <div className="border-t border-[var(--paper-rule)]">
           {!executions ? (
             <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#8b5e52]" />
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[var(--accent-red)]" />
             </div>
           ) : executions.length === 0 ? (
-            <p className="text-center text-xs text-[#a09080] py-4">Noch keine Ausführungen.</p>
+            <p className="text-center text-xs text-[var(--ink-faint)] py-4">Noch keine Ausführungen.</p>
           ) : (
             <div>
               {executions.slice(0, 10).map((e) => (
@@ -164,12 +164,12 @@ export default function WorkflowsPage({ params }: { params: Promise<{ org: strin
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1c1810] flex items-center gap-2">
-            <Workflow size={24} className="text-[#8b5e52]" />
+          <h1 className="text-2xl font-bold text-[var(--ink)] flex items-center gap-2">
+            <Workflow size={24} className="text-[var(--accent-red)]" />
             Workflows
           </h1>
           {workflows && (
-            <p className="text-[#a09080] mt-1 text-sm">
+            <p className="text-[var(--ink-faint)] mt-1 text-sm">
               {workflows.length} {workflows.length === 1 ? "Workflow" : "Workflows"}{" "}
               · {activeCount} aktiv
             </p>
@@ -188,13 +188,13 @@ export default function WorkflowsPage({ params }: { params: Promise<{ org: strin
       </div>
 
       {/* n8n Info Banner */}
-      <div className="flex items-start gap-3 p-4 bg-[#f7f4ee] border border-[#e2ddd4] rounded-sm">
+      <div className="flex items-start gap-3 p-4 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm">
         <div className="w-8 h-8 rounded-sm bg-[#EA4B71] flex items-center justify-center shrink-0">
           <Workflow size={16} className="text-white" />
         </div>
         <div>
-          <p className="text-sm font-medium text-[#1c1810]">n8n Workflow-Automatisierung</p>
-          <p className="text-xs text-[#a09080] mt-0.5">
+          <p className="text-sm font-medium text-[var(--ink)]">n8n Workflow-Automatisierung</p>
+          <p className="text-xs text-[var(--ink-faint)] mt-0.5">
             Workflows werden in n8n erstellt und verwaltet. Hier siehst du eine Übersicht der registrierten Workflows und kannst manuelle Ausführungen starten.
           </p>
         </div>
@@ -203,21 +203,21 @@ export default function WorkflowsPage({ params }: { params: Promise<{ org: strin
       {/* Workflow list */}
       {isLoading && (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#8b5e52]" />
+          <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[var(--accent-red)]" />
         </div>
       )}
 
       {error && (
-        <div className="p-4 bg-[rgba(139,94,82,.08)] border border-[#8b5e52] rounded-sm text-[#8b5e52] text-sm">
+        <div className="p-4 bg-[rgba(var(--accent-red-rgb),.08)] border border-[var(--accent-red)] rounded-sm text-[var(--accent-red)] text-sm">
           Fehler beim Laden der Workflows.
         </div>
       )}
 
       {workflows && workflows.length === 0 && (
-        <div className="text-center py-16 bg-[#faf9f6] rounded-sm border border-[#e2ddd4]">
-          <Workflow size={40} className="mx-auto mb-3 text-[#a09080]" />
-          <h3 className="text-base font-semibold text-[#5a5040] mb-1">Noch keine Workflows</h3>
-          <p className="text-sm text-[#a09080] mb-5">
+        <div className="text-center py-16 bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)]">
+          <Workflow size={40} className="mx-auto mb-3 text-[var(--ink-faint)]" />
+          <h3 className="text-base font-semibold text-[var(--ink-mid)] mb-1">Noch keine Workflows</h3>
+          <p className="text-sm text-[var(--ink-faint)] mb-5">
             Erstelle Workflows in n8n und registriere sie hier über die API.
           </p>
           <a

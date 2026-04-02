@@ -10,13 +10,13 @@ import { LayoutList, Columns, Plus, GitBranch, AlertTriangle, Layers } from "luc
 import { StoryCard } from "@/components/stories/StoryCard";
 
 const COLUMNS: { status: StoryStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
-  { status: "draft",       label: "Entwurf",        color: "bg-[#f7f4ee] text-[#5a5040] border-[#e2ddd4]",                        dot: "bg-[#cec8bc]",   dropHighlight: "ring-2 ring-[#a09080] bg-[#f7f4ee]" },
-  { status: "in_review",   label: "Überarbeitung",   color: "bg-[rgba(90,80,104,.08)] text-[#5a5068] border-[rgba(139,94,82,.3)]", dot: "bg-[#5a5068]",  dropHighlight: "ring-2 ring-[#5a5068] bg-[rgba(90,80,104,.08)]" },
-  { status: "ready",       label: "Bereit",          color: "bg-[rgba(74,85,104,.06)] text-[#4a5568] border-[#e2ddd4]",            dot: "bg-[#4a5568]",   dropHighlight: "ring-2 ring-[#4a5568] bg-[rgba(74,85,104,.06)]" },
-  { status: "in_progress", label: "In Arbeit",       color: "bg-[rgba(122,100,80,.1)] text-[#7a6450] border-[#e2ddd4]",            dot: "bg-[#7a6450]",   dropHighlight: "ring-2 ring-[#7a6450] bg-[rgba(122,100,80,.1)]" },
-  { status: "testing",     label: "Test",            color: "bg-[rgba(139,94,82,.08)] text-[#8b5e52] border-[#e2ddd4]",           dot: "bg-[#8b5e52]",   dropHighlight: "ring-2 ring-[#8b5e52] bg-[rgba(139,94,82,.08)]" },
-  { status: "done",        label: "Fertig",          color: "bg-[rgba(82,107,94,.1)] text-[#526b5e] border-[#e2ddd4]",            dot: "bg-[#526b5e]",   dropHighlight: "ring-2 ring-[#526b5e] bg-[rgba(82,107,94,.1)]" },
-  { status: "archived",    label: "Archiviert",      color: "bg-[#f7f4ee] text-[#a09080] border-[#e2ddd4]",                       dot: "bg-[#cec8bc]",   dropHighlight: "ring-2 ring-[#cec8bc] bg-[#f7f4ee]" },
+  { status: "draft",       label: "Entwurf",        color: "bg-[var(--paper-warm)] text-[var(--ink-mid)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",   dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
+  { status: "in_review",   label: "Überarbeitung",   color: "bg-[rgba(var(--btn-primary-rgb),.08)] text-[var(--btn-primary)] border-[rgba(var(--accent-red-rgb),.3)]", dot: "bg-[var(--btn-primary)]",  dropHighlight: "ring-2 ring-[var(--btn-primary)] bg-[rgba(var(--btn-primary-rgb),.08)]" },
+  { status: "ready",       label: "Bereit",          color: "bg-[rgba(74,85,104,.06)] text-[var(--navy)] border-[var(--paper-rule)]",            dot: "bg-[var(--navy)]",   dropHighlight: "ring-2 ring-[var(--navy)] bg-[rgba(74,85,104,.06)]" },
+  { status: "in_progress", label: "In Arbeit",       color: "bg-[rgba(122,100,80,.1)] text-[var(--brown)] border-[var(--paper-rule)]",            dot: "bg-[var(--brown)]",   dropHighlight: "ring-2 ring-[var(--brown)] bg-[rgba(122,100,80,.1)]" },
+  { status: "testing",     label: "Test",            color: "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] border-[var(--paper-rule)]",           dot: "bg-[var(--accent-red)]",   dropHighlight: "ring-2 ring-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)]" },
+  { status: "done",        label: "Fertig",          color: "bg-[rgba(82,107,94,.1)] text-[var(--green)] border-[var(--paper-rule)]",            dot: "bg-[var(--green)]",   dropHighlight: "ring-2 ring-[var(--green)] bg-[rgba(82,107,94,.1)]" },
+  { status: "archived",    label: "Archiviert",      color: "bg-[var(--paper-warm)] text-[var(--ink-faint)] border-[var(--paper-rule)]",                       dot: "bg-[var(--ink-faintest)]",   dropHighlight: "ring-2 ring-[var(--ink-faintest)] bg-[var(--paper-warm)]" },
 ];
 
 function getQualityScore(story: UserStory): number | null {
@@ -120,14 +120,14 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-[#1c1810]">User Stories</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">User Stories</h1>
           {total > 0 && (
-            <p className="text-[#a09080] mt-0.5 text-sm">{total} {total === 1 ? "Story" : "Stories"}</p>
+            <p className="text-[var(--ink-faint)] mt-0.5 text-sm">{total} {total === 1 ? "Story" : "Stories"}</p>
           )}
         </div>
         <Link
           href={`/${resolvedParams.org}/stories/new`}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a5068] hover:bg-[#7a5248] text-white rounded-sm text-sm font-medium transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus size={16} />
           Neue Story
@@ -135,28 +135,28 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
       </div>
 
       {/* View tabs */}
-      <div className="flex gap-1 border-b border-[#e2ddd4] shrink-0 overflow-x-auto">
+      <div className="flex gap-1 border-b border-[var(--paper-rule)] shrink-0 overflow-x-auto">
         <Link
           href={`/${resolvedParams.org}/stories/list`}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap"
         >
           <LayoutList size={15} />
           Liste
         </Link>
-        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#8b5e52] text-[#8b5e52] whitespace-nowrap">
+        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[var(--accent-red)] text-[var(--accent-red)] whitespace-nowrap">
           <Columns size={15} />
           Board
         </span>
         <Link
           href={`/${resolvedParams.org}/stories/features/board`}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap"
         >
           <Layers size={15} />
           Features
         </Link>
         <Link
           href={`/${resolvedParams.org}/stories/epics/board`}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap"
         >
           <GitBranch size={15} />
           Epics
@@ -165,24 +165,24 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
 
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8b5e52]" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-red)]" />
         </div>
       )}
 
       {error && (
-        <div className="bg-[rgba(139,94,82,.08)] border border-[#e2ddd4] rounded-sm p-4 text-[#8b5e52] text-sm">
+        <div className="bg-[rgba(var(--accent-red-rgb),.08)] border border-[var(--paper-rule)] rounded-sm p-4 text-[var(--accent-red)] text-sm">
           Fehler beim Laden der Stories.
         </div>
       )}
 
       {!isLoading && !error && stories && stories.length === 0 && (
-        <div className="text-center py-16 bg-[#faf9f6] rounded-sm border border-[#e2ddd4]">
+        <div className="text-center py-16 bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)]">
           <div className="text-4xl mb-4">📋</div>
-          <h3 className="text-lg font-semibold text-[#5a5040] mb-2">Noch keine User Stories</h3>
-          <p className="text-[#a09080] mb-6 text-sm">Erstelle deine erste User Story.</p>
+          <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Noch keine User Stories</h3>
+          <p className="text-[var(--ink-faint)] mb-6 text-sm">Erstelle deine erste User Story.</p>
           <Link
             href={`/${resolvedParams.org}/stories/new`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a5068] hover:bg-[#7a5248] text-white rounded-sm text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
             Erste Story erstellen
@@ -210,15 +210,15 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
                   onDragEnter={(e) => handleDragEnter(e, col.status)}
                   onDragLeave={(e) => handleDragLeave(e, col.status)}
                   onDrop={(e) => void handleDrop(e, col.status)}
-                  className={`flex-1 rounded-b-sm border border-[#e2ddd4] p-2 space-y-2 min-h-[120px] transition-all ${
-                    isOver ? col.dropHighlight : "bg-[#faf9f6]"
+                  className={`flex-1 rounded-b-sm border border-[var(--paper-rule)] p-2 space-y-2 min-h-[120px] transition-all ${
+                    isOver ? col.dropHighlight : "bg-[var(--paper)]"
                   }`}
                 >
                   {isOver && dragId && (
                     <div className="border-2 border-dashed border-current rounded-sm h-12 opacity-40" />
                   )}
                   {colStories.length === 0 && !isOver && (
-                    <p className="text-xs text-[#a09080] text-center py-8">Keine Stories</p>
+                    <p className="text-xs text-[var(--ink-faint)] text-center py-8">Keine Stories</p>
                   )}
                   {colStories.map((story) => (
                     <StoryCard
@@ -239,13 +239,13 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
       )}
 
       {dragId && !blockedMsg && (
-        <p className="fixed bottom-4 left-1/2 -translate-x-1/2 text-xs bg-[#1c1810] text-white px-3 py-1.5 rounded-full pointer-events-none z-50">
+        <p className="fixed bottom-4 left-1/2 -translate-x-1/2 text-xs bg-[var(--ink)] text-white px-3 py-1.5 rounded-full pointer-events-none z-50">
           Story in eine andere Spalte ziehen
         </p>
       )}
 
       {blockedMsg && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 text-xs bg-[#8b5e52] text-white px-4 py-2 rounded-full pointer-events-none z-50">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 text-xs bg-[var(--accent-red)] text-white px-4 py-2 rounded-full pointer-events-none z-50">
           <AlertTriangle size={13} />
           {blockedMsg}
         </div>

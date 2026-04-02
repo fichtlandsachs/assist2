@@ -32,7 +32,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={copy}
-      className="flex items-center gap-1 text-xs text-[#a09080] hover:text-[#5a5040] transition-colors"
+      className="flex items-center gap-1 text-xs text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors"
     >
       <Copy size={12} />
       {copied ? "Kopiert!" : "Kopieren"}
@@ -170,20 +170,20 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-[#1c1810]">Dokumentation</h1>
-        <p className="text-[#a09080] mt-1 text-sm">
+        <h1 className="text-2xl font-bold text-[var(--ink)]">Dokumentation</h1>
+        <p className="text-[var(--ink-faint)] mt-1 text-sm">
           Generierte Dokumentation für User Stories
         </p>
       </div>
 
       {/* Story selection + generate */}
-      <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6 space-y-4">
-        <h2 className="text-base font-semibold text-[#1c1810]">Story auswählen</h2>
+      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6 space-y-4">
+        <h2 className="text-base font-semibold text-[var(--ink)]">Story auswählen</h2>
 
         {!stories ? (
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8b5e52]" />
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--accent-red)]" />
         ) : stories.length === 0 ? (
-          <p className="text-sm text-[#a09080]">Keine User Stories vorhanden. Erstelle zuerst eine Story.</p>
+          <p className="text-sm text-[var(--ink-faint)]">Keine User Stories vorhanden. Erstelle zuerst eine Story.</p>
         ) : (
           <div className="flex gap-3">
             <select
@@ -196,7 +196,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
                 setPdfPath(null);
                 setPdfError(null);
               }}
-              className="flex-1 px-3 py-2 border border-[#cec8bc] rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[#8b5e52]"
+              className="flex-1 px-3 py-2 border border-[var(--ink-faintest)] rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-red)]"
             >
               <option value="">-- Story wählen --</option>
               {stories.map((s) => (
@@ -208,7 +208,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             <button
               onClick={() => void handleGenerate()}
               disabled={!selectedStoryId || generating}
-              className="flex items-center gap-2 px-4 py-2 bg-[#8b5e52] hover:bg-[#7a5248] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
             >
               <Sparkles size={16} />
               {generating ? "Generiere…" : "Generieren"}
@@ -217,7 +217,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
         )}
 
         {selectedStory && (
-          <div className="bg-[#f7f4ee] rounded-sm p-3 text-sm text-[#5a5040] space-y-1">
+          <div className="bg-[var(--paper-warm)] rounded-sm p-3 text-sm text-[var(--ink-mid)] space-y-1">
             <p><span className="font-medium">Titel:</span> {selectedStory.title}</p>
             {selectedStory.description && (
               <p><span className="font-medium">Beschreibung:</span> {selectedStory.description}</p>
@@ -230,7 +230,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
         )}
 
         {error && (
-          <div className="bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] text-[#8b5e52] text-sm rounded-sm px-4 py-3">
+          <div className="bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] text-[var(--accent-red)] text-sm rounded-sm px-4 py-3">
             {error}
           </div>
         )}
@@ -241,38 +241,38 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
         <>
           <div className="space-y-4">
             {/* Summary */}
-            <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
+            <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-[#1c1810] flex items-center gap-2">
-                  <FileText size={18} className="text-[#8b5e52]" />
+                <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
+                  <FileText size={18} className="text-[var(--accent-red)]" />
                   Zusammenfassung
                 </h2>
                 <CopyButton text={result.summary} />
               </div>
-              <p className="text-sm text-[#5a5040] leading-relaxed">{result.summary}</p>
+              <p className="text-sm text-[var(--ink-mid)] leading-relaxed">{result.summary}</p>
             </div>
 
             {/* Changelog */}
-            <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
+            <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-[#1c1810]">Changelog-Eintrag</h2>
+                <h2 className="text-base font-semibold text-[var(--ink)]">Changelog-Eintrag</h2>
                 <CopyButton text={result.changelog_entry} />
               </div>
-              <pre className="text-sm text-[#5a5040] bg-[#f7f4ee] rounded-sm p-3 whitespace-pre-wrap font-mono">
+              <pre className="text-sm text-[var(--ink-mid)] bg-[var(--paper-warm)] rounded-sm p-3 whitespace-pre-wrap font-mono">
                 {result.changelog_entry}
               </pre>
             </div>
 
             {/* PDF Outline */}
-            <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
+            <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-[#1c1810]">Dokumentgliederung</h2>
+                <h2 className="text-base font-semibold text-[var(--ink)]">Dokumentgliederung</h2>
                 <CopyButton text={result.pdf_outline.map((item, i) => `${i + 1}. ${item}`).join("\n")} />
               </div>
               <ol className="space-y-2">
                 {result.pdf_outline.map((item, index) => (
-                  <li key={index} className="flex items-center gap-3 text-sm text-[#5a5040]">
-                    <span className="w-6 h-6 rounded-full bg-[rgba(139,94,82,.08)] text-[#8b5e52] flex items-center justify-center text-xs font-bold shrink-0">
+                  <li key={index} className="flex items-center gap-3 text-sm text-[var(--ink-mid)]">
+                    <span className="w-6 h-6 rounded-full bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] flex items-center justify-center text-xs font-bold shrink-0">
                       {index + 1}
                     </span>
                     {item}
@@ -282,26 +282,26 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             </div>
 
             {/* Technical Notes */}
-            <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6">
+            <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-[#1c1810]">Technische Hinweise</h2>
+                <h2 className="text-base font-semibold text-[var(--ink)]">Technische Hinweise</h2>
                 <CopyButton text={result.technical_notes} />
               </div>
-              <p className="text-sm text-[#5a5040] leading-relaxed">{result.technical_notes}</p>
+              <p className="text-sm text-[var(--ink-mid)] leading-relaxed">{result.technical_notes}</p>
             </div>
           </div>
 
           {/* Save panel */}
-          <div className="bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-6 space-y-4">
-            <h2 className="text-base font-semibold text-[#1c1810] flex items-center gap-2">
-              <Save size={16} className="text-[#a09080]" />
+          <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6 space-y-4">
+            <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
+              <Save size={16} className="text-[var(--ink-faint)]" />
               Dokumentation speichern
             </h2>
 
             {/* Confluence option */}
             {confluenceConfig?.configured && (
-              <div className="space-y-3 border border-[#e2ddd4] rounded-sm p-4 bg-[#f7f4ee]">
-                <p className="text-sm font-medium text-[#5a5040] flex items-center gap-2">
+              <div className="space-y-3 border border-[var(--paper-rule)] rounded-sm p-4 bg-[var(--paper-warm)]">
+                <p className="text-sm font-medium text-[var(--ink-mid)] flex items-center gap-2">
                   <img
                     src="https://cdn.worldvectorlogo.com/logos/confluence-1.svg"
                     alt="Confluence"
@@ -309,18 +309,18 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />
                   In Confluence veröffentlichen
-                  <span className="text-xs font-normal text-[#a09080]">(optional)</span>
+                  <span className="text-xs font-normal text-[var(--ink-faint)]">(optional)</span>
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-[#5a5040] mb-1">
+                    <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">
                       Space
                     </label>
                     <select
                       value={confluenceSpaceKey}
                       onChange={(e) => setConfluenceSpaceKey(e.target.value)}
-                      className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-1 focus:ring-[#8b5e52] bg-[#faf9f6]"
+                      className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
                     >
                       <option value="">— Kein Confluence —</option>
                       {confluenceConfig.spaces.map((sp) => (
@@ -331,16 +331,16 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[#5a5040] mb-1">
+                    <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">
                       Übergeordnete Seite ID
-                      <span className="font-normal text-[#a09080] ml-1">(optional)</span>
+                      <span className="font-normal text-[var(--ink-faint)] ml-1">(optional)</span>
                     </label>
                     <input
                       type="text"
                       value={confluenceParentPageId}
                       onChange={(e) => setConfluenceParentPageId(e.target.value)}
                       placeholder="z.B. 12345678"
-                      className="w-full px-3 py-1.5 text-sm border border-[#cec8bc] rounded-sm outline-none focus:border-[#8b5e52] focus:ring-1 focus:ring-[#8b5e52] bg-[#faf9f6]"
+                      className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
                     />
                   </div>
                 </div>
@@ -348,29 +348,29 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             )}
 
             {confluenceConfig && !confluenceConfig.configured && (
-              <p className="text-xs text-[#a09080] flex items-center gap-1.5">
+              <p className="text-xs text-[var(--ink-faint)] flex items-center gap-1.5">
                 Confluence nicht konfiguriert —
-                setze <code className="bg-[#f7f4ee] px-1 rounded-sm">CONFLUENCE_BASE_URL</code>,{" "}
-                <code className="bg-[#f7f4ee] px-1 rounded-sm">CONFLUENCE_USER</code> und{" "}
-                <code className="bg-[#f7f4ee] px-1 rounded-sm">CONFLUENCE_API_TOKEN</code> in der <code className="bg-[#f7f4ee] px-1 rounded-sm">.env</code>.
+                setze <code className="bg-[var(--paper-warm)] px-1 rounded-sm">CONFLUENCE_BASE_URL</code>,{" "}
+                <code className="bg-[var(--paper-warm)] px-1 rounded-sm">CONFLUENCE_USER</code> und{" "}
+                <code className="bg-[var(--paper-warm)] px-1 rounded-sm">CONFLUENCE_API_TOKEN</code> in der <code className="bg-[var(--paper-warm)] px-1 rounded-sm">.env</code>.
               </p>
             )}
 
             {saveError && (
-              <div className="p-3 bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] rounded-sm text-[#8b5e52] text-sm">
+              <div className="p-3 bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm text-[var(--accent-red)] text-sm">
                 {saveError}
               </div>
             )}
 
             {result.nextcloud_path && (
-              <div className="flex items-center gap-2 p-3 bg-[rgba(74,85,104,.06)] border border-[#e2ddd4] rounded-sm text-[#4a5568] text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(74,85,104,.06)] border border-[var(--paper-rule)] rounded-sm text-[var(--navy)] text-sm">
                 <Folder size={16} className="shrink-0" />
                 <span className="flex-1">PDF in Nextcloud: <span className="font-mono text-xs">{result.nextcloud_path.split("/").pop()}</span></span>
               </div>
             )}
 
             {saved && result.confluence_page_url && (
-              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[#e2ddd4] rounded-sm text-[#526b5e] text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[var(--paper-rule)] rounded-sm text-[var(--green)] text-sm">
                 <CheckCircle size={16} className="shrink-0" />
                 <span>In Confluence veröffentlicht:</span>
                 <a
@@ -385,20 +385,20 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             )}
 
             {saved && !result.confluence_page_url && (
-              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[#e2ddd4] rounded-sm text-[#526b5e] text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[var(--paper-rule)] rounded-sm text-[var(--green)] text-sm">
                 <CheckCircle size={16} className="shrink-0" />
                 Dokumentation gespeichert.
               </div>
             )}
 
             {pdfError && (
-              <div className="p-3 bg-[rgba(139,94,82,.08)] border border-[rgba(139,94,82,.3)] rounded-sm text-[#8b5e52] text-sm">
+              <div className="p-3 bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm text-[var(--accent-red)] text-sm">
                 {pdfError}
               </div>
             )}
 
             {pdfPath && (
-              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[#e2ddd4] rounded-sm text-[#526b5e] text-sm">
+              <div className="flex items-center gap-2 p-3 bg-[rgba(82,107,94,.1)] border border-[var(--paper-rule)] rounded-sm text-[var(--green)] text-sm">
                 <CheckCircle size={16} className="shrink-0" />
                 <span>PDF gespeichert in Nextcloud: <span className="font-mono text-xs">{pdfPath}</span></span>
               </div>
@@ -408,7 +408,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
               <button
                 onClick={() => void handleSave()}
                 disabled={saving}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#8b5e52] hover:bg-[#7a5248] disabled:bg-[rgba(139,94,82,.08)] text-white rounded-sm text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[rgba(var(--accent-red-rgb),.08)] text-white rounded-sm text-sm font-medium transition-colors"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -420,7 +420,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
               <button
                 onClick={() => void handleGeneratePdf()}
                 disabled={pdfGenerating}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#5a5040] hover:bg-[#1c1810] disabled:opacity-50 text-white rounded-sm text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--ink-mid)] hover:bg-[var(--ink)] disabled:opacity-50 text-white rounded-sm text-sm font-medium transition-colors"
               >
                 {pdfGenerating ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />

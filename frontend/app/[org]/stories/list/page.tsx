@@ -31,13 +31,13 @@ const STATUS_LABELS: Record<StoryStatus, string> = {
 };
 
 const STATUS_COLORS: Record<StoryStatus, string> = {
-  draft:       "bg-[#f7f4ee] text-[#5a5040]",
-  in_review:   "bg-[rgba(90,80,104,.08)] text-[#5a5068]",
-  ready:       "bg-[rgba(74,85,104,.06)] text-[#4a5568]",
-  in_progress: "bg-[rgba(122,100,80,.1)] text-[#7a6450]",
-  testing:     "bg-[rgba(139,94,82,.08)] text-[#8b5e52]",
-  done:        "bg-[rgba(82,107,94,.1)] text-[#526b5e]",
-  archived:    "bg-[#ece8e0] text-[#a09080]",
+  draft:       "bg-[var(--paper-warm)] text-[var(--ink-mid)]",
+  in_review:   "bg-[rgba(var(--btn-primary-rgb),.08)] text-[var(--btn-primary)]",
+  ready:       "bg-[rgba(74,85,104,.06)] text-[var(--navy)]",
+  in_progress: "bg-[rgba(122,100,80,.1)] text-[var(--brown)]",
+  testing:     "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]",
+  done:        "bg-[rgba(82,107,94,.1)] text-[var(--green)]",
+  archived:    "bg-[var(--paper-rule2)] text-[var(--ink-faint)]",
 };
 
 const PRIORITY_LABELS: Record<StoryPriority, string> = {
@@ -48,10 +48,10 @@ const PRIORITY_LABELS: Record<StoryPriority, string> = {
 };
 
 const PRIORITY_COLORS: Record<StoryPriority, string> = {
-  low:      "text-[#a09080]",
-  medium:   "text-[#4a5568]",
-  high:     "text-[#7a6450]",
-  critical: "text-[#8b5e52]",
+  low:      "text-[var(--ink-faint)]",
+  medium:   "text-[var(--navy)]",
+  high:     "text-[var(--brown)]",
+  critical: "text-[var(--accent-red)]",
 };
 
 export default function StoriesListPage({ params }: { params: Promise<{ org: string }> }) {
@@ -85,14 +85,14 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1c1810]">User Stories</h1>
-          <p className="text-[#a09080] mt-1">
+          <h1 className="text-2xl font-bold text-[var(--ink)]">User Stories</h1>
+          <p className="text-[var(--ink-faint)] mt-1">
             {stories ? `${stories.length} ${stories.length === 1 ? "Story" : "Stories"}` : ""}
           </p>
         </div>
         <Link
           href={`/${resolvedParams.org}/stories/new`}
-          className="flex items-center gap-2 px-4 py-2 bg-[#5a5068] hover:bg-[#7a5248] text-white rounded-sm text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus size={16} />
           Neue Story
@@ -100,17 +100,17 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
       </div>
 
       {/* View tabs */}
-      <div className="flex gap-1 border-b border-[#e2ddd4] overflow-x-auto">
-        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[#8b5e52] text-[#8b5e52] whitespace-nowrap">
+      <div className="flex gap-1 border-b border-[var(--paper-rule)] overflow-x-auto">
+        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[var(--accent-red)] text-[var(--accent-red)] whitespace-nowrap">
           <LayoutList size={15} /> Liste
         </span>
-        <Link href={`/${resolvedParams.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
+        <Link href={`/${resolvedParams.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap">
           <Columns size={15} /> Board
         </Link>
-        <Link href={`/${resolvedParams.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
+        <Link href={`/${resolvedParams.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap">
           <Layers size={15} /> Features
         </Link>
-        <Link href={`/${resolvedParams.org}/stories/epics/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a09080] hover:text-[#5a5040] transition-colors whitespace-nowrap">
+        <Link href={`/${resolvedParams.org}/stories/epics/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap">
           <GitBranch size={15} /> Epics
         </Link>
       </div>
@@ -118,26 +118,26 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
       {/* Content */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8b5e52]" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-red)]" />
         </div>
       )}
 
       {error && (
-        <div className="bg-[rgba(139,94,82,.08)] border border-[#e2ddd4] rounded-sm p-4 text-[#8b5e52] text-sm">
+        <div className="bg-[rgba(var(--accent-red-rgb),.08)] border border-[var(--paper-rule)] rounded-sm p-4 text-[var(--accent-red)] text-sm">
           Fehler beim Laden der Stories.
         </div>
       )}
 
       {stories && stories.length === 0 && (
-        <div className="text-center py-16 bg-[#faf9f6] rounded-sm border border-[#e2ddd4]">
+        <div className="text-center py-16 bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)]">
           <div className="text-4xl mb-4">📋</div>
-          <h3 className="text-lg font-semibold text-[#5a5040] mb-2">Noch keine User Stories</h3>
-          <p className="text-[#a09080] mb-6 text-sm">
+          <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Noch keine User Stories</h3>
+          <p className="text-[var(--ink-faint)] mb-6 text-sm">
             Erstelle deine erste User Story.
           </p>
           <Link
             href={`/${resolvedParams.org}/stories/new`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#5a5068] hover:bg-[#7a5248] text-white rounded-sm text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
             Erste Story erstellen
@@ -158,14 +158,14 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[status]}`}>
                     {STATUS_LABELS[status]}
                   </span>
-                  <span className="text-xs text-[#a09080]">{items.length}</span>
+                  <span className="text-xs text-[var(--ink-faint)]">{items.length}</span>
                 </div>
                 <div className="grid gap-2">
                   {items.map((story) => (
                     <Link
                       key={story.id}
                       href={`/${resolvedParams.org}/stories/${story.id}`}
-                      className="block bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-5 hover:border-[rgba(139,94,82,.3)] transition-all group"
+                      className="block bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all group"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
@@ -174,21 +174,21 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
                               ● {PRIORITY_LABELS[story.priority]}
                             </span>
                             {story.story_points !== null && (
-                              <span className="px-2 py-0.5 rounded-full bg-[#f7f4ee] text-[#5a5040] text-xs font-medium">
+                              <span className="px-2 py-0.5 rounded-full bg-[var(--paper-warm)] text-[var(--ink-mid)] text-xs font-medium">
                                 {story.story_points} SP
                               </span>
                             )}
                             {story.dor_passed && (
-                              <span className="px-2 py-0.5 rounded-full bg-[rgba(82,107,94,.1)] text-[#526b5e] text-xs font-medium">
+                              <span className="px-2 py-0.5 rounded-full bg-[rgba(82,107,94,.1)] text-[var(--green)] text-xs font-medium">
                                 ✓ DoR
                               </span>
                             )}
                           </div>
-                          <h3 className="font-semibold text-[#1c1810] truncate group-hover:text-[#8b5e52] transition-colors">
+                          <h3 className="font-semibold text-[var(--ink)] truncate group-hover:text-[var(--accent-red)] transition-colors">
                             {story.title}
                           </h3>
                           {story.description && (
-                            <p className="text-[#a09080] text-sm mt-1 line-clamp-2">{story.description}</p>
+                            <p className="text-[var(--ink-faint)] text-sm mt-1 line-clamp-2">{story.description}</p>
                           )}
                         </div>
 
@@ -199,10 +199,10 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
                               title={`Quality-Score: ${story.quality_score}/100`}
                               className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
                                 story.quality_score >= 75
-                                  ? "bg-[rgba(82,107,94,.1)] text-[#526b5e]"
+                                  ? "bg-[rgba(82,107,94,.1)] text-[var(--green)]"
                                   : story.quality_score >= 50
-                                  ? "bg-[rgba(122,100,80,.1)] text-[#7a6450]"
-                                  : "bg-[rgba(139,94,82,.08)] text-[#8b5e52]"
+                                  ? "bg-[rgba(122,100,80,.1)] text-[var(--brown)]"
+                                  : "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]"
                               }`}
                             >
                               {story.quality_score < 50 && <AlertTriangle size={11} />}
@@ -212,7 +212,7 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
                           <button
                             onClick={(e) => void handleDelete(e, story.id)}
                             disabled={deleting === story.id}
-                            className="p-2 rounded-sm text-[#cec8bc] hover:text-[#8b5e52] hover:bg-[rgba(139,94,82,.08)] transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+                            className="p-2 rounded-sm text-[var(--ink-faintest)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] transition-colors sm:opacity-0 sm:group-hover:opacity-100"
                             aria-label="Story löschen"
                           >
                             <Trash2 size={16} />

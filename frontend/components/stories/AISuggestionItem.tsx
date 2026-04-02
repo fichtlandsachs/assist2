@@ -19,11 +19,11 @@ export interface AISuggestionItemProps {
 const SOURCE_STYLES: Record<AISuggestionSource, { label: string; cls: string }> = {
   doc: {
     label: "Doc",
-    cls: "text-[#526b5e] bg-[rgba(82,107,94,.08)] border-[rgba(82,107,94,.3)]",
+    cls: "text-[var(--green)] bg-[rgba(82,107,94,.08)] border-[rgba(82,107,94,.3)]",
   },
   ki: {
     label: "KI",
-    cls: "text-[#a09080] bg-[rgba(160,144,128,.07)] border-[#e2ddd4]",
+    cls: "text-[var(--ink-faint)] bg-[rgba(160,144,128,.07)] border-[var(--paper-rule)]",
   },
 };
 
@@ -38,12 +38,12 @@ export function AISuggestionItem({ text, category, source, onAdd }: AISuggestion
   const sourceMeta = source ? SOURCE_STYLES[source] : null;
 
   return (
-    <div className="relative flex items-start gap-2 px-3 py-2.5 border border-[#e2ddd4] rounded-sm bg-[#faf9f6] hover:border-[rgba(139,94,82,.3)] transition-colors group">
+    <div className="relative flex items-start gap-2 px-3 py-2.5 border border-[var(--paper-rule)] rounded-sm bg-[var(--paper)] hover:border-[rgba(var(--accent-red-rgb),.3)] transition-colors group">
       <div className="flex-1 min-w-0">
         {(category || sourceMeta) && (
           <div className="flex items-center gap-1.5 mb-1">
             {category && (
-              <span className="shrink-0 px-1.5 py-0.5 bg-[rgba(139,94,82,.08)] text-[#8b5e52] rounded-sm text-[7px] font-medium uppercase tracking-[.06em] [font-family:var(--font-mono)]">
+              <span className="shrink-0 px-1.5 py-0.5 bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] rounded-sm text-[7px] font-medium uppercase tracking-[.06em] [font-family:var(--font-mono)]">
                 {category}
               </span>
             )}
@@ -57,7 +57,7 @@ export function AISuggestionItem({ text, category, source, onAdd }: AISuggestion
             )}
           </div>
         )}
-        <span className="text-sm text-[#5a5040] break-words leading-snug">{text}</span>
+        <span className="text-sm text-[var(--ink-mid)] break-words leading-snug">{text}</span>
       </div>
 
       {/* Plus button — top-right corner, revealed on hover */}
@@ -65,7 +65,7 @@ export function AISuggestionItem({ text, category, source, onAdd }: AISuggestion
         type="button"
         onClick={onAdd}
         aria-label="Vorschlag übernehmen"
-        className="absolute top-[6px] right-[6px] w-[18px] h-[18px] flex items-center justify-center bg-[rgba(139,94,82,.08)] border-[0.5px] border-[rgba(139,94,82,.3)] text-[#8b5e52] rounded-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-[#8b5e52] hover:text-white"
+        className="absolute top-[6px] right-[6px] w-[18px] h-[18px] flex items-center justify-center bg-[rgba(var(--accent-red-rgb),.08)] border-[0.5px] border-[rgba(var(--accent-red-rgb),.3)] text-[var(--accent-red)] rounded-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent-red)] hover:text-white"
       >
         <Plus size={10} />
       </button>

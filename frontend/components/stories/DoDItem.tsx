@@ -23,7 +23,7 @@ export function DoDItem({ text, done, onToggle, onDelete, readOnly = false }: Do
       className={`flex items-start gap-3 px-3 py-2.5 rounded-sm border transition-colors group ${
         done
           ? "bg-[rgba(82,107,94,.1)] border-[rgba(82,107,94,.3)]"
-          : "bg-[#faf9f6] border-[#e2ddd4]"
+          : "bg-[var(--paper)] border-[var(--paper-rule)]"
       }`}
     >
       <button
@@ -32,8 +32,8 @@ export function DoDItem({ text, done, onToggle, onDelete, readOnly = false }: Do
         disabled={readOnly}
         className={`shrink-0 mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
           done
-            ? "bg-[#526b5e] border-[#526b5e]"
-            : "border-[#cec8bc] hover:border-[#526b5e] disabled:cursor-default"
+            ? "bg-[var(--green)] border-[var(--green)]"
+            : "border-[var(--ink-faintest)] hover:border-[var(--green)] disabled:cursor-default"
         }`}
       >
         {done && <CheckCircle size={10} className="text-white" />}
@@ -41,7 +41,7 @@ export function DoDItem({ text, done, onToggle, onDelete, readOnly = false }: Do
 
       <span
         className={`flex-1 min-w-0 text-sm break-words ${
-          done ? "line-through text-[#a09080]" : "text-[#5a5040]"
+          done ? "line-through text-[var(--ink-faint)]" : "text-[var(--ink-mid)]"
         }`}
       >
         {text}
@@ -51,7 +51,7 @@ export function DoDItem({ text, done, onToggle, onDelete, readOnly = false }: Do
         <button
           type="button"
           onClick={onDelete}
-          className="shrink-0 p-0.5 text-[#cec8bc] hover:text-[#8b5e52] opacity-0 group-hover:opacity-100 transition-all rounded-sm"
+          className="shrink-0 p-0.5 text-[var(--ink-faintest)] hover:text-[var(--accent-red)] opacity-0 group-hover:opacity-100 transition-all rounded-sm"
           aria-label="Kriterium entfernen"
         >
           <Trash2 size={13} />

@@ -37,12 +37,12 @@ type Tab = "org" | "personal";
 
 function FileIcon({ contentType }: { contentType: string }) {
   if (contentType.includes("spreadsheet") || contentType.includes("excel"))
-    return <FileSpreadsheet className="w-4 h-4 text-[#526b5e] flex-shrink-0" />;
+    return <FileSpreadsheet className="w-4 h-4 text-[var(--green)] flex-shrink-0" />;
   if (contentType.includes("word") || contentType.includes("document"))
-    return <FileText className="w-4 h-4 text-[#4a5568] flex-shrink-0" />;
+    return <FileText className="w-4 h-4 text-[var(--navy)] flex-shrink-0" />;
   if (contentType.includes("pdf"))
-    return <FileText className="w-4 h-4 text-[#8b5e52] flex-shrink-0" />;
-  return <File className="w-4 h-4 text-[#a09080] flex-shrink-0" />;
+    return <FileText className="w-4 h-4 text-[var(--accent-red)] flex-shrink-0" />;
+  return <File className="w-4 h-4 text-[var(--ink-faint)] flex-shrink-0" />;
 }
 
 function formatSize(bytes: number): string {
@@ -97,7 +97,7 @@ function FileList({
       <div className="flex items-center justify-end gap-2">
         <button
           onClick={onMutate}
-          className="flex items-center gap-1.5 text-sm text-[#5a5040] hover:text-[#1c1810] px-3 py-1.5 rounded-sm border border-[#e2ddd4] hover:bg-[#f7f4ee] transition-colors"
+          className="flex items-center gap-1.5 text-sm text-[var(--ink-mid)] hover:text-[var(--ink)] px-3 py-1.5 rounded-sm border border-[var(--paper-rule)] hover:bg-[var(--paper-warm)] transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Aktualisieren
@@ -105,7 +105,7 @@ function FileList({
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-1.5 text-sm text-white bg-[#4a5568] hover:bg-[#4a5568] disabled:opacity-50 px-3 py-1.5 rounded-sm transition-colors"
+          className="flex items-center gap-1.5 text-sm text-white bg-[var(--navy)] hover:bg-[var(--navy)] disabled:opacity-50 px-3 py-1.5 rounded-sm transition-colors"
         >
           <Upload className="w-3.5 h-3.5" />
           {uploading ? "Lädt…" : "Hochladen"}
@@ -120,7 +120,7 @@ function FileList({
 
       {/* Status */}
       {(uploadError || uploadSuccess) && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-sm text-sm ${uploadError ? "bg-[rgba(139,94,82,.08)] text-[#8b5e52] border border-[#8b5e52]" : "bg-[rgba(82,107,94,.1)] text-[#526b5e] border border-[#526b5e]"}`}>
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-sm text-sm ${uploadError ? "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] border border-[var(--accent-red)]" : "bg-[rgba(82,107,94,.1)] text-[var(--green)] border border-[var(--green)]"}`}>
           {uploadError ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> : <CheckCircle className="w-4 h-4 flex-shrink-0" />}
           <span className="flex-1">{uploadError ?? uploadSuccess}</span>
           <button onClick={onClearStatus}><X className="w-4 h-4" /></button>
@@ -129,53 +129,53 @@ function FileList({
 
       {/* Drop zone */}
       <div
-        className={`relative bg-[#faf9f6] border-2 ${dragging ? "border-[#4a5568] bg-[rgba(74,85,104,.06)]" : "border-[#e2ddd4]"} rounded-sm overflow-hidden transition-colors`}
+        className={`relative bg-[var(--paper)] border-2 ${dragging ? "border-[var(--navy)] bg-[rgba(74,85,104,.06)]" : "border-[var(--paper-rule)]"} rounded-sm overflow-hidden transition-colors`}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { setDragging(false); onDrop(e); }}
       >
         {dragging && (
           <div className="absolute inset-0 flex items-center justify-center bg-[rgba(74,85,104,.06)] z-10 rounded-sm">
-            <p className="text-[#4a5568] font-medium text-sm">Datei hier ablegen</p>
+            <p className="text-[var(--navy)] font-medium text-sm">Datei hier ablegen</p>
           </div>
         )}
 
-        {isLoading && <div className="px-6 py-12 text-center text-sm text-[#a09080]">Lädt…</div>}
+        {isLoading && <div className="px-6 py-12 text-center text-sm text-[var(--ink-faint)]">Lädt…</div>}
 
         {!isLoading && !!error && (
-          <div className="px-6 py-12 text-center text-sm text-[#a09080]">
+          <div className="px-6 py-12 text-center text-sm text-[var(--ink-faint)]">
             Nextcloud momentan nicht erreichbar.
           </div>
         )}
 
         {!isLoading && !error && data && data.files.length === 0 && (
           <div className="px-6 py-12 text-center">
-            <Folder className="w-8 h-8 text-[#a09080] mx-auto mb-3" />
-            <p className="text-sm text-[#a09080]">Noch keine Dateien.</p>
-            <p className="text-xs text-[#a09080] mt-1">Datei hochladen oder per Drag &amp; Drop ablegen.</p>
+            <Folder className="w-8 h-8 text-[var(--ink-faint)] mx-auto mb-3" />
+            <p className="text-sm text-[var(--ink-faint)]">Noch keine Dateien.</p>
+            <p className="text-xs text-[var(--ink-faint)] mt-1">Datei hochladen oder per Drag &amp; Drop ablegen.</p>
           </div>
         )}
 
         {!isLoading && !error && data && data.files.length > 0 && (
           <>
-            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 text-xs text-[#a09080] px-4 py-2 border-b border-[#e2ddd4] font-medium">
+            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 text-xs text-[var(--ink-faint)] px-4 py-2 border-b border-[var(--paper-rule)] font-medium">
               <span>Name</span>
               <span className="w-20 text-right pr-2">Größe</span>
               <span className="w-20 text-right pr-2">Geändert</span>
               <span className="w-10"></span>
             </div>
-            <ul className="divide-y divide-[#f7f4ee]">
+            <ul className="divide-y divide-[var(--paper-warm)]">
               {data.files.map((file) => (
-                <li key={file.href} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-0 px-4 py-3 hover:bg-[#f7f4ee] transition-colors">
+                <li key={file.href} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-0 px-4 py-3 hover:bg-[var(--paper-warm)] transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <FileIcon contentType={file.content_type} />
-                    <span className="text-sm text-[#1c1810] truncate">{file.name}</span>
+                    <span className="text-sm text-[var(--ink)] truncate">{file.name}</span>
                   </div>
-                  <span className="w-20 text-right text-xs text-[#a09080] pr-2">{formatSize(file.size)}</span>
-                  <span className="w-20 text-right text-xs text-[#a09080] pr-2">{formatDate(file.last_modified)}</span>
+                  <span className="w-20 text-right text-xs text-[var(--ink-faint)] pr-2">{formatSize(file.size)}</span>
+                  <span className="w-20 text-right text-xs text-[var(--ink-faint)] pr-2">{formatDate(file.last_modified)}</span>
                   <button
                     onClick={() => onDownload(file)}
-                    className="w-10 flex items-center justify-center text-[#a09080] hover:text-[#4a5568] transition-colors"
+                    className="w-10 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--navy)] transition-colors"
                     title="Herunterladen"
                   >
                     <Download className="w-4 h-4" />
@@ -187,8 +187,8 @@ function FileList({
         )}
 
         {data && (
-          <div className="px-4 py-2.5 border-t border-[#e2ddd4] bg-[#f7f4ee]">
-            <p className="text-xs text-[#a09080]">Drag &amp; Drop zum Hochladen · {data.files.length} Datei{data.files.length !== 1 ? "en" : ""}</p>
+          <div className="px-4 py-2.5 border-t border-[var(--paper-rule)] bg-[var(--paper-warm)]">
+            <p className="text-xs text-[var(--ink-faint)]">Drag &amp; Drop zum Hochladen · {data.files.length} Datei{data.files.length !== 1 ? "en" : ""}</p>
           </div>
         )}
       </div>
@@ -301,24 +301,24 @@ export default function NextcloudPage({ params }: { params: Promise<{ org: strin
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-9 h-9 rounded-sm bg-[rgba(74,85,104,.06)] flex items-center justify-center">
-          <Folder className="w-5 h-5 text-[#4a5568]" />
+          <Folder className="w-5 h-5 text-[var(--navy)]" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold text-[#1c1810]">Dateien</h1>
-          <p className="text-sm text-[#a09080]">{activeData?.files.length ?? 0} Dateien</p>
+          <h1 className="text-xl font-semibold text-[var(--ink)]">Dateien</h1>
+          <p className="text-sm text-[var(--ink-faint)]">{activeData?.files.length ?? 0} Dateien</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-[#f7f4ee] rounded-sm mb-6 w-fit">
+      <div className="flex gap-1 p-1 bg-[var(--paper-warm)] rounded-sm mb-6 w-fit">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
               tab === id
-                ? "bg-[#faf9f6] text-[#1c1810]"
-                : "text-[#a09080] hover:text-[#5a5040]"
+                ? "bg-[var(--paper)] text-[var(--ink)]"
+                : "text-[var(--ink-faint)] hover:text-[var(--ink-mid)]"
             }`}
           >
             <Icon className="w-4 h-4" />

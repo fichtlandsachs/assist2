@@ -33,23 +33,23 @@ export function FeatureCard({
         onDragStart?.(feature.id);
       }}
       onDragEnd={onDragEnd}
-      className={`bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-3.5 hover:border-[rgba(139,94,82,.3)] transition-all cursor-grab active:cursor-grabbing select-none ${
+      className={`bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-3.5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all cursor-grab active:cursor-grabbing select-none ${
         dragging ? "opacity-40 scale-95" : ""
       }`}
     >
-      <p className="text-sm font-semibold text-[#1c1810] line-clamp-2 mb-2.5 leading-snug">
+      <p className="text-sm font-semibold text-[var(--ink)] line-clamp-2 mb-2.5 leading-snug">
         {feature.title}
       </p>
 
       {feature.description && (
-        <p className="text-xs text-[#a09080] line-clamp-2 mb-2.5 leading-relaxed">
+        <p className="text-xs text-[var(--ink-faint)] line-clamp-2 mb-2.5 leading-relaxed">
           {feature.description}
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-2 mt-1 pt-2 border-t border-[#e2ddd4]">
+      <div className="flex items-center justify-between gap-2 mt-1 pt-2 border-t border-[var(--paper-rule)]">
         {feature.story_title ? (
-          <span className="flex items-center gap-1 text-[#a09080] [font-family:var(--font-mono)] text-[7px] uppercase tracking-[.06em] truncate min-w-0">
+          <span className="flex items-center gap-1 text-[var(--ink-faint)] [font-family:var(--font-mono)] text-[7px] uppercase tracking-[.06em] truncate min-w-0">
             <BookOpen size={9} className="shrink-0" />
             {feature.story_title}
           </span>

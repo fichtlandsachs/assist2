@@ -59,12 +59,12 @@ export function StoryCard({
         onDragStart?.(story.id);
       }}
       onDragEnd={onDragEnd}
-      className={`relative bg-[#faf9f6] rounded-sm border p-3.5 transition-all cursor-grab active:cursor-grabbing select-none group/card ${
+      className={`relative bg-[var(--paper)] rounded-sm border p-3.5 transition-all cursor-grab active:cursor-grabbing select-none group/card ${
         dragging ? "opacity-40 scale-95" : ""
       } ${
         lowScore
-          ? "border-[#7a6450] hover:border-[#7a6450]"
-          : "border-[#e2ddd4] hover:border-[rgba(139,94,82,.3)]"
+          ? "border-[var(--brown)] hover:border-[var(--brown)]"
+          : "border-[var(--paper-rule)] hover:border-[rgba(var(--accent-red-rgb),.3)]"
       }`}
     >
       {/* Validate button — top right, visible on hover */}
@@ -73,7 +73,7 @@ export function StoryCard({
           type="button"
           onClick={handleValidate}
           disabled={validating}
-          className="absolute top-[7px] right-[7px] flex items-center gap-[3px] px-1.5 py-[3px] bg-[rgba(82,107,94,.08)] border-[0.5px] border-[rgba(82,107,94,.3)] text-[#526b5e] rounded-sm [font-family:var(--font-mono)] text-[7px] uppercase tracking-[.06em] opacity-0 group-hover/card:opacity-100 transition-all hover:bg-[#526b5e] hover:text-white disabled:pointer-events-none"
+          className="absolute top-[7px] right-[7px] flex items-center gap-[3px] px-1.5 py-[3px] bg-[rgba(82,107,94,.08)] border-[0.5px] border-[rgba(82,107,94,.3)] text-[var(--green)] rounded-sm [font-family:var(--font-mono)] text-[7px] uppercase tracking-[.06em] opacity-0 group-hover/card:opacity-100 transition-all hover:bg-[var(--green)] hover:text-white disabled:pointer-events-none"
         >
           {validating ? (
             <span className="inline-block animate-spin w-[9px] h-[9px] rounded-full border border-current border-t-transparent" />
@@ -86,7 +86,7 @@ export function StoryCard({
 
       <Link
         href={`/${org}/stories/${story.id}`}
-        className="block text-sm font-semibold text-[#1c1810] hover:text-[#8b5e52] transition-colors line-clamp-2 mb-2.5 leading-snug"
+        className="block text-sm font-semibold text-[var(--ink)] hover:text-[var(--accent-red)] transition-colors line-clamp-2 mb-2.5 leading-snug"
         onClick={(e) => e.stopPropagation()}
         draggable={false}
       >
@@ -94,12 +94,12 @@ export function StoryCard({
       </Link>
 
       {story.description && (
-        <p className="text-xs text-[#a09080] line-clamp-2 mb-2.5 leading-relaxed">
+        <p className="text-xs text-[var(--ink-faint)] line-clamp-2 mb-2.5 leading-relaxed">
           {story.description}
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-1 mt-1 pt-2 border-t border-[#e2ddd4]">
+      <div className="flex flex-wrap items-center gap-1 mt-1 pt-2 border-t border-[var(--paper-rule)]">
         <PriorityBadge priority={story.priority} />
         {story.story_points !== null && (
           <StoryPointsBadge points={story.story_points} />
@@ -107,7 +107,7 @@ export function StoryCard({
         {score !== null && <QualityScoreBadge score={score} />}
         {story.dor_passed && <DoRBadge />}
         {story.is_split && (
-          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[10px] border-[0.5px] bg-[rgba(122,100,80,.08)] text-[#7a6450] border-[rgba(122,100,80,.3)] [font-family:var(--font-mono)] text-[7px] uppercase tracking-[.06em]">
+          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[10px] border-[0.5px] bg-[rgba(122,100,80,.08)] text-[var(--brown)] border-[rgba(122,100,80,.3)] [font-family:var(--font-mono)] text-[7px] uppercase tracking-[.06em]">
             <GitBranch size={8} />
             Aufgeteilt
           </span>
