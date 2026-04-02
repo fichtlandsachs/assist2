@@ -7,14 +7,22 @@ import {
   Workflow, Folder, Globe, Bell, Star, Zap, Users, Shield, MessageSquare,
   X, type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
 import { useAuth } from "@/lib/auth/context";
 import { usePluginRegistry } from "@/lib/plugins/registry";
 import { SlotRenderer } from "@/lib/plugins/slots";
+import { useTheme } from "@/lib/theme/context";
+import { KarlWidget } from "./KarlWidget";
 
 const PLUGIN_ICONS: Record<string, LucideIcon> = {
   folder: Folder, globe: Globe, bell: Bell, star: Star,
   zap: Zap, users: Users, file: FileText, workflow: Workflow,
+};
+
+// Agile: per-item icon colors via CSS variables
+const NAV_ICON_COLORS: Record<string, string> = {
+  dashboard:    "var(--nav-icon-dashboard)",
+  "ai-workspace": "var(--nav-icon-workspace)",
+  stories:      "var(--nav-icon-stories)",
 };
 
 interface SidebarProps {
@@ -28,6 +36,8 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { navEntries } = usePluginRegistry(orgId ?? "");
+  const { theme } = useTheme();
+  const isAgile = theme === "agile";
 
   const navItems = [
     { id: "dashboard",    label: "Dashboard",      icon: LayoutDashboard, route: `/${orgSlug}/dashboard` },
@@ -43,12 +53,51 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
       : []),
   ];
 
+  function navItemStyle(isActive: boolean) {
+    if (isAgile) {
+      return {
+        color: isActive ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
+        background: isActive ? undefined : "transparent",
+      };
+    }
+    return {
+      color: isActive ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
+      background: isActive ? "var(--sidebar-text-active-bg)" : "transparent",
+      borderLeft: isActive ? `2px solid var(--sidebar-active-border)` : "2px solid transparent",
+    };
+  }
+
+  function navItemTextStyle() {
+    if (isAgile) {
+      return {
+        fontFamily: "var(--font-mono)",
+        fontSize: "13px",
+        fontWeight: "bold" as const,
+        letterSpacing: "0em",
+        textTransform: "none" as const,
+      };
+    }
+    return {
+      fontFamily: "var(--font-mono)",
+      fontSize: "9px",
+      letterSpacing: ".08em",
+      textTransform: "uppercase" as const,
+    };
+  }
+
+  function iconColor(itemId: string, isActive: boolean) {
+    if (isAgile) {
+      return NAV_ICON_COLORS[itemId] ?? "var(--nav-icon-default)";
+    }
+    return isActive ? "var(--sidebar-text-active)" : "var(--sidebar-text)";
+  }
+
   const sidebarContent = (
     <aside
       style={{
         background: "var(--binding)",
         boxShadow: "1px 0 0 var(--sidebar-divider)",
-        width: "200px",
+        width: "var(--sidebar-width)",
         flexShrink: 0,
       }}
       className="flex flex-col h-full"
@@ -58,13 +107,21 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
         className="flex items-center justify-between px-4"
         style={{ height: "var(--topbar-height)", borderBottom: "1px solid var(--sidebar-divider)" }}
       >
-        <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "13px", color: "var(--sidebar-org-text)" }}>
+        <span
+          style={{
+            fontFamily: isAgile ? "var(--font-body)" : "var(--font-serif)",
+            fontStyle: isAgile ? "normal" : "italic",
+            fontWeight: isAgile ? 600 : undefined,
+            fontSize: isAgile ? "14px" : "13px",
+            color: "var(--sidebar-org-text)",
+          }}
+        >
           {orgSlug}
         </span>
         <button
           onClick={onMobileClose}
           className="md:hidden p-1 rounded"
-          style={{ color: "rgba(255,255,255,.4)" }}
+          style={{ color: "var(--sidebar-text)" }}
           aria-label="Sidebar schließen"
         >
           <X size={14} />
@@ -81,18 +138,13 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
               key={item.id}
               href={item.route}
               onClick={onMobileClose}
-              className="flex items-center gap-2.5 px-2 py-1.5 rounded-sm transition-all"
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                letterSpacing: ".08em",
-                textTransform: "uppercase",
-                color: isActive ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
-                background: isActive ? "var(--sidebar-text-active-bg)" : "transparent",
-                borderLeft: isActive ? `2px solid var(--sidebar-active-border)` : "2px solid transparent",
-              }}
+              className={`flex items-center gap-2.5 px-2 py-1.5 transition-all sidebar-nav-item${isActive ? " is-active" : ""}`}
+              style={{ ...navItemStyle(isActive), ...navItemTextStyle() }}
             >
-              <Icon size={13} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6 }} />
+              <Icon
+                size={isAgile ? 16 : 13}
+                style={{ flexShrink: 0, color: iconColor(item.id, isActive), opacity: isActive ? 1 : 0.7 }}
+              />
               <span className="truncate">{item.label}</span>
             </Link>
           );
@@ -110,18 +162,13 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
                 key={entry.id}
                 href={route}
                 onClick={onMobileClose}
-                className="flex items-center gap-2.5 px-2 py-1.5 rounded-sm transition-all"
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "9px",
-                  letterSpacing: ".08em",
-                  textTransform: "uppercase",
-                  color: isActive ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
-                  background: isActive ? "var(--sidebar-text-active-bg)" : "transparent",
-                  borderLeft: isActive ? `2px solid var(--sidebar-active-border)` : "2px solid transparent",
-                }}
+                className={`flex items-center gap-2.5 px-2 py-1.5 transition-all sidebar-nav-item${isActive ? " is-active" : ""}`}
+                style={{ ...navItemStyle(isActive), ...navItemTextStyle() }}
               >
-                <PluginIcon size={13} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6 }} />
+                <PluginIcon
+                  size={isAgile ? 16 : 13}
+                  style={{ flexShrink: 0, color: iconColor(entry.id, isActive), opacity: isActive ? 1 : 0.7 }}
+                />
                 <span className="truncate">{entry.label}</span>
               </Link>
             );
@@ -129,6 +176,9 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
 
         <SlotRenderer slotId="sidebar_main" orgSlug={orgSlug} orgId={orgId} collapsed={false} />
       </nav>
+
+      {/* Karl — always visible, themed */}
+      <KarlWidget orgSlug={orgSlug} />
 
       {/* User footer */}
       {user && (
@@ -141,14 +191,18 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
             className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
             style={{
               background: "var(--sidebar-avatar-bg)",
-              fontFamily: "var(--font-mono)", fontSize: "8px",
+              fontFamily: "var(--font-mono)",
+              fontSize: "8px",
               color: "var(--sidebar-avatar-text)",
             }}
           >
             {user.display_name.slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate" style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--sidebar-user-text)", letterSpacing: ".04em" }}>
+            <p
+              className="truncate"
+              style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--sidebar-user-text)", letterSpacing: ".04em" }}
+            >
               {user.display_name}
             </p>
           </div>

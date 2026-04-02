@@ -26,6 +26,20 @@
   --sidebar-width: 200px;
   --topbar-height: 48px;
 
+  /* Nav icon colors — monochrome in Paperwork */
+  --nav-icon-dashboard: var(--sidebar-text);
+  --nav-icon-workspace: var(--sidebar-text);
+  --nav-icon-stories:   var(--sidebar-text);
+  --nav-icon-default:   var(--sidebar-text);
+
+  /* Karl widget — dark/compact in Paperwork */
+  --karl-bg:       rgba(255,255,255,.04);
+  --karl-border:   rgba(255,255,255,.08);
+  --karl-shadow:   none;
+  --karl-text:     rgba(255,255,255,.45);
+  --karl-btn-bg:   rgba(255,255,255,.08);
+  --karl-btn-text: rgba(255,255,255,.6);
+
   /* Main content background (includes ruled-line pattern for Paperwork) */
   --main-content-bg: var(--paper) repeating-linear-gradient(
     180deg,
@@ -122,6 +136,23 @@ button { cursor: pointer; font-family: var(--font-body); }
 
   /* Topbar */
   --topbar-border: 1.5px solid rgba(35,31,31,.12);
+
+  /* Sidebar width */
+  --sidebar-width: 256px;
+
+  /* Nav icon colors — colorful in Agile */
+  --nav-icon-dashboard: #f43f5e;
+  --nav-icon-workspace: #6366f1;
+  --nav-icon-stories:   #f59e0b;
+  --nav-icon-default:   #94a3b8;
+
+  /* Karl widget — white card, hard shadow in Agile */
+  --karl-bg:       #FFFFFF;
+  --karl-border:   #231F1F;
+  --karl-shadow:   6px 6px 0 rgba(0,0,0,1);
+  --karl-text:     #231F1F;
+  --karl-btn-bg:   #231F1F;
+  --karl-btn-text: #FFFFFF;
 }
 
 [data-theme="agile"] body {
@@ -136,6 +167,41 @@ button { cursor: pointer; font-family: var(--font-body); }
 [data-theme="agile"] h6 {
   font-style: normal;
   font-weight: 600;
+}
+
+/* ── Agile sidebar nav ── */
+[data-theme="agile"] .sidebar-nav-item {
+  border-radius: 8px !important;
+  border: 2px solid transparent !important;
+  transition: border-color .12s, box-shadow .12s, transform .12s;
+}
+[data-theme="agile"] .sidebar-nav-item:hover:not(.is-active) {
+  border-color: rgba(35,31,31,.14) !important;
+}
+[data-theme="agile"] .sidebar-nav-item.is-active {
+  background: #FFFFFF !important;
+  border-color: #231F1F !important;
+  box-shadow: 4px 4px 0 rgba(0,0,0,1) !important;
+  transform: translateY(-1px);
+}
+
+/* Karl widget hover lift */
+.karl-widget {
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+[data-theme="agile"] .karl-widget:hover {
+  transform: translateY(-2px);
+  box-shadow: 8px 8px 0 rgba(0,0,0,1) !important;
+}
+
+/* Karl logo shake on hover */
+@keyframes karlShake {
+  0%, 100% { transform: rotate(0deg); }
+  25%       { transform: rotate(-3deg); }
+  75%       { transform: rotate(3deg); }
+}
+[data-theme="agile"] .karl-logo:hover {
+  animation: karlShake .35s ease;
 }
 
 /* ── Paper utility classes (used by existing pages) ── */
