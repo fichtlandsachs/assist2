@@ -7,6 +7,7 @@ import useSWR from "swr";
 import type { UserStory, StoryStatus, StoryPriority, TestCase, TestResult, DoDItem, Feature, FeatureStatus, Epic } from "@/types";
 import { AISuggestPanel } from "@/components/stories/AISuggestPanel";
 import { EpicSelector } from "@/components/stories/EpicSelector";
+import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { DoDItem as DoDItemComponent } from "@/components/stories/DoDItem";
 import { AISuggestionItem } from "@/components/stories/AISuggestionItem";
 import { ArrowLeft, Save, Pencil, X, Plus, CheckCircle, XCircle, Sparkles, GripVertical, GitBranch, ClipboardCheck, Trash2, FileText, RefreshCw, Users, Package, Lock } from "lucide-react";
@@ -1787,6 +1788,7 @@ export default function StoryDetailPage({
   const [storyPoints, setStoryPoints] = useState("");
   const [dorPassed, setDorPassed] = useState(false);
   const [epicId, setEpicId] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
   const { data: story, isLoading, mutate } = useSWR<UserStory>(
@@ -1803,6 +1805,7 @@ export default function StoryDetailPage({
           setStoryPoints(data.story_points?.toString() ?? "");
           setDorPassed(data.dor_passed);
           setEpicId(data.epic_id);
+          setProjectId(data.project_id);
           setInitialized(true);
         }
       },
@@ -1861,6 +1864,7 @@ export default function StoryDetailPage({
       if (sp !== story.story_points) patch.story_points = sp;
       if (dorPassed !== story.dor_passed) patch.dor_passed = dorPassed;
       if (epicId !== story.epic_id) patch.epic_id = epicId;
+      if (projectId !== story.project_id) patch.project_id = projectId;
 
       const saved = await apiRequest<UserStory>(`/api/v1/user-stories/${resolvedParams.id}`, {
         method: "PATCH",
@@ -2288,6 +2292,12 @@ export default function StoryDetailPage({
                 orgId={story.organization_id}
                 value={epicId}
                 onChange={setEpicId}
+              />
+
+              <ProjectSelector
+                orgId={story.organization_id}
+                value={projectId}
+                onChange={setProjectId}
               />
               </>
             )}

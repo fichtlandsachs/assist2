@@ -7,6 +7,7 @@ import useSWR from "swr";
 import type { Epic, EpicStatus } from "@/types";
 import Link from "next/link";
 import { LayoutList, Columns, Plus, Layers, GitBranch } from "lucide-react";
+import { ProjectSelector } from "@/components/stories/ProjectSelector";
 
 const COLUMNS: { status: EpicStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
   { status: "planning",    label: "Planung",    color: "bg-[var(--paper-warm)] text-[var(--ink-mid)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",  dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
@@ -40,9 +41,10 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
   const [showNewForm, setShowNewForm] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [saving, setSaving] = useState(false);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
 
   const { data: epics, isLoading, error, mutate } = useSWR<Epic[]>(
-    org ? `/api/v1/epics?org_id=${org.id}` : null,
+    org ? `/api/v1/epics?org_id=${org.id}${projectFilter ? `&project_id=${projectFilter}` : ""}` : null,
     fetcher
   );
 
@@ -89,9 +91,16 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
           <h1 className="text-2xl font-bold text-[var(--ink)]">Epics</h1>
           {total > 0 && <p className="text-[var(--ink-faint)] mt-0.5 text-sm">{total} Epics</p>}
         </div>
-        <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors">
-          <Plus size={16} /> Neues Epic
-        </button>
+        <div className="flex items-center gap-3">
+          {org && (
+            <div className="w-44">
+              <ProjectSelector orgId={org.id} value={projectFilter} onChange={setProjectFilter} label="" />
+            </div>
+          )}
+          <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors">
+            <Plus size={16} /> Neues Epic
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
