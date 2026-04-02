@@ -176,6 +176,27 @@ export interface WorkflowExecution {
   error_message: string | null;
 }
 
+// ─── Project ─────────────────────────────────────────────────────
+export type ProjectStatus = "planning" | "active" | "done" | "archived";
+export type EffortLevel = "low" | "medium" | "high" | "xl";
+export type ComplexityLevel = "low" | "medium" | "high" | "xl";
+
+export interface Project {
+  id: string;
+  organization_id: string;
+  created_by_id: string;
+  owner_id: string | null;
+  name: string;
+  description: string | null;
+  status: ProjectStatus;
+  deadline: string | null;
+  color: string | null;
+  effort: EffortLevel | null;
+  complexity: ComplexityLevel | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── User Story ──────────────────────────────────────────────────
 export type StoryStatus = "draft" | "in_review" | "ready" | "in_progress" | "testing" | "done" | "archived";
 export type StoryPriority = "low" | "medium" | "high" | "critical";
@@ -189,6 +210,7 @@ export interface Epic {
   title: string;
   description: string | null;
   status: EpicStatus;
+  project_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -207,6 +229,7 @@ export interface UserStory {
   quality_score: number | null;
   ai_suggestions: string | null;
   is_split: boolean;
+  project_id: string | null;
   epic_id: string | null;
   parent_story_id: string | null;
   definition_of_done: string | null;

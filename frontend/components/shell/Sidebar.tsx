@@ -21,6 +21,7 @@ const PLUGIN_ICONS: Record<string, LucideIcon> = {
 const NAV_COLORS: Record<string, { icon: string; bg: string }> = {
   dashboard:      { icon: "text-rose-500",    bg: "bg-rose-50" },
   "ai-workspace": { icon: "text-indigo-500",  bg: "bg-indigo-50" },
+  project:        { icon: "text-teal-500",    bg: "bg-teal-50" },
   stories:        { icon: "text-amber-500",   bg: "bg-amber-50" },
   inbox:          { icon: "text-sky-500",     bg: "bg-sky-50" },
   calendar:       { icon: "text-emerald-500", bg: "bg-emerald-50" },
@@ -47,6 +48,7 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
   const navItems = [
     { id: "dashboard",    label: "Dashboard",      icon: LayoutDashboard, route: `/${orgSlug}/dashboard` },
     { id: "ai-workspace", label: "KI Workspace",   icon: MessageSquare,   route: `/${orgSlug}/ai-workspace` },
+    { id: "project",      label: "Projekte",       icon: Folder,          route: `/${orgSlug}/project` },
     { id: "stories",      label: "User Stories",   icon: BookOpen,        route: `/${orgSlug}/stories` },
     { id: "inbox",        label: "Posteingang",    icon: Inbox,           route: `/${orgSlug}/inbox` },
     { id: "calendar",     label: "Kalender",       icon: CalendarDays,    route: `/${orgSlug}/calendar` },
