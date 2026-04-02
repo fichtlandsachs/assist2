@@ -6,6 +6,7 @@ from app.models.group import Group, GroupMember
 from app.models.agent import Agent
 from app.models.plugin import Plugin, OrganizationPluginActivation
 from app.models.workflow import WorkflowDefinition, WorkflowExecution
+from app.models.project import Project, ProjectStatus, EffortLevel, ComplexityLevel
 from app.models.epic import Epic, EpicStatus
 from app.models.user_story import UserStory, StoryStatus, StoryPriority
 from app.models.feature import Feature, FeatureStatus
@@ -33,6 +34,10 @@ __all__ = [
     "OrganizationPluginActivation",
     "WorkflowDefinition",
     "WorkflowExecution",
+    "Project",
+    "ProjectStatus",
+    "EffortLevel",
+    "ComplexityLevel",
     "Epic",
     "EpicStatus",
     "UserStory",

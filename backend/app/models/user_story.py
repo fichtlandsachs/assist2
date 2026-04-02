@@ -9,6 +9,7 @@ import enum
 if TYPE_CHECKING:
     from app.models.epic import Epic
     from app.models.feature import Feature
+    from app.models.project import Project
 
 
 class StoryStatus(str, enum.Enum):
@@ -53,7 +54,8 @@ class UserStory(Base):
     ai_suggestions: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string
     generated_docs: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string
     confluence_page_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    # Epic / split
+    # Project / Epic / split
+    project_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("projects.id"), nullable=True, index=True)
     epic_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("epics.id"), nullable=True, index=True)
     parent_story_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("user_stories.id"), nullable=True)
     is_split: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -61,6 +63,7 @@ class UserStory(Base):
     doc_additional_info: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     doc_workarounds: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    project: Mapped[Optional["Project"]] = relationship("Project", back_populates="stories")
     epic: Mapped[Optional["Epic"]] = relationship("Epic", back_populates="stories", foreign_keys=[epic_id])
     sub_stories: Mapped[list["UserStory"]] = relationship("UserStory", foreign_keys="UserStory.parent_story_id")
     features: Mapped[list["Feature"]] = relationship("Feature", back_populates="story")
