@@ -141,6 +141,7 @@ async def _regenerate_docs_bg(
 )
 async def list_user_stories(
     org_id: uuid.UUID,
+    project_id: Optional[uuid.UUID] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[UserStoryRead]:
@@ -150,6 +151,8 @@ async def list_user_stories(
         .where(UserStory.organization_id == org_id)
         .order_by(UserStory.created_at.desc())
     )
+    if project_id is not None:
+        stmt = stmt.where(UserStory.project_id == project_id)
     result = await db.execute(stmt)
     stories = result.scalars().all()
     return [UserStoryRead.model_validate(s) for s in stories]
@@ -178,6 +181,7 @@ async def create_user_story(
         priority=data.priority,
         story_points=data.story_points,
         epic_id=data.epic_id,
+        project_id=data.project_id,
     )
     db.add(story)
     await db.commit()

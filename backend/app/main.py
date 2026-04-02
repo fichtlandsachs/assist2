@@ -15,6 +15,7 @@ from app.routers.superadmin import router as superadmin_router
 from app.routers.auth_atlassian import router as auth_atlassian_router
 from app.routers.auth_github import router as auth_github_router
 from app.routers.jira import router as jira_router
+from app.routers.projects import router as projects_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -106,3 +107,4 @@ app.include_router(superadmin_router)
 app.include_router(auth_atlassian_router, prefix="/api/v1")
 app.include_router(auth_github_router, prefix="/api/v1")
 app.include_router(jira_router, prefix="/api/v1", tags=["Jira"])
+app.include_router(projects_router, prefix="/api/v1", tags=["Projects"])
