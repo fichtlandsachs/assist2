@@ -74,7 +74,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Link
             href={`/${resolvedParams.org}/inbox`}
-            className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all group"
+            className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all group"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -92,7 +92,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
 
           <Link
             href={`/${resolvedParams.org}/inbox`}
-            className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all group"
+            className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all group"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -107,7 +107,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
                   )}
                 </p>
               </div>
-              <span className="p-2 bg-[var(--paper)] rounded-sm text-[var(--ink-faint)] group-hover:bg-[var(--paper-warm)] transition-colors">
+              <span className="p-2 bg-[var(--card)] rounded-sm text-[var(--ink-faint)] group-hover:bg-[var(--paper-warm)] transition-colors">
                 <CircleDot size={18} />
               </span>
             </div>
@@ -122,7 +122,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
           <LayoutList size={14} />
           User Stories
         </h2>
-        <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+        <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
           {/* Total bar */}
           {storyCounts && stories && stories.length > 0 && (
             <div className="px-5 pt-5 pb-3 border-b border-[var(--paper-rule)]">
@@ -157,7 +157,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
                 <Link
                   key={m.status}
                   href={`/${resolvedParams.org}/stories/list`}
-                  className="flex items-center gap-3 px-5 py-3.5 hover:bg-[var(--paper)] transition-colors"
+                  className="flex items-center gap-3 px-5 py-3.5 hover:bg-[var(--card)] transition-colors"
                 >
                   <span className={`w-2 h-2 rounded-full shrink-0 ${m.dot}`} />
                   <span className="flex-1 text-sm text-[var(--ink-mid)]">{m.label}</span>

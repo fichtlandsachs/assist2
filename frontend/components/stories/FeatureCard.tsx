@@ -33,7 +33,7 @@ export function FeatureCard({
         onDragStart?.(feature.id);
       }}
       onDragEnd={onDragEnd}
-      className={`bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-3.5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all cursor-grab active:cursor-grabbing select-none ${
+      className={`bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-3.5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all cursor-grab active:cursor-grabbing select-none ${
         dragging ? "opacity-40 scale-95" : ""
       }`}
     >

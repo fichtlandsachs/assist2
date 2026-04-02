@@ -38,7 +38,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       ref={ref}
       className={cn(
         // Base
-        "border border-[var(--paper-rule)] rounded-sm bg-[var(--paper)]",
+        "border border-[var(--paper-rule)] rounded-sm bg-[var(--card)]",
         // Hover
         hover && !flat
           ? "transition-[border-color] duration-150 hover:border-[var(--ink-faintest)]"

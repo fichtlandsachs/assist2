@@ -23,7 +23,7 @@ function EpicCard({ epic, dragging, onDragStart, onDragEnd }: {
       draggable
       onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", epic.id); onDragStart(epic.id); }}
       onDragEnd={onDragEnd}
-      className={`bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-3.5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all cursor-grab active:cursor-grabbing select-none ${dragging ? "opacity-40 scale-95" : ""}`}
+      className={`bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-3.5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all cursor-grab active:cursor-grabbing select-none ${dragging ? "opacity-40 scale-95" : ""}`}
     >
       <p className="text-sm font-semibold text-[var(--ink)] line-clamp-2 mb-1.5 leading-snug">{epic.title}</p>
       {epic.description && <p className="text-xs text-[var(--ink-faint)] line-clamp-2 leading-relaxed">{epic.description}</p>}
@@ -103,10 +103,10 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
       </div>
 
       {showNewForm && (
-        <form onSubmit={(e) => void handleCreate(e)} className="bg-[var(--paper)] rounded-sm border border-[rgba(var(--accent-red-rgb),.3)] p-4 flex gap-3">
-          <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Epic-Titel" className="flex-1 px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--paper)]" />
+        <form onSubmit={(e) => void handleCreate(e)} className="bg-[var(--card)] rounded-sm border border-[rgba(var(--accent-red-rgb),.3)] p-4 flex gap-3">
+          <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Epic-Titel" className="flex-1 px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--card)]" />
           <button type="submit" disabled={saving || !newTitle.trim()} className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] disabled:bg-[var(--ink-faintest)] text-white rounded-sm text-xs font-medium transition-colors"><Plus size={12} /> Erstellen</button>
-          <button type="button" onClick={() => setShowNewForm(false)} className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-xs font-medium transition-colors">Abbrechen</button>
+          <button type="button" onClick={() => setShowNewForm(false)} className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors">Abbrechen</button>
         </form>
       )}
 
@@ -114,7 +114,7 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
       {error && <div className="bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm p-4 text-[var(--accent-red)] text-sm">Fehler beim Laden.</div>}
 
       {!isLoading && !error && epics && epics.length === 0 && !showNewForm && (
-        <div className="text-center py-16 bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)]">
+        <div className="text-center py-16 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
           <div className="text-4xl mb-4">🗺️</div>
           <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Noch keine Epics</h3>
           <p className="text-[var(--ink-faint)] mb-6 text-sm">Epics bündeln verwandte User Stories.</p>
@@ -143,7 +143,7 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
                   onDragEnter={(e) => handleDragEnter(e, col.status)}
                   onDragLeave={(e) => handleDragLeave(e, col.status)}
                   onDrop={(e) => void handleDrop(e, col.status)}
-                  className={`flex-1 rounded-b-sm border border-[var(--paper-rule)] p-2 space-y-2 min-h-[120px] transition-all ${isOver ? col.dropHighlight : "bg-[var(--paper)]"}`}
+                  className={`flex-1 rounded-b-sm border border-[var(--paper-rule)] p-2 space-y-2 min-h-[120px] transition-all ${isOver ? col.dropHighlight : "bg-[var(--card)]"}`}
                 >
                   {isOver && dragId && <div className="border-2 border-dashed border-current rounded-sm h-12 opacity-40" />}
                   {colItems.length === 0 && !isOver && <p className="text-xs text-[var(--ink-faint)] text-center py-8">Keine Epics</p>}

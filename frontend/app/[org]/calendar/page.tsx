@@ -187,7 +187,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
       </div>
 
       {/* Calendar */}
-      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
         {/* Navigation */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--paper-rule)]">
           <button
@@ -269,7 +269,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
 
       {/* Selected day events panel */}
       {selectedDay && (
-        <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4">
+        <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-[var(--ink)]">
               {selectedDay.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
@@ -303,7 +303,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
 
       {/* Connected Calendars */}
       {connections && connections.length > 0 && (
-        <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4">
+        <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Verbundene Kalender</h3>
           <div className="space-y-3">
             {connections.map((conn) => (
@@ -330,7 +330,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                         body: JSON.stringify({ sync_interval_minutes: interval }),
                       });
                     }}
-                    className="text-xs border border-[var(--paper-rule)] rounded-sm px-2 py-1 bg-[var(--paper)] text-[var(--ink-mid)]"
+                    className="text-xs border border-[var(--paper-rule)] rounded-sm px-2 py-1 bg-[var(--card)] text-[var(--ink-mid)]"
                   >
                     <option value={15}>15 Minuten</option>
                     <option value={30}>30 Minuten</option>
@@ -347,7 +347,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
       {/* Create Event Modal */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] w-full max-w-md">
+          <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] w-full max-w-md">
             <div className="flex items-center justify-between p-4 border-b border-[var(--paper-rule)]">
               <h3 className="text-base font-semibold text-[var(--ink)]">Termin erstellen</h3>
               <button onClick={() => setShowCreateForm(false)} className="p-1 rounded-sm hover:bg-[var(--paper-warm)] text-[var(--ink-faint)]">
@@ -364,7 +364,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="Termin Titel"
-                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   required
                 />
               </div>
@@ -376,7 +376,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                   type="date"
                   value={formDate}
                   onChange={(e) => setFormDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   required
                 />
               </div>
@@ -387,7 +387,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                     type="time"
                     value={formTime}
                     onChange={(e) => setFormTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   />
                 </div>
                 <div>
@@ -396,7 +396,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                     type="time"
                     value={formEndTime}
                     onChange={(e) => setFormEndTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   />
                 </div>
               </div>
@@ -407,7 +407,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="Optionale Beschreibung..."
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)] resize-none"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)] resize-none"
                 />
               </div>
               <div className="flex gap-2 pt-2">
@@ -437,7 +437,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
       {/* Connect Calendar Modal */}
       {showConnectModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] w-full max-w-md">
+          <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] w-full max-w-md">
             <div className="flex items-center justify-between p-4 border-b border-[var(--paper-rule)]">
               <h3 className="text-base font-semibold text-[var(--ink)]">Kalender verbinden</h3>
               <button onClick={() => setShowConnectModal(false)} className="p-1 rounded-sm hover:bg-[var(--paper-warm)] text-[var(--ink-faint)]">
@@ -481,7 +481,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                   value={connectEmail}
                   onChange={(e) => setConnectEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   required
                 />
               </div>

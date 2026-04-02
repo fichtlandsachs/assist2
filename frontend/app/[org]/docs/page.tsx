@@ -177,7 +177,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
       </div>
 
       {/* Story selection + generate */}
-      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6 space-y-4">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6 space-y-4">
         <h2 className="text-base font-semibold text-[var(--ink)]">Story auswählen</h2>
 
         {!stories ? (
@@ -241,7 +241,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
         <>
           <div className="space-y-4">
             {/* Summary */}
-            <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
+            <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
                   <FileText size={18} className="text-[var(--accent-red)]" />
@@ -253,7 +253,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             </div>
 
             {/* Changelog */}
-            <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
+            <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-semibold text-[var(--ink)]">Changelog-Eintrag</h2>
                 <CopyButton text={result.changelog_entry} />
@@ -264,7 +264,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             </div>
 
             {/* PDF Outline */}
-            <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
+            <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-semibold text-[var(--ink)]">Dokumentgliederung</h2>
                 <CopyButton text={result.pdf_outline.map((item, i) => `${i + 1}. ${item}`).join("\n")} />
@@ -282,7 +282,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
             </div>
 
             {/* Technical Notes */}
-            <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
+            <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-semibold text-[var(--ink)]">Technische Hinweise</h2>
                 <CopyButton text={result.technical_notes} />
@@ -292,7 +292,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
           </div>
 
           {/* Save panel */}
-          <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6 space-y-4">
+          <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6 space-y-4">
             <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
               <Save size={16} className="text-[var(--ink-faint)]" />
               Dokumentation speichern
@@ -320,7 +320,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
                     <select
                       value={confluenceSpaceKey}
                       onChange={(e) => setConfluenceSpaceKey(e.target.value)}
-                      className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+                      className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                     >
                       <option value="">— Kein Confluence —</option>
                       {confluenceConfig.spaces.map((sp) => (
@@ -340,7 +340,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
                       value={confluenceParentPageId}
                       onChange={(e) => setConfluenceParentPageId(e.target.value)}
                       placeholder="z.B. 12345678"
-                      className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+                      className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                     />
                   </div>
                 </div>

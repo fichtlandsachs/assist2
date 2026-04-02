@@ -129,7 +129,7 @@ function FileList({
 
       {/* Drop zone */}
       <div
-        className={`relative bg-[var(--paper)] border-2 ${dragging ? "border-[var(--navy)] bg-[rgba(74,85,104,.06)]" : "border-[var(--paper-rule)]"} rounded-sm overflow-hidden transition-colors`}
+        className={`relative bg-[var(--card)] border-2 ${dragging ? "border-[var(--navy)] bg-[rgba(74,85,104,.06)]" : "border-[var(--paper-rule)]"} rounded-sm overflow-hidden transition-colors`}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { setDragging(false); onDrop(e); }}
@@ -317,7 +317,7 @@ export default function NextcloudPage({ params }: { params: Promise<{ org: strin
             onClick={() => setTab(id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
               tab === id
-                ? "bg-[var(--paper)] text-[var(--ink)]"
+                ? "bg-[var(--card)] text-[var(--ink)]"
                 : "text-[var(--ink-faint)] hover:text-[var(--ink-mid)]"
             }`}
           >

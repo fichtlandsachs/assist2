@@ -138,7 +138,7 @@ function LearningSensitivitySection({
   }
 
   return (
-    <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
+    <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6">
       <SectionHeader title="Lernverhalten" icon={Brain} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-4">
         <div>
@@ -206,7 +206,7 @@ function RetrievalSection({
   }
 
   return (
-    <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
+    <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6">
       <SectionHeader title="Retrieval-Einstellungen" icon={Database} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-5">
         <Slider label="Top-K Ergebnisse" value={topK} min={1} max={50} step={1}
@@ -265,7 +265,7 @@ function PromptLearningSection({
   }
 
   return (
-    <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
+    <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6">
       <SectionHeader title="Prompt-Learning" icon={MessageSquare} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-5">
         <Toggle checked={enabled} onChange={setEnabled} label="Prompt-Learning aktivieren" />
@@ -315,7 +315,7 @@ function WorkflowLearningSection({
   }
 
   return (
-    <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
+    <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6">
       <SectionHeader title="Workflow-Learning" icon={GitMerge} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-4">
         <Toggle checked={enabled} onChange={setEnabled} label="Workflow-Optimierung aktivieren" />
@@ -372,7 +372,7 @@ function GovernanceSection({
   }
 
   return (
-    <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
+    <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6">
       <SectionHeader title="Governance & Freigabe" icon={Shield} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-4">
         <p className="text-sm text-[var(--ink-faint)] mb-4">
@@ -432,7 +432,7 @@ function LLMTriggerSection({
   }
 
   return (
-    <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-6">
+    <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-6">
       <SectionHeader title="LLM-Trigger-Regeln" icon={Brain} version={section.version} saving={saving} onSave={save} />
       <div className="space-y-5">
         <Slider label="Minimale Eingabelänge (Zeichen)" value={minInputLen} min={0} max={500} step={10}
@@ -472,7 +472,7 @@ function AnalyticsSection({
   return (
     <div className="space-y-3">
       {configTypes.map(ct => (
-        <div key={ct} className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+        <div key={ct} className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
           <button
             onClick={() => setExpanded(expanded === ct ? null : ct)}
             className="w-full flex items-center justify-between px-5 py-4 hover:bg-[var(--paper-warm)] transition-colors"

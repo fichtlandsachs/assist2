@@ -101,7 +101,7 @@ function DroppableTextarea({
             ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] ring-2 ring-[rgba(var(--accent-red-rgb),.3)]"
             : error
             ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)]"
-            : "border-[var(--ink-faintest)] bg-[var(--paper)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)]"
+            : "border-[var(--ink-faintest)] bg-[var(--card)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)]"
         }`}
       />
       {isDragOver && (
@@ -171,7 +171,7 @@ function DroppableInput({
             ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] ring-2 ring-[rgba(var(--accent-red-rgb),.3)]"
             : error
             ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)]"
-            : "border-[var(--ink-faintest)] bg-[var(--paper)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)]"
+            : "border-[var(--ink-faintest)] bg-[var(--card)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)]"
         }`}
       />
       <FieldError msg={error} />
@@ -264,7 +264,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
         {/* LEFT: Form */}
         <form onSubmit={(e) => void handleSave(e)} className="space-y-4">
-          <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-5">
+          <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-5">
             <DroppableInput
               id="title"
               label="Titel"
@@ -311,7 +311,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
                   id="priority"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as StoryPriority)}
-                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)] bg-[var(--paper)]"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)] bg-[var(--card)]"
                 >
                   {PRIORITY_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -333,7 +333,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
                   value={storyPoints}
                   onChange={(e) => setStoryPoints(e.target.value)}
                   placeholder="z.B. 5"
-                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)] bg-[var(--paper)]"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)] bg-[var(--card)]"
                 />
               </div>
             </div>
@@ -373,7 +373,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
             </button>
             <Link
               href={`/${resolvedParams.org}/stories`}
-              className="px-5 py-2.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-sm font-medium transition-colors"
+              className="px-5 py-2.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
             >
               Abbrechen
             </Link>
@@ -381,7 +381,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
         </form>
 
         {/* RIGHT: AI Suggestions */}
-        <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+        <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
           <AISuggestPanel
             title={title}
             description={description}

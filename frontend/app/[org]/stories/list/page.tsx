@@ -129,7 +129,7 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
       )}
 
       {stories && stories.length === 0 && (
-        <div className="text-center py-16 bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)]">
+        <div className="text-center py-16 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
           <div className="text-4xl mb-4">📋</div>
           <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Noch keine User Stories</h3>
           <p className="text-[var(--ink-faint)] mb-6 text-sm">
@@ -165,7 +165,7 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
                     <Link
                       key={story.id}
                       href={`/${resolvedParams.org}/stories/${story.id}`}
-                      className="block bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all group"
+                      className="block bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all group"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">

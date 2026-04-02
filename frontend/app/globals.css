@@ -69,6 +69,10 @@
   --sidebar-avatar-bg:      rgba(83,77,95,.1);
   --sidebar-avatar-text:    #231F1F;
 
+  /* Card surface (white on warm-beige background = src_agile contrast) */
+  --card:        #FFFFFF;
+  --card-border: rgba(35,31,31,.1);
+
   /* Main content */
   --main-content-bg: #FDFBF7;
 
@@ -155,6 +159,9 @@ button { cursor: pointer; font-family: var(--font-body); }
   --sidebar-logout-text:    rgba(255,255,255,.3);
   --sidebar-avatar-bg:      rgba(255,255,255,.12);
   --sidebar-avatar-text:    rgba(255,255,255,.7);
+
+  --card:        var(--paper);
+  --card-border: var(--paper-rule);
 
   --main-content-bg: var(--paper) repeating-linear-gradient(
     180deg,
@@ -402,3 +409,80 @@ button { cursor: pointer; font-family: var(--font-body); }
 .animate-fade-in-up    { animation: fadeInUp 0.4s ease forwards; }
 .animate-slide-in-left { animation: slideInLeft 0.3s ease forwards; }
 .animate-ink-in        { animation: inkIn 0.18s ease both; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   src_agile — globale Utility-Overrides
+   Alle Pages verwenden noch Paperwork-Klassen (rounded-sm, border 1px etc.).
+   Diese Regeln kommen NACH @tailwind utilities und überschreiben sie
+   für das agile (src_agile) Default-Design.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Border width: 2px everywhere in src_agile */
+:root .border   { border-width: 2px; }
+:root .border-t { border-top-width: 2px; }
+:root .border-b { border-bottom-width: 2px; }
+:root .border-l { border-left-width: 2px; }
+:root .border-r { border-right-width: 2px; }
+
+/* Border color: use card-border variable */
+:root .border-\[var\(--paper-rule\)\],
+:root .border-\[var\(--paper-rule2\)\],
+:root .border-\[var\(--ink-faintest\)\] {
+  border-color: var(--card-border) !important;
+}
+
+/* Paperwork: restore thin borders */
+[data-theme="paperwork"] .border   { border-width: 1px; }
+[data-theme="paperwork"] .border-t { border-top-width: 1px; }
+[data-theme="paperwork"] .border-b { border-bottom-width: 1px; }
+[data-theme="paperwork"] .border-l { border-left-width: 1px; }
+[data-theme="paperwork"] .border-r { border-right-width: 1px; }
+[data-theme="paperwork"] .border-\[var\(--paper-rule\)\]  { border-color: var(--paper-rule) !important; }
+[data-theme="paperwork"] .border-\[var\(--paper-rule2\)\] { border-color: var(--paper-rule2) !important; }
+[data-theme="paperwork"] .border-\[var\(--ink-faintest\)\]{ border-color: var(--ink-faintest) !important; }
+
+/* Border radius: src_agile uses rounded-xl/2xl — redefine small radii */
+:root .rounded-sm { border-radius: 10px; }
+:root .rounded    { border-radius: 10px; }
+:root .rounded-md { border-radius: 12px; }
+:root .rounded-lg { border-radius: 14px; }
+
+[data-theme="paperwork"] .rounded-sm { border-radius: 2px; }
+[data-theme="paperwork"] .rounded    { border-radius: 4px; }
+[data-theme="paperwork"] .rounded-md { border-radius: 4px; }
+[data-theme="paperwork"] .rounded-lg { border-radius: 6px; }
+
+/* Cards: white surface + 4px hard shadow */
+.bg-\[var\(--card\)\] {
+  background-color: var(--card) !important;
+}
+:root .bg-\[var\(--card\)\].border,
+:root .bg-\[var\(--card\)\].rounded-sm,
+:root .bg-\[var\(--card\)\].rounded-xl,
+:root .bg-\[var\(--card\)\].rounded-2xl {
+  box-shadow: 4px 4px 0 rgba(0,0,0,.07);
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s;
+}
+:root .bg-\[var\(--card\)\].border:hover,
+:root .bg-\[var\(--card\)\].rounded-sm:hover,
+:root .bg-\[var\(--card\)\].rounded-xl:hover,
+:root .bg-\[var\(--card\)\].rounded-2xl:hover {
+  box-shadow: 6px 6px 0 rgba(0,0,0,.1);
+  transform: translateY(-2px);
+  border-color: rgba(35,31,31,.18) !important;
+}
+[data-theme="paperwork"] .bg-\[var\(--card\)\].border,
+[data-theme="paperwork"] .bg-\[var\(--card\)\].rounded-sm {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Buttons: rounded-xl + hard shadow in src_agile */
+:root button.rounded-sm,
+:root a.rounded-sm {
+  border-radius: 10px;
+}
+[data-theme="paperwork"] button.rounded-sm,
+[data-theme="paperwork"] a.rounded-sm {
+  border-radius: 2px;
+}

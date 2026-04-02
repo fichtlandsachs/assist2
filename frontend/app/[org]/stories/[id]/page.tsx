@@ -141,7 +141,7 @@ function DroppableField({
       ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] ring-2 ring-[var(--accent-red)]"
       : error
       ? "border-red-400 bg-[rgba(var(--accent-red-rgb),.08)] focus:border-red-400 focus:ring-2 focus:ring-red-100"
-      : "border-[var(--ink-faintest)] bg-[var(--paper)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)]"
+      : "border-[var(--ink-faintest)] bg-[var(--card)] focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)]"
   }`;
 
   return (
@@ -177,7 +177,7 @@ function DroppableField({
           />
         )
       ) : (
-        <div className="px-3 py-2 text-sm text-[var(--ink-mid)] bg-[var(--paper)] border border-[var(--paper-rule)] rounded-sm min-h-[2.5rem] whitespace-pre-wrap">
+        <div className="px-3 py-2 text-sm text-[var(--ink-mid)] bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm min-h-[2.5rem] whitespace-pre-wrap">
           {value || <span className="text-[var(--ink-faint)]">{placeholder}</span>}
         </div>
       )}
@@ -240,7 +240,7 @@ function SuggestedTestCaseCard({
     <div
       draggable
       onDragStart={handleDragStart}
-      className="border border-[rgba(var(--btn-primary-rgb),.3)] rounded-sm bg-[rgba(var(--btn-primary-rgb),.08)] hover:bg-[var(--paper)] hover:border-[var(--btn-primary)] transition-all cursor-grab active:cursor-grabbing group"
+      className="border border-[rgba(var(--btn-primary-rgb),.3)] rounded-sm bg-[rgba(var(--btn-primary-rgb),.08)] hover:bg-[var(--card)] hover:border-[var(--btn-primary)] transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex items-center gap-2 px-3 py-2.5">
         <GripVertical size={13} className="shrink-0 text-[var(--btn-primary)] group-hover:text-[var(--btn-primary)] transition-colors" />
@@ -375,7 +375,7 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
       {/* LEFT: Checkliste */}
-      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
           <div className="flex items-center gap-2">
             <ClipboardCheck size={16} className="text-[var(--ink-faint)]" />
@@ -437,7 +437,7 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
               </button>
               <button
                 onClick={() => { setNewText(""); setShowInput(false); }}
-                className="shrink-0 px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-xs font-medium transition-colors"
+                className="shrink-0 px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors"
               >
                 Abbrechen
               </button>
@@ -467,7 +467,7 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
       </div>
 
       {/* RIGHT: Assistent */}
-      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
             <Sparkles size={16} className="text-[var(--accent-red)]" />
@@ -668,7 +668,7 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
       {/* LEFT: Testfall-Liste */}
-      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
           <div className="flex items-center gap-2">
             <ClipboardCheck size={16} className="text-[var(--ink-faint)]" />
@@ -709,19 +709,19 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
                 <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">Titel <span className="text-[var(--accent-red)]">*</span></label>
                 <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)}
                   placeholder="Testfall Titel"
-                  className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--paper)]" />
+                  className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)]" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">Schritte</label>
                 <textarea value={formSteps} onChange={e => setFormSteps(e.target.value)}
                   placeholder={"1. Schritt\n2. Schritt"} rows={3}
-                  className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--paper)] resize-none" />
+                  className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)] resize-none" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">Erwartetes Ergebnis</label>
                 <textarea value={formExpected} onChange={e => setFormExpected(e.target.value)}
                   placeholder="Das erwartete Ergebnis..." rows={2}
-                  className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--paper)] resize-none" />
+                  className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)] resize-none" />
               </div>
               <div className="flex gap-2">
                 <button type="submit" disabled={saving || !formTitle.trim()}
@@ -730,7 +730,7 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
                   Hinzufügen
                 </button>
                 <button type="button" onClick={() => setShowForm(false)}
-                  className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-xs font-medium transition-colors">
+                  className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors">
                   Abbrechen
                 </button>
               </div>
@@ -754,13 +754,13 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
                   {editingId === tc.id ? (
                     <div className="space-y-2">
                       <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)}
-                        className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--paper)]" />
+                        className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--card)]" />
                       <textarea value={editSteps} onChange={e => setEditSteps(e.target.value)} rows={3}
                         placeholder="Schritte..."
-                        className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--paper)] resize-none" />
+                        className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--card)] resize-none" />
                       <textarea value={editExpected} onChange={e => setEditExpected(e.target.value)} rows={2}
                         placeholder="Erwartetes Ergebnis..."
-                        className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--paper)] resize-none" />
+                        className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--card)] resize-none" />
                       <div className="flex gap-2">
                         <button onClick={() => void handleSaveEdit(tc.id)} disabled={editSaving}
                           className="flex items-center gap-1 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-xs font-medium transition-colors">
@@ -768,7 +768,7 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
                           Speichern
                         </button>
                         <button onClick={() => setEditingId(null)}
-                          className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-xs font-medium transition-colors">
+                          className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors">
                           Abbrechen
                         </button>
                       </div>
@@ -817,13 +817,13 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
                       {tc.steps && (
                         <div>
                           <p className="text-xs font-medium text-[var(--ink-faint)] mb-0.5">Schritte:</p>
-                          <p className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap bg-[var(--paper)] rounded-sm p-2 border border-[var(--paper-rule)]">{tc.steps}</p>
+                          <p className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap bg-[var(--card)] rounded-sm p-2 border border-[var(--paper-rule)]">{tc.steps}</p>
                         </div>
                       )}
                       {tc.expected_result && (
                         <div>
                           <p className="text-xs font-medium text-[var(--ink-faint)] mb-0.5">Erwartetes Ergebnis:</p>
-                          <p className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap bg-[var(--paper)] rounded-sm p-2 border border-[var(--paper-rule)]">{tc.expected_result}</p>
+                          <p className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap bg-[var(--card)] rounded-sm p-2 border border-[var(--paper-rule)]">{tc.expected_result}</p>
                         </div>
                       )}
                     </>
@@ -836,7 +836,7 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
       </div>
 
       {/* RIGHT: Assistent */}
-      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
             <Sparkles size={16} className="text-[var(--accent-red)]" />
@@ -972,7 +972,7 @@ function StoryPromptSection({ story, orgId }: { story: UserStory; orgId: string 
   }
 
   return (
-    <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+    <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
       <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
         <div className="flex items-center gap-2">
           <Sparkles size={15} className="text-[var(--ink-faint)]" />
@@ -1073,7 +1073,7 @@ function EditableNotesField({
             </button>
             <button
               onClick={() => { setEditing(false); setDraft(value); }}
-              className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-xs font-medium transition-colors"
+              className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors"
             >
               Abbrechen
             </button>
@@ -1084,8 +1084,8 @@ function EditableNotesField({
           onClick={() => setEditing(true)}
           className={`px-3 py-2.5 text-sm rounded-sm border cursor-text min-h-[3rem] whitespace-pre-wrap leading-relaxed transition-colors ${
             value
-              ? "text-[var(--ink-mid)] bg-[var(--paper)] border-[var(--paper-rule)] hover:border-[rgba(var(--accent-red-rgb),.3)]"
-              : "text-[var(--ink-faint)] bg-[var(--paper)] border-dashed border-[var(--ink-faintest)] hover:border-[rgba(var(--accent-red-rgb),.3)]"
+              ? "text-[var(--ink-mid)] bg-[var(--card)] border-[var(--paper-rule)] hover:border-[rgba(var(--accent-red-rgb),.3)]"
+              : "text-[var(--ink-faint)] bg-[var(--card)] border-dashed border-[var(--ink-faintest)] hover:border-[rgba(var(--accent-red-rgb),.3)]"
           }`}
         >
           {value || placeholder}
@@ -1143,7 +1143,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
       {/* LEFT: Dokumentationsinhalt + Zusatzfelder */}
-      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
         <div className="flex items-center gap-2 px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
           <FileText size={15} className="text-[var(--ink-faint)]" />
           <h2 className="text-base font-semibold text-[var(--ink)]">Dokumentation</h2>
@@ -1169,12 +1169,12 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
             <div className="space-y-5">
               <div>
                 <h3 className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Zusammenfassung</h3>
-                <p className="text-sm text-[var(--ink-mid)] leading-relaxed bg-[var(--paper)] rounded-sm p-3">{docs.summary}</p>
+                <p className="text-sm text-[var(--ink-mid)] leading-relaxed bg-[var(--card)] rounded-sm p-3">{docs.summary}</p>
               </div>
 
               <div>
                 <h3 className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Changelog-Eintrag</h3>
-                <pre className="text-xs text-[var(--ink-mid)] bg-[var(--paper)] rounded-sm p-3 whitespace-pre-wrap font-mono overflow-x-auto">{docs.changelog_entry}</pre>
+                <pre className="text-xs text-[var(--ink-mid)] bg-[var(--card)] rounded-sm p-3 whitespace-pre-wrap font-mono overflow-x-auto">{docs.changelog_entry}</pre>
               </div>
 
               <div>
@@ -1191,7 +1191,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
 
               <div>
                 <h3 className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Technische Hinweise</h3>
-                <p className="text-sm text-[var(--ink-mid)] leading-relaxed bg-[var(--paper)] rounded-sm p-3 whitespace-pre-wrap">{docs.technical_notes}</p>
+                <p className="text-sm text-[var(--ink-mid)] leading-relaxed bg-[var(--card)] rounded-sm p-3 whitespace-pre-wrap">{docs.technical_notes}</p>
               </div>
 
               {docs.confluence_page_url && (
@@ -1226,7 +1226,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
       </div>
 
       {/* RIGHT: Assistent / Regenerieren */}
-      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
             <Sparkles size={16} className="text-[var(--accent-red)]" />
@@ -1267,7 +1267,7 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
             { label: "Dokumenten-Gliederung" },
             { label: "Technische Hinweise" },
           ].map(({ label }) => (
-            <div key={label} className="flex items-center gap-2 p-3 bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)]">
+            <div key={label} className="flex items-center gap-2 p-3 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
               <div className={`w-2 h-2 rounded-full shrink-0 ${docs ? "bg-[var(--green)]" : "bg-[var(--paper-rule)]"}`} />
               <span className="text-xs text-[var(--ink-mid)]">{label}</span>
             </div>
@@ -1278,11 +1278,11 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
 
           <div className="border-t border-[var(--paper-rule)] pt-4 mt-4 space-y-2">
             <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-3">Manuell gepflegt</p>
-            <div className="flex items-center gap-2 p-3 bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)]">
+            <div className="flex items-center gap-2 p-3 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
               <div className={`w-2 h-2 rounded-full shrink-0 ${additionalInfo ? "bg-[var(--accent-red)]" : "bg-[var(--paper-rule)]"}`} />
               <span className="text-xs text-[var(--ink-mid)]">Zusatzinformationen</span>
             </div>
-            <div className="flex items-center gap-2 p-3 bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)]">
+            <div className="flex items-center gap-2 p-3 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
               <div className={`w-2 h-2 rounded-full shrink-0 ${workarounds ? "bg-[var(--accent-red)]" : "bg-[var(--paper-rule)]"}`} />
               <span className="text-xs text-[var(--ink-mid)]">Bekannte Workarounds</span>
             </div>
@@ -1341,7 +1341,7 @@ function FeatureCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="border border-[var(--paper-rule)] rounded-sm bg-[var(--paper)] hover:border-[var(--ink-faintest)] transition-colors">
+    <div className="border border-[var(--paper-rule)] rounded-sm bg-[var(--card)] hover:border-[var(--ink-faintest)] transition-colors">
       <div className="flex items-start gap-2 p-3">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 mb-1">
@@ -1493,7 +1493,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  const inputCls = "w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]";
+  const inputCls = "w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]";
 
   function startEdit(f: Feature) {
     setEditingId(f.id);
@@ -1581,7 +1581,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
       {/* LEFT: Feature list */}
-      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-4">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Package size={16} className="text-[var(--accent-red)]" />
@@ -1638,7 +1638,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
               </button>
               <button
                 onClick={() => { setShowAddForm(false); setAddTitle(""); setAddDesc(""); }}
-                className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-sm transition-colors"
+                className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm transition-colors"
               >
                 Abbrechen
               </button>
@@ -1681,7 +1681,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
                       {editSaving && <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />}
                       Speichern
                     </button>
-                    <button onClick={() => setEditingId(null)} className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-sm">
+                    <button onClick={() => setEditingId(null)} className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm">
                       Abbrechen
                     </button>
                   </div>
@@ -1695,7 +1695,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
       </div>
 
       {/* RIGHT: AI Panel */}
-      <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto space-y-4">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto space-y-4">
         <div className="flex items-center gap-2">
           <Sparkles size={16} className="text-[var(--accent-red)]" />
           <h3 className="font-semibold text-[var(--ink)]">Feature-Vorschläge</h3>
@@ -1979,7 +1979,7 @@ export default function StoryDetailPage({
           {!editing && !showSplitPanel && (
             <button
               onClick={() => setShowSplitPanel(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
             >
               <GitBranch size={16} />
               Aufteilen
@@ -1990,7 +1990,7 @@ export default function StoryDetailPage({
               <button
                 onClick={() => void handleScore()}
                 disabled={isScoring}
-                className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] disabled:opacity-50 rounded-sm text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] disabled:opacity-50 rounded-sm text-sm font-medium transition-colors"
               >
                 {isScoring ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-[var(--ink-mid)] border-t-transparent" />
@@ -2013,7 +2013,7 @@ export default function StoryDetailPage({
               </button>
               <button
                 onClick={handleCancelEdit}
-                className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
               >
                 <X size={16} />
                 Abbrechen
@@ -2024,7 +2024,7 @@ export default function StoryDetailPage({
               <button
                 onClick={() => void handleScore()}
                 disabled={isScoring}
-                className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] disabled:opacity-50 rounded-sm text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] disabled:opacity-50 rounded-sm text-sm font-medium transition-colors"
               >
                 {isScoring ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-[var(--ink-mid)] border-t-transparent" />
@@ -2035,7 +2035,7 @@ export default function StoryDetailPage({
               </button>
               <button
                 onClick={() => setEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
               >
                 <Pencil size={16} />
                 Bearbeiten
@@ -2077,7 +2077,7 @@ export default function StoryDetailPage({
 
       {/* Score panel */}
       {score && (
-        <div className="px-4 py-3 bg-[var(--paper)] border border-[var(--paper-rule)] rounded-sm">
+        <div className="px-4 py-3 bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wide">Story Scoring</span>
@@ -2113,7 +2113,7 @@ export default function StoryDetailPage({
       )}
 
       {/* Demo role switcher */}
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--paper)] border border-[var(--paper-rule)] rounded-sm">
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm">
         <div className="flex items-center gap-2 min-w-0">
           <Users size={14} className="text-[var(--ink-faint)] shrink-0" />
           <span className="text-xs text-[var(--ink-faint)] font-medium shrink-0">Demo-Ansicht:</span>
@@ -2125,12 +2125,12 @@ export default function StoryDetailPage({
         <div className="relative shrink-0">
           <button
             onClick={() => setShowRolePicker((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors"
           >
             Rolle wechseln
           </button>
           {showRolePicker && (
-            <div className="absolute right-0 top-full mt-1 w-72 bg-[var(--paper)] border border-[var(--paper-rule)] rounded-sm z-50 overflow-hidden">
+            <div className="absolute right-0 top-full mt-1 w-72 bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm z-50 overflow-hidden">
               <div className="px-3 py-2 border-b border-[var(--paper-rule)] bg-[var(--paper-warm)]">
                 <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">Perspektive wählen</p>
               </div>
@@ -2180,7 +2180,7 @@ export default function StoryDetailPage({
       {activeTab === "story" && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
           {/* LEFT: Story fields */}
-          <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-5">
+          <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-5">
             <DroppableField
               id="title"
               label="Titel"
@@ -2227,7 +2227,7 @@ export default function StoryDetailPage({
                     id="status"
                     value={status}
                     onChange={(e) => setStatus(e.target.value as StoryStatus)}
-                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   >
                     {STATUS_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
@@ -2245,7 +2245,7 @@ export default function StoryDetailPage({
                     id="priority"
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as StoryPriority)}
-                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   >
                     {PRIORITY_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
@@ -2267,7 +2267,7 @@ export default function StoryDetailPage({
                     value={storyPoints}
                     onChange={(e) => setStoryPoints(e.target.value)}
                     placeholder="z.B. 5"
-                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+                    className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   />
                 </div>
 
@@ -2305,7 +2305,7 @@ export default function StoryDetailPage({
           </div>
 
           {/* RIGHT: AI Suggestions */}
-          <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+          <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
             <AISuggestPanel
               title={title}
               description={description}

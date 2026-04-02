@@ -38,7 +38,7 @@ export function AISuggestionItem({ text, category, source, onAdd }: AISuggestion
   const sourceMeta = source ? SOURCE_STYLES[source] : null;
 
   return (
-    <div className="relative flex items-start gap-2 px-3 py-2.5 border border-[var(--paper-rule)] rounded-sm bg-[var(--paper)] hover:border-[rgba(var(--accent-red-rgb),.3)] transition-colors group">
+    <div className="relative flex items-start gap-2 px-3 py-2.5 border border-[var(--paper-rule)] rounded-sm bg-[var(--card)] hover:border-[rgba(var(--accent-red-rgb),.3)] transition-colors group">
       <div className="flex-1 min-w-0">
         {(category || sourceMeta) && (
           <div className="flex items-center gap-1.5 mb-1">

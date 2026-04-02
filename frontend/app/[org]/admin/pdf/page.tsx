@@ -67,7 +67,7 @@ export default function PdfAdminPage() {
         </p>
       </div>
 
-      <section className="bg-[var(--paper)] border border-[var(--paper-rule)] rounded-sm p-6 space-y-6">
+      <section className="bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm p-6 space-y-6">
         <h2 className="text-lg font-semibold text-[var(--ink)]">Branding</h2>
         <PdfSettingsForm
           orgSlug={orgSlug}
@@ -77,7 +77,7 @@ export default function PdfAdminPage() {
         />
       </section>
 
-      <section className="bg-[var(--paper)] border border-[var(--paper-rule)] rounded-sm p-6 space-y-6">
+      <section className="bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm p-6 space-y-6">
         <h2 className="text-lg font-semibold text-[var(--ink)]">Templates</h2>
         <TemplateUpload
           label="Briefpapier (PDF, max. 5 MB)"
@@ -97,7 +97,7 @@ export default function PdfAdminPage() {
         />
       </section>
 
-      <section className="bg-[var(--paper)] border border-[var(--paper-rule)] rounded-sm p-6">
+      <section className="bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm p-6">
         <h2 className="text-lg font-semibold text-[var(--ink)] mb-3">Vorschau</h2>
         <p className="text-sm text-[var(--ink-faint)] mb-4">
           Generiert ein Beispiel-PDF mit den aktuellen Einstellungen.

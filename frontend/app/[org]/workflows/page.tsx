@@ -81,7 +81,7 @@ function WorkflowCard({
   }
 
   return (
-    <div className="bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+    <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
       <div className="flex items-start gap-4 p-4 sm:p-5">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -214,7 +214,7 @@ export default function WorkflowsPage({ params }: { params: Promise<{ org: strin
       )}
 
       {workflows && workflows.length === 0 && (
-        <div className="text-center py-16 bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)]">
+        <div className="text-center py-16 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
           <Workflow size={40} className="mx-auto mb-3 text-[var(--ink-faint)]" />
           <h3 className="text-base font-semibold text-[var(--ink-mid)] mb-1">Noch keine Workflows</h3>
           <p className="text-sm text-[var(--ink-faint)] mb-5">

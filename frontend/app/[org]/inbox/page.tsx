@@ -184,7 +184,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] gap-0 -m-4 md:-m-6">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 md:px-6 py-3 bg-[var(--paper)] border-b border-[var(--paper-rule)] shrink-0">
+      <div className="flex items-center gap-3 px-4 md:px-6 py-3 bg-[var(--card)] border-b border-[var(--paper-rule)] shrink-0">
         <div className="flex items-center gap-2 flex-1">
           <Inbox size={18} className="text-[var(--accent-red)] shrink-0" />
           <h1 className="text-base font-semibold text-[var(--ink)]">Posteingang</h1>
@@ -198,14 +198,14 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Suchen…"
-            className="w-full pl-8 pr-3 py-1.5 text-sm border border-[var(--paper-rule)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--paper)]"
+            className="w-full pl-8 pr-3 py-1.5 text-sm border border-[var(--paper-rule)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--card)]"
           />
         </div>
         <button
           onClick={() => void handleRecluster()}
           disabled={reclustering}
           title="Themen neu gruppieren (KI)"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[var(--paper-rule)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[var(--paper-rule)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={reclustering ? "animate-spin text-[var(--accent-red)]" : ""} />
           <span className="hidden sm:inline">{reclustering ? "Gruppiere…" : "Neu gruppieren"}</span>
@@ -213,7 +213,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
         <button
           onClick={() => void handleSyncAll()}
           disabled={syncing || !connections?.length}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[var(--paper-rule)] text-[var(--ink-mid)] hover:bg-[var(--paper)] rounded-sm transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[var(--paper-rule)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
           <span className="hidden sm:inline">Aktualisieren</span>
@@ -223,7 +223,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
       {/* Main 3-pane layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Thread list */}
-        <div className="w-72 xl:w-80 shrink-0 border-r border-[var(--paper-rule)] overflow-y-auto bg-[var(--paper)]">
+        <div className="w-72 xl:w-80 shrink-0 border-r border-[var(--paper-rule)] overflow-y-auto bg-[var(--card)]">
           {!allMessages ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--accent-red)]" />
@@ -277,7 +277,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
         </div>
 
         {/* Middle: Message list for selected thread */}
-        <div className={`w-64 xl:w-72 shrink-0 border-r border-[var(--paper-rule)] overflow-y-auto bg-[var(--paper)] ${!selectedThread ? "hidden md:block" : ""}`}>
+        <div className={`w-64 xl:w-72 shrink-0 border-r border-[var(--paper-rule)] overflow-y-auto bg-[var(--card)] ${!selectedThread ? "hidden md:block" : ""}`}>
           {!selectedThread ? (
             <div className="flex flex-col items-center justify-center h-full py-12 text-center px-4">
               <ChevronRight size={32} className="text-[var(--ink-faintest)] mb-2" />
@@ -285,7 +285,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
             </div>
           ) : (
             <>
-              <div className="px-3 py-2.5 border-b border-[var(--paper-rule)] bg-[var(--paper)]">
+              <div className="px-3 py-2.5 border-b border-[var(--paper-rule)] bg-[var(--card)]">
                 <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide truncate">
                   {normalizeSubject(selectedThread.subject)}
                 </p>
@@ -298,7 +298,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                   <button
                     key={msg.id}
                     onClick={() => setSelectedMessage(msg)}
-                    className={`w-full text-left px-3 py-3 border-b border-[var(--paper-rule)] transition-colors hover:bg-[var(--paper)] ${isActive ? "bg-[var(--paper)] border-l-2 border-l-[var(--accent-red)]" : ""}`}
+                    className={`w-full text-left px-3 py-3 border-b border-[var(--paper-rule)] transition-colors hover:bg-[var(--card)] ${isActive ? "bg-[var(--card)] border-l-2 border-l-[var(--accent-red)]" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-1">
                       <p className={`text-xs flex-1 truncate ${msg.status === "unread" ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--ink-mid)]"}`}>
@@ -320,7 +320,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
         </div>
 
         {/* Right: Message detail */}
-        <div className="flex-1 overflow-y-auto bg-[var(--paper)]">
+        <div className="flex-1 overflow-y-auto bg-[var(--card)]">
           {!selectedMessage ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <Mail size={40} className="text-[var(--ink-faintest)] mb-3" />
@@ -371,7 +371,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                               body: JSON.stringify({ sync_interval_minutes: interval }),
                             });
                           }}
-                          className="text-xs border border-[var(--paper-rule)] rounded-sm px-2 py-1 bg-[var(--paper)] text-[var(--ink-mid)]"
+                          className="text-xs border border-[var(--paper-rule)] rounded-sm px-2 py-1 bg-[var(--card)] text-[var(--ink-mid)]"
                         >
                           <option value={5}>5 Minuten</option>
                           <option value={15}>15 Minuten</option>

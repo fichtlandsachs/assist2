@@ -23,7 +23,7 @@ export function DoDItem({ text, done, onToggle, onDelete, readOnly = false }: Do
       className={`flex items-start gap-3 px-3 py-2.5 rounded-sm border transition-colors group ${
         done
           ? "bg-[rgba(82,107,94,.1)] border-[rgba(82,107,94,.3)]"
-          : "bg-[var(--paper)] border-[var(--paper-rule)]"
+          : "bg-[var(--card)] border-[var(--paper-rule)]"
       }`}
     >
       <button

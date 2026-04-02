@@ -176,7 +176,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
       )}
 
       {!isLoading && !error && stories && stories.length === 0 && (
-        <div className="text-center py-16 bg-[var(--paper)] rounded-sm border border-[var(--paper-rule)]">
+        <div className="text-center py-16 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
           <div className="text-4xl mb-4">📋</div>
           <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Noch keine User Stories</h3>
           <p className="text-[var(--ink-faint)] mb-6 text-sm">Erstelle deine erste User Story.</p>
@@ -211,7 +211,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
                   onDragLeave={(e) => handleDragLeave(e, col.status)}
                   onDrop={(e) => void handleDrop(e, col.status)}
                   className={`flex-1 rounded-b-sm border border-[var(--paper-rule)] p-2 space-y-2 min-h-[120px] transition-all ${
-                    isOver ? col.dropHighlight : "bg-[var(--paper)]"
+                    isOver ? col.dropHighlight : "bg-[var(--card)]"
                   }`}
                 >
                   {isOver && dragId && (

@@ -72,7 +72,7 @@ function TokenField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={isSet ? "••••••••••••••••••••" : placeholder}
-          className="w-full px-3 py-2 pr-9 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]"
+          className="w-full px-3 py-2 pr-9 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
         />
         <button type="button" onClick={() => setShow((v) => !v)}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-faint)] hover:text-[var(--ink-mid)]">
@@ -93,7 +93,7 @@ function FormField({ id, label, value, onChange, placeholder, type = "text" }: {
       <label htmlFor={id} className="block text-sm font-medium text-[var(--ink-mid)] mb-1">{label}</label>
       <input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]" />
+        className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]" />
     </div>
   );
 }
@@ -224,7 +224,7 @@ function EmailSection({ orgId }: { orgId: string }) {
     finally { setDeleting(null); }
   }
 
-  const selectCls = "w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]";
+  const selectCls = "w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]";
 
   return (
     <div className="space-y-5 max-w-xl">
@@ -232,7 +232,7 @@ function EmailSection({ orgId }: { orgId: string }) {
       {connections && connections.length > 0 && (
         <div className="space-y-2">
           {connections.map((c) => (
-            <div key={c.id} className="flex items-center justify-between p-3 border border-[var(--paper-rule)] rounded-sm bg-[var(--paper)]">
+            <div key={c.id} className="flex items-center justify-between p-3 border border-[var(--paper-rule)] rounded-sm bg-[var(--card)]">
               <div className="flex items-center gap-3">
                 <Mail size={16} className="text-[var(--ink-faint)] shrink-0" />
                 <div>
@@ -402,7 +402,7 @@ function CalendarSection({ orgId }: { orgId: string }) {
           <div>
             <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">Anbieter</label>
             <select value={provider} onChange={(e) => setProvider(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--paper)]">
+              className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--card)]">
               <option value="google">Google Kalender</option>
               <option value="outlook">Outlook / Microsoft 365</option>
             </select>
@@ -426,7 +426,7 @@ function CalendarSection({ orgId }: { orgId: string }) {
       ) : (
         <div className="space-y-2">
           {connections.map((c) => (
-            <div key={c.id} className="flex items-center justify-between p-3 border border-[var(--paper-rule)] rounded-sm bg-[var(--paper)]">
+            <div key={c.id} className="flex items-center justify-between p-3 border border-[var(--paper-rule)] rounded-sm bg-[var(--card)]">
               <div className="flex items-center gap-3">
                 <CalendarDays size={16} className="text-[var(--ink-faint)] shrink-0" />
                 <div>
@@ -611,7 +611,7 @@ function AISection({ orgId, settings }: { orgId: string; settings: IntegrationSe
     finally { setSaving(false); }
   };
 
-  const selectCls = "w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--paper)]";
+  const selectCls = "w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]";
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 max-w-lg">
@@ -631,7 +631,7 @@ function AISection({ orgId, settings }: { orgId: string; settings: IntegrationSe
             <label key={value} className={`flex items-center gap-2 px-4 py-2.5 rounded-sm border cursor-pointer text-sm font-medium transition-colors ${
               provider === value
                 ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]"
-                : "border-[var(--paper-rule)] bg-[var(--paper)] text-[var(--ink-mid)] hover:border-[var(--ink-faintest)]"
+                : "border-[var(--paper-rule)] bg-[var(--card)] text-[var(--ink-mid)] hover:border-[var(--ink-faintest)]"
             }`}>
               <input
                 type="radio"

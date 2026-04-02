@@ -59,7 +59,7 @@ export function StoryCard({
         onDragStart?.(story.id);
       }}
       onDragEnd={onDragEnd}
-      className={`relative bg-[var(--paper)] rounded-sm border p-3.5 transition-all cursor-grab active:cursor-grabbing select-none group/card ${
+      className={`relative bg-[var(--card)] rounded-sm border p-3.5 transition-all cursor-grab active:cursor-grabbing select-none group/card ${
         dragging ? "opacity-40 scale-95" : ""
       } ${
         lowScore
