@@ -27,4 +27,7 @@ class UserUpdate(BaseModel):
 
 
 class UserWithLinks(UserRead):
-    pass
+    atlassian_account_id: Optional[str] = None
+    atlassian_email: Optional[str] = None
+    github_id: Optional[int] = None
+    github_username: Optional[str] = None

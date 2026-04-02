@@ -3,6 +3,7 @@
 import { use, useState, useEffect } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { useAuth } from "@/lib/auth/context";
+import { useTheme, type ThemeId } from "@/lib/theme/context";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
 import type { User, UserStory } from "@/types";
@@ -752,6 +753,147 @@ function AtlassianConnectionSection({ user }: { user: User }) {
   );
 }
 
+// ── Section: GitHub Connection ────────────────────────────────────────────
+
+function GitHubConnectionSection({ user }: { user: User }) {
+  const { loginWithGitHub } = useAuth();
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const isConnected = !!user.github_id;
+
+  const disconnect = async () => {
+    setDisconnecting(true);
+    setMsg(null);
+    try {
+      await apiRequest("/api/v1/auth/github/disconnect", { method: "POST" });
+      setMsg("GitHub-Verbindung getrennt.");
+      window.location.reload();
+    } catch (e: unknown) {
+      const err = e as { error?: string };
+      setMsg(err?.error ?? "Fehler beim Trennen der Verbindung.");
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
+  return (
+    <div className="rounded-sm p-4 space-y-3" style={{ border: "0.5px solid var(--paper-rule)", background: "var(--paper-warm)" }}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-mid)" }}>GitHub</p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--ink-faint)", marginTop: "2px" }}>
+            {isConnected
+              ? `Verbunden als ${user.github_username ?? user.github_email ?? user.email}`
+              : "Nicht verbunden"}
+          </p>
+        </div>
+        {isConnected ? (
+          <button
+            onClick={() => void disconnect()}
+            disabled={disconnecting}
+            className="px-3 py-1.5 rounded-sm transition-colors disabled:opacity-50"
+            style={{ fontFamily: "var(--font-mono)", fontSize: "8px", letterSpacing: ".06em", textTransform: "uppercase", border: "0.5px solid #8b5e52", color: "#8b5e52" }}
+          >
+            {disconnecting ? "Trenne…" : "Trennen"}
+          </button>
+        ) : (
+          <button
+            onClick={loginWithGitHub}
+            className="px-3 py-1.5 rounded-sm transition-colors"
+            style={{ fontFamily: "var(--font-mono)", fontSize: "8px", letterSpacing: ".06em", textTransform: "uppercase", border: "0.5px solid var(--paper-rule)", color: "var(--ink)" }}
+          >
+            Verbinden
+          </button>
+        )}
+      </div>
+      {msg && (
+        <p style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--ink-faint)" }}>{msg}</p>
+      )}
+    </div>
+  );
+}
+
+// ── Theme Selector ────────────────────────────────────────────────────────
+
+const THEMES: { id: ThemeId; name: string; desc: string; preview: { bg: string; sidebar: string; text: string; accent: string; font: string } }[] = [
+  {
+    id: "paperwork",
+    name: "Paperwork",
+    desc: "Analoges Papier-Ästhetik mit Serifenschrift und Karo-Hintergrund",
+    preview: { bg: "#faf9f6", sidebar: "#2a2018", text: "#1c1810", accent: "#8b5e52", font: "Georgia, serif" },
+  },
+  {
+    id: "agile",
+    name: "Agile",
+    desc: "Cleanes, modernes Interface mit kräftigen Kontrasten",
+    preview: { bg: "#FDFBF7", sidebar: "#231F1F", text: "#231F1F", accent: "#534D5F", font: "Inter, sans-serif" },
+  },
+];
+
+function ThemeSelector() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-3">
+        {THEMES.map((t) => {
+          const active = theme === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              className="flex-1 text-left rounded-sm transition-all focus-visible:outline-none"
+              style={{
+                border: active ? `1.5px solid var(--accent-red)` : "1px solid var(--paper-rule)",
+                background: active ? "rgba(139,94,82,.04)" : "var(--paper-warm)",
+                boxShadow: active ? "0 0 0 3px rgba(139,94,82,.1)" : "none",
+              }}
+            >
+              {/* Mini-Vorschau */}
+              <div
+                className="rounded-t-sm overflow-hidden"
+                style={{ height: "72px", background: t.preview.bg, display: "flex", borderBottom: "1px solid var(--paper-rule)" }}
+              >
+                {/* Fake-Sidebar */}
+                <div style={{ width: "28px", background: t.preview.sidebar, flexShrink: 0, display: "flex", flexDirection: "column", gap: "4px", padding: "6px 4px" }}>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{ height: "3px", borderRadius: "1px", background: "rgba(255,255,255,.25)" }} />
+                  ))}
+                </div>
+                {/* Fake-Content */}
+                <div style={{ flex: 1, padding: "8px", display: "flex", flexDirection: "column", gap: "5px" }}>
+                  <div style={{ height: "5px", width: "55%", borderRadius: "2px", background: t.preview.text, opacity: .7, fontFamily: t.preview.font }} />
+                  <div style={{ height: "3px", width: "80%", borderRadius: "2px", background: t.preview.text, opacity: .2 }} />
+                  <div style={{ height: "3px", width: "65%", borderRadius: "2px", background: t.preview.text, opacity: .2 }} />
+                  <div style={{ marginTop: "4px", height: "14px", width: "40%", borderRadius: "2px", background: t.preview.accent, opacity: .8 }} />
+                </div>
+              </div>
+
+              {/* Label */}
+              <div className="px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".08em", textTransform: "uppercase", color: active ? "var(--accent-red)" : "var(--ink)", fontWeight: active ? 600 : 400 }}>
+                    {t.name}
+                  </span>
+                  {active && (
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "7px", letterSpacing: ".06em", textTransform: "uppercase", color: "var(--accent-red)" }}>
+                      Aktiv
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontFamily: "var(--font-body)", fontSize: "11px", color: "var(--ink-faint)", marginTop: "2px", lineHeight: 1.4 }}>
+                  {t.desc}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function SettingsPage({ params }: { params: Promise<{ org: string }> }) {
@@ -801,15 +943,20 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
         </nav>
 
         {/* Tab content */}
-        <div className="flex-1 bg-[#faf9f6] rounded-sm border border-[#e2ddd4] p-4 md:p-6 min-w-0">
+        <div className="flex-1 rounded-sm p-4 md:p-6 min-w-0" style={{ background: "var(--paper)", border: "1px solid var(--paper-rule)" }}>
           {activeTab === "general" && (
             <>
               <h2 className="text-base font-semibold text-[#1c1810] mb-5">Allgemeine Einstellungen</h2>
               <GeneralSection org={org} mutateOrg={mutateOrg} />
+              <div className="mt-6 max-w-lg space-y-2">
+                <h3 className="text-sm font-semibold text-[#1c1810]">Erscheinungsbild</h3>
+                <ThemeSelector />
+              </div>
               {user && (
                 <div className="mt-6 max-w-lg space-y-2">
                   <h3 className="text-sm font-semibold text-[#1c1810]">Verknüpfte Konten</h3>
                   <AtlassianConnectionSection user={user} />
+                  <GitHubConnectionSection user={user} />
                 </div>
               )}
             </>

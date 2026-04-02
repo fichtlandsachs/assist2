@@ -1,5 +1,19 @@
 {
   "enabledPlugins": {
     "zapier@claude-plugins-official": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; echo \"$f\" | grep -q '^/opt/assist2/frontend/' && echo \"$f\" | grep -qv 'node_modules' && cd /opt/assist2/infra && docker compose -f docker-compose.yml up -d --build frontend 2>&1 | tail -5 || true; } 2>/dev/null || true",
+            "timeout": 300
+          }
+        ]
+      }
+    ]
   }
 }

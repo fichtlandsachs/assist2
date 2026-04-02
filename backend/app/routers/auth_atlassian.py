@@ -35,7 +35,7 @@ async def atlassian_start():
     # Store state in Redis with 5-minute TTL
     import redis.asyncio as aioredis
     redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
-    await redis.setex(f"oauth_state:{state}", 300, "1")
+    await redis.setex(f"oauth_state:atlassian:{state}", 300, "1")
 
     params = urlencode({
         "audience": "api.atlassian.com",
@@ -119,7 +119,7 @@ async def atlassian_callback(
     # ── 1. Validate state ────────────────────────────────────────────────────
     import redis.asyncio as aioredis
     redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
-    state_key = f"oauth_state:{state}"
+    state_key = f"oauth_state:atlassian:{state}"
     exists = await redis.get(state_key)
     if not exists:
         raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
@@ -222,16 +222,18 @@ async def atlassian_callback(
     await db.commit()
 
     # ── 7. postMessage to opener and close popup ─────────────────────────────
+    import json as _json
     app_origin = settings.APP_BASE_URL.rstrip("/")
+    payload_json = _json.dumps({
+        "type": "workspace_login",
+        "access_token": tokens.access_token,
+        "refresh_token": tokens.refresh_token,
+        "user": {"email": user.email, "name": user.display_name},
+    })
     html = f"""<!DOCTYPE html>
 <html><body><script>
 (function() {{
-  var payload = {{
-    type: 'workspace_login',
-    access_token: '{tokens.access_token}',
-    refresh_token: '{tokens.refresh_token}',
-    user: {{ email: '{user.email}', name: '{user.display_name}' }}
-  }};
+  var payload = {payload_json};
   if (window.opener) {{
     window.opener.postMessage(payload, '{app_origin}');
   }}

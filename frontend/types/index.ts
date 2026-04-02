@@ -25,6 +25,9 @@ export interface User {
   identity_links?: IdentityLink[];
   atlassian_account_id?: string | null;
   atlassian_email?: string | null;
+  github_id?: number | null;
+  github_username?: string | null;
+  github_email?: string | null;
 }
 
 // ─── Organization ────────────────────────────────────────────────

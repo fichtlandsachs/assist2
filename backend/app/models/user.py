@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy import BigInteger, Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDMixin
@@ -19,6 +19,9 @@ class User(UUIDMixin, TimestampMixin, Base):
     authentik_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True, index=True)
     atlassian_account_id: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True, index=True)
     atlassian_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    github_id: Mapped[Optional[int]] = mapped_column(BigInteger, unique=True, nullable=True, index=True)
+    github_username: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    github_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
     locale: Mapped[str] = mapped_column(String(10), default="de", nullable=False)

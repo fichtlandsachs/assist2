@@ -767,11 +767,11 @@ git commit -m "feat(jira): register jira router in main.py"
 
 This task adds `"jira"` as a chat mode, adds a `JiraStoryPanel` component that renders the right panel when `<<<USERSTORY_PANEL` markers are present in assistant messages, and wire up the "Story anlegen" and "Nach Jira schreiben" actions.
 
-- [ ] **Step 1: Read the current file**
+- [x] **Step 1: Read the current file**
 
 Read `frontend/app/[org]/ai-workspace/page.tsx` fully. You need to understand the existing structure before editing.
 
-- [ ] **Step 2: Extend types**
+- [x] **Step 2: Extend types**
 
 Find the `ChatMode` type and `StoryData` interface. Replace:
 
@@ -803,7 +803,7 @@ interface SavedJiraStory {
 }
 ```
 
-- [ ] **Step 3: Add jira state variables**
+- [x] **Step 3: Add jira state variables**
 
 In the component body, after the existing `const [creating, setCreating] = useState(false);` line, add:
 
@@ -814,7 +814,7 @@ const [savingJira, setSavingJira] = useState(false);
 const [writingJira, setWritingJira] = useState(false);
 ```
 
-- [ ] **Step 4: Add panel marker parser**
+- [x] **Step 4: Add panel marker parser**
 
 Add this utility function BEFORE the component function (or as an inline helper inside). Place it after the interface declarations and before the `export default function`:
 
@@ -839,7 +839,7 @@ function parseJiraPanel(text: string): JiraStoryPanel | null {
 }
 ```
 
-- [ ] **Step 5: Add effect to parse panel markers from assistant messages**
+- [x] **Step 5: Add effect to parse panel markers from assistant messages**
 
 In the component body, add this effect after the existing `useEffect` that calls `extractStory`:
 
@@ -857,7 +857,7 @@ useEffect(() => {
 }, [messages, mode]);
 ```
 
-- [ ] **Step 6: Add saveToWorkspace and writeToJira handlers**
+- [x] **Step 6: Add saveToWorkspace and writeToJira handlers**
 
 Add these two functions in the component body after the existing `createStory` function:
 
@@ -933,7 +933,7 @@ const writeToJira = useCallback(async () => {
 }, [jiraPanel, savedStory]);
 ```
 
-- [ ] **Step 7: Add "jira" to the mode selector**
+- [x] **Step 7: Add "jira" to the mode selector**
 
 Find the mode selector buttons in the render section (look for the buttons that render `"chat"`, `"docs"`, `"tasks"`). Add `"jira"` to the mode list:
 
@@ -958,7 +958,7 @@ Find the mode selector buttons in the render section (look for the buttons that 
 ))}
 ```
 
-- [ ] **Step 8: Add JiraStoryPanel to the right panel**
+- [x] **Step 8: Add JiraStoryPanel to the right panel**
 
 In the right panel section (where `storyData` is rendered), add the Jira panel rendering BEFORE the existing `storyData` block. Find the right panel div and add:
 
@@ -1028,7 +1028,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 ```
 
-- [ ] **Step 9: Rebuild frontend**
+- [x] **Step 9: Rebuild frontend**
 
 ```bash
 cd /opt/assist2/infra && docker compose -f docker-compose.yml up -d --build frontend
@@ -1041,7 +1041,7 @@ docker logs assist2-frontend --tail 15 2>&1 | grep -E "ready|error|Error" -i
 
 Expected: `✓ Ready`
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 cd /opt/assist2 && git add "frontend/app/[org]/ai-workspace/page.tsx"

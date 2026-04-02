@@ -11,6 +11,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithAtlassian: () => void;
+  loginWithGitHub: () => void;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextValue>({
   isAuthenticated: false,
   login: _noop,
   loginWithAtlassian: () => {},
+  loginWithGitHub: () => {},
   register: _noop,
   logout: _noop,
   refreshUser: _noop,
@@ -33,14 +35,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       const me = await apiRequest<User>("/api/v1/auth/me");
       setUser(me);
     } catch {
       setUser(null);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const token = getAccessToken();
@@ -66,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginWithAtlassian = useCallback(() => {
+  const _handleOAuthPopup = useCallback((startUrl: string, popupName: string) => {
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "";
 
     const handleMessage = async (e: MessageEvent) => {
@@ -89,14 +91,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Fetch auth URL then open popup
-    apiRequest<{ auth_url: string }>("/api/v1/auth/atlassian/start")
+    apiRequest<{ auth_url: string }>(startUrl)
       .then(({ auth_url }) => {
-        window.open(auth_url, "atlassian_login", "width=600,height=700,noopener=0");
+        window.open(auth_url, popupName, "width=600,height=700");
         window.addEventListener("message", handleMessage);
       })
       .catch(console.error);
-  }, [router]);
+  }, [router, fetchUser]);
+
+  const loginWithAtlassian = useCallback(() => {
+    _handleOAuthPopup("/api/v1/auth/atlassian/start", "atlassian_login");
+  }, [_handleOAuthPopup]);
+
+  const loginWithGitHub = useCallback(() => {
+    _handleOAuthPopup("/api/v1/auth/github/start", "github_login");
+  }, [_handleOAuthPopup]);
 
   const register = async (email: string, password: string, displayName: string) => {
     const data = await apiRequest<TokenResponse>("/api/v1/auth/register", {
@@ -125,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user, isLoading,
       isAuthenticated: !!user,
-      login, loginWithAtlassian, register, logout,
+      login, loginWithAtlassian, loginWithGitHub, register, logout,
       refreshUser: fetchUser
     }}>
       {children}

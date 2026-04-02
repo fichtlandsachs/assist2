@@ -45,7 +45,7 @@ export function Topbar({ orgSlug, orgId, onMenuClick }: TopbarProps) {
       style={{
         height: "var(--topbar-height)",
         background: "var(--paper-warm)",
-        borderBottom: "1.5px solid var(--ink)",
+        borderBottom: "var(--topbar-border)",
       }}
     >
       {/* Left */}

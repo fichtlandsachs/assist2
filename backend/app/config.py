@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GITHUB_CLIENT_ID: str = ""
     GITHUB_CLIENT_SECRET: str = ""
+    GITHUB_REDIRECT_URI: str = "https://assist2.fichtlworks.com/api/v1/auth/github/callback"
+    GITHUB_SCOPES: str = "read:user user:email"
 
     # Authentik IdP
     AUTHENTIK_URL: str = "http://assist2-authentik-server:9000"

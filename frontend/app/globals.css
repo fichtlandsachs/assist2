@@ -25,6 +25,30 @@
   --font-mono:    'JetBrains Mono', monospace;
   --sidebar-width: 200px;
   --topbar-height: 48px;
+
+  /* Main content background (includes ruled-line pattern for Paperwork) */
+  --main-content-bg: var(--paper) repeating-linear-gradient(
+    180deg,
+    transparent,
+    transparent calc(var(--line-h) - 1px),
+    var(--paper-rule) calc(var(--line-h) - 1px),
+    var(--paper-rule) var(--line-h)
+  );
+
+  /* Sidebar color tokens — used by Sidebar.tsx */
+  --sidebar-text:           rgba(255,255,255,.4);
+  --sidebar-text-active:    rgba(255,255,255,.95);
+  --sidebar-text-active-bg: rgba(255,255,255,.08);
+  --sidebar-active-border:  var(--paper);
+  --sidebar-org-text:       rgba(255,255,255,.7);
+  --sidebar-divider:        rgba(255,255,255,.08);
+  --sidebar-user-text:      rgba(255,255,255,.6);
+  --sidebar-logout-text:    rgba(255,255,255,.3);
+  --sidebar-avatar-bg:      rgba(255,255,255,.12);
+  --sidebar-avatar-text:    rgba(255,255,255,.7);
+
+  /* Topbar */
+  --topbar-border: 1.5px solid var(--ink);
 }
 
 html {
@@ -57,6 +81,62 @@ a { color: inherit; text-decoration: none; }
 img, video { max-width: 100%; height: auto; }
 button { cursor: pointer; font-family: var(--font-body); }
 ::selection { background-color: var(--paper-rule); color: var(--ink); }
+
+/* ── Agile theme overrides ── */
+[data-theme="agile"] {
+  /* Colors */
+  --paper:        #FDFBF7;
+  --paper-warm:   #F3F1ED;
+  --paper-rule:   rgba(35,31,31,.1);
+  --paper-rule2:  #EFECE7;
+  --margin-red:   rgba(83,77,95,.18);
+  --ink:          #231F1F;
+  --ink-mid:      #534D5F;
+  --ink-faint:    #8E8A86;
+  --ink-faintest: #B8B3AE;
+  --accent-red:   #534D5F;
+  --green:        #52775e;
+  --brown:        #7a6450;
+  --navy:         #534D5F;
+
+  /* Fonts */
+  --font-serif:   'Playfair Display', serif;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'Architects Daughter', cursive;
+
+  /* Main content: clean, no ruled lines */
+  --main-content-bg: #FDFBF7;
+
+  /* Sidebar: light background, dark text */
+  --binding:            #fdfaf6;
+  --sidebar-text:           rgba(35,31,31,.45);
+  --sidebar-text-active:    rgba(35,31,31,.95);
+  --sidebar-text-active-bg: rgba(83,77,95,.08);
+  --sidebar-active-border:  #534D5F;
+  --sidebar-org-text:       rgba(35,31,31,.55);
+  --sidebar-divider:        rgba(35,31,31,.08);
+  --sidebar-user-text:      rgba(35,31,31,.6);
+  --sidebar-logout-text:    rgba(35,31,31,.35);
+  --sidebar-avatar-bg:      rgba(83,77,95,.1);
+  --sidebar-avatar-text:    rgba(35,31,31,.7);
+
+  /* Topbar */
+  --topbar-border: 1.5px solid rgba(35,31,31,.12);
+}
+
+[data-theme="agile"] body {
+  background: #FDFBF7;
+}
+
+[data-theme="agile"] h1,
+[data-theme="agile"] h2,
+[data-theme="agile"] h3,
+[data-theme="agile"] h4,
+[data-theme="agile"] h5,
+[data-theme="agile"] h6 {
+  font-style: normal;
+  font-weight: 600;
+}
 
 /* ── Paper utility classes (used by existing pages) ── */
 .neo-card {

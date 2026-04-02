@@ -50,9 +50,7 @@ export default function OrgLayout({
         />
         <main
           className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6"
-          style={{
-            background: `var(--paper) repeating-linear-gradient(180deg, transparent, transparent calc(var(--line-h) - 1px), var(--paper-rule) calc(var(--line-h) - 1px), var(--paper-rule) var(--line-h))`
-          }}
+          style={{ background: "var(--main-content-bg)" }}
         >
           {children}
         </main>

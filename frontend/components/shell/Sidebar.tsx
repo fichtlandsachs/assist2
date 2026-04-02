@@ -47,7 +47,7 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
     <aside
       style={{
         background: "var(--binding)",
-        boxShadow: "1px 0 0 #5a4a30",
+        boxShadow: "1px 0 0 var(--sidebar-divider)",
         width: "200px",
         flexShrink: 0,
       }}
@@ -56,9 +56,9 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
       {/* Org header */}
       <div
         className="flex items-center justify-between px-4"
-        style={{ height: "var(--topbar-height)", borderBottom: "1px solid rgba(255,255,255,.08)" }}
+        style={{ height: "var(--topbar-height)", borderBottom: "1px solid var(--sidebar-divider)" }}
       >
-        <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "13px", color: "rgba(255,255,255,.7)" }}>
+        <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "13px", color: "var(--sidebar-org-text)" }}>
           {orgSlug}
         </span>
         <button
@@ -87,9 +87,9 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
                 fontSize: "9px",
                 letterSpacing: ".08em",
                 textTransform: "uppercase",
-                color: isActive ? "rgba(255,255,255,.95)" : "rgba(255,255,255,.4)",
-                background: isActive ? "rgba(255,255,255,.08)" : "transparent",
-                borderLeft: isActive ? "2px solid var(--paper)" : "2px solid transparent",
+                color: isActive ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
+                background: isActive ? "var(--sidebar-text-active-bg)" : "transparent",
+                borderLeft: isActive ? `2px solid var(--sidebar-active-border)` : "2px solid transparent",
               }}
             >
               <Icon size={13} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6 }} />
@@ -116,9 +116,9 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
                   fontSize: "9px",
                   letterSpacing: ".08em",
                   textTransform: "uppercase",
-                  color: isActive ? "rgba(255,255,255,.95)" : "rgba(255,255,255,.4)",
-                  background: isActive ? "rgba(255,255,255,.08)" : "transparent",
-                  borderLeft: isActive ? "2px solid var(--paper)" : "2px solid transparent",
+                  color: isActive ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
+                  background: isActive ? "var(--sidebar-text-active-bg)" : "transparent",
+                  borderLeft: isActive ? `2px solid var(--sidebar-active-border)` : "2px solid transparent",
                 }}
               >
                 <PluginIcon size={13} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6 }} />
@@ -134,27 +134,27 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
       {user && (
         <div
           className="px-3 py-3 flex items-center gap-2"
-          style={{ borderTop: "1px solid rgba(255,255,255,.08)" }}
+          style={{ borderTop: "1px solid var(--sidebar-divider)" }}
         >
           <SlotRenderer slotId="sidebar_bottom" orgSlug={orgSlug} orgId={orgId} />
           <div
             className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
             style={{
-              background: "rgba(255,255,255,.12)",
+              background: "var(--sidebar-avatar-bg)",
               fontFamily: "var(--font-mono)", fontSize: "8px",
-              color: "rgba(255,255,255,.7)",
+              color: "var(--sidebar-avatar-text)",
             }}
           >
             {user.display_name.slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate" style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "rgba(255,255,255,.6)", letterSpacing: ".04em" }}>
+            <p className="truncate" style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--sidebar-user-text)", letterSpacing: ".04em" }}>
               {user.display_name}
             </p>
           </div>
           <button
             onClick={() => void logout()}
-            style={{ fontFamily: "var(--font-mono)", fontSize: "7px", color: "rgba(255,255,255,.3)", letterSpacing: ".04em" }}
+            style={{ fontFamily: "var(--font-mono)", fontSize: "7px", color: "var(--sidebar-logout-text)", letterSpacing: ".04em" }}
           >
             Logout
           </button>
