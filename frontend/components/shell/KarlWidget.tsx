@@ -43,7 +43,7 @@ export function KarlWidget({ orgSlug }: KarlWidgetProps) {
         <Smile size={28} strokeWidth={2} className="text-slate-900 relative z-10" />
       </div>
 
-      <p className="text-center leading-snug font-['Gochi_Hand'] text-[14px] text-slate-800">
+      <p className="text-center leading-snug font-['Architects_Daughter'] text-[14px] text-slate-800">
         "Let's sketch success together!"
       </p>
 

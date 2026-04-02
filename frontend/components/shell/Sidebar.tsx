@@ -136,7 +136,7 @@ export function Sidebar({ orgSlug, orgId, mobileOpen = false, onMobileClose }: S
         <div className="karl-logo w-14 h-14 bg-white border-2 border-slate-900 rounded-xl shadow-[4px_4px_0_rgba(0,0,0,1)] flex items-center justify-center">
           <Smile size={26} strokeWidth={2} className="text-slate-900" />
         </div>
-        <span className="font-['Gochi_Hand'] text-2xl text-slate-900 tracking-tight leading-none">Karl</span>
+        <span className="font-['Architects_Daughter'] text-2xl text-slate-900 tracking-tight leading-none">Karl</span>
         <span className="text-[9px] font-bold tracking-[0.2em] text-slate-400 uppercase font-['Architects_Daughter']">
           {orgSlug}
         </span>
