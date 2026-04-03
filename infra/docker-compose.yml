@@ -195,6 +195,13 @@ services:
       WHISPER_URL: ${WHISPER_URL:-http://assist2-whisper:9000}
       LITELLM_URL: ${LITELLM_URL:-http://litellm:4000}
       LITELLM_API_KEY: ${LITELLM_API_KEY}
+      IONOS_API_KEY: ${IONOS_API_KEY:-}
+      IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.ionos.com/openai}
+      IONOS_MODEL_CACHE_TTL: ${IONOS_MODEL_CACHE_TTL:-300}
+      PROVIDER_ROUTING_SUGGEST: ${PROVIDER_ROUTING_SUGGEST:-auto}
+      PROVIDER_ROUTING_DOCS: ${PROVIDER_ROUTING_DOCS:-claude-sonnet-4-6}
+      PROVIDER_ROUTING_FALLBACK: ${PROVIDER_ROUTING_FALLBACK:-ionos-fast}
+      AI_FEATURE_FLAGS: ${AI_FEATURE_FLAGS:-streaming,embeddings}
       NEXTCLOUD_URL: ${NEXTCLOUD_URL:-https://nextcloud.fichtlworks.com}
       NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
       NEXTCLOUD_ADMIN_APP_PASSWORD: ${NEXTCLOUD_ADMIN_APP_PASSWORD}
@@ -239,6 +246,13 @@ services:
       WHISPER_URL: ${WHISPER_URL:-http://assist2-whisper:9000}
       LITELLM_URL: ${LITELLM_URL:-http://litellm:4000}
       LITELLM_API_KEY: ${LITELLM_API_KEY}
+      IONOS_API_KEY: ${IONOS_API_KEY:-}
+      IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.ionos.com/openai}
+      IONOS_MODEL_CACHE_TTL: ${IONOS_MODEL_CACHE_TTL:-300}
+      PROVIDER_ROUTING_SUGGEST: ${PROVIDER_ROUTING_SUGGEST:-auto}
+      PROVIDER_ROUTING_DOCS: ${PROVIDER_ROUTING_DOCS:-claude-sonnet-4-6}
+      PROVIDER_ROUTING_FALLBACK: ${PROVIDER_ROUTING_FALLBACK:-ionos-fast}
+      AI_FEATURE_FLAGS: ${AI_FEATURE_FLAGS:-streaming,embeddings}
     networks:
       - internal
     healthcheck:
@@ -310,6 +324,8 @@ services:
     restart: unless-stopped
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      IONOS_API_KEY: ${IONOS_API_KEY:-}
+      IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.ionos.com/openai}
       LITELLM_MASTER_KEY: ${LITELLM_API_KEY:-sk-assist2}
       DATABASE_URL: postgresql://litellm:${LITELLM_DB_PASSWORD}@assist2-litellm-postgres:5432/litellm_db
       SERVER_ROOT_PATH: /litellm
