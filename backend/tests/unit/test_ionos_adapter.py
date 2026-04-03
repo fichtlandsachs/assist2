@@ -147,3 +147,33 @@ def test_routing_matrix_auto_uses_anthropic_when_no_ionos():
         mock_cfg.return_value.PROVIDER_ROUTING_FALLBACK = "claude-haiku-4-5"
         model = resolve_model("suggest", complexity="low")
         assert model == "claude-haiku-4-5"
+
+
+def test_routing_matrix_auto_high_complexity_ionos_uses_reasoning():
+    """high complexity with IONOS key must route to ionos-reasoning (Mixtral 8x7B)."""
+    from app.services.providers.routing_matrix import resolve_model
+    from unittest.mock import patch
+
+    with patch("app.services.providers.routing_matrix.get_settings") as mock_cfg:
+        mock_cfg.return_value.PROVIDER_ROUTING_SUGGEST = "auto"
+        mock_cfg.return_value.IONOS_API_KEY = "some-key"
+        mock_cfg.return_value.ANTHROPIC_API_KEY = ""
+        mock_cfg.return_value.OPENAI_API_KEY = ""
+        mock_cfg.return_value.PROVIDER_ROUTING_FALLBACK = "claude-sonnet-4-6"
+        model = resolve_model("suggest", complexity="high")
+        assert model == "ionos-reasoning"
+
+
+def test_routing_matrix_auto_medium_complexity_ionos_uses_quality():
+    """medium complexity with IONOS key must route to ionos-quality."""
+    from app.services.providers.routing_matrix import resolve_model
+    from unittest.mock import patch
+
+    with patch("app.services.providers.routing_matrix.get_settings") as mock_cfg:
+        mock_cfg.return_value.PROVIDER_ROUTING_SUGGEST = "auto"
+        mock_cfg.return_value.IONOS_API_KEY = "some-key"
+        mock_cfg.return_value.ANTHROPIC_API_KEY = ""
+        mock_cfg.return_value.OPENAI_API_KEY = ""
+        mock_cfg.return_value.PROVIDER_ROUTING_FALLBACK = "claude-sonnet-4-6"
+        model = resolve_model("suggest", complexity="medium")
+        assert model == "ionos-quality"

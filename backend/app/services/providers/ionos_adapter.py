@@ -98,5 +98,5 @@ class IONOSAdapter(ProviderAdapter):
         _MODEL_CACHE[self._api_base] = {"models": model_ids, "fetched_at": now}
         return model_ids
 
-    async def close(self) -> None:
-        await self._http.aclose()
+    def close(self) -> None:
+        self._openai.close()

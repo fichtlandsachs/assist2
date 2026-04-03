@@ -18,7 +18,7 @@ _TASK_TO_SETTING: dict[str, str] = {
 _AUTO_MAP: dict[tuple[bool, str], str] = {
     (True,  "low"):    "ionos-fast",
     (True,  "medium"): "ionos-quality",
-    (True,  "high"):   "ionos-quality",
+    (True,  "high"):   "ionos-reasoning",
     (False, "low"):    "claude-haiku-4-5",
     (False, "medium"): "claude-sonnet-4-6",
     (False, "high"):   "claude-sonnet-4-6",

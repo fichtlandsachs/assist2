@@ -30,6 +30,7 @@ def get_adapter_for_model(model_alias: str):
     raise ValueError(f"No adapter registered for model alias: {model_alias!r}")
 
 
+@lru_cache(maxsize=None)
 def _get_legacy_adapter(model_alias: str):
     from app.services.providers.base import ProviderAdapter
     from app.ai.pipeline import ProviderClient
@@ -52,5 +53,15 @@ def _get_legacy_adapter(model_alias: str):
                 raw = _openai.OpenAI(api_key=s.OPENAI_API_KEY)
                 client = ProviderClient("openai", raw)
             return client.call(model, max_tokens, temperature, messages)
+
+        def embed(self, model: str, texts: list[str]) -> list[list[float]]:
+            raise NotImplementedError(f"{self.provider_name} embed not supported via legacy adapter")
+
+        def is_available(self) -> bool:
+            if model_alias.startswith("claude"):
+                return bool(s.ANTHROPIC_API_KEY)
+            if model_alias.startswith("gpt"):
+                return bool(s.OPENAI_API_KEY)
+            return False
 
     return _LegacyAdapter()

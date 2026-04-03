@@ -25,10 +25,10 @@ class ProviderAdapter(ABC):
         Returns (text: str, usage: dict) where usage has input_tokens, output_tokens.
         """
 
+    @abstractmethod
     def embed(self, model: str, texts: list[str]) -> list[list[float]]:
         """Generate embeddings. Raises NotImplementedError if not supported."""
-        raise NotImplementedError(f"{self.provider_name} does not support embeddings")
 
+    @abstractmethod
     def is_available(self) -> bool:
         """Return False if misconfigured (e.g. no API key)."""
-        return True
