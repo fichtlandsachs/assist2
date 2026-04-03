@@ -73,7 +73,7 @@ class DocsGenerateResponse(BaseModel):
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _make_client(task_category: str, ai_settings: dict | None = None) -> tuple[ProviderClient, str]:
+def _make_client(task_category: str, ai_settings: dict | None = None, complexity: str = "medium") -> tuple[ProviderClient, str]:
     """Create a provider-aware LLM client based on task category.
 
     Resolution order:
@@ -110,6 +110,8 @@ def _make_client(task_category: str, ai_settings: dict | None = None) -> tuple[P
             raw = openai_sdk.OpenAI(api_key=api_key)
             return ProviderClient(provider, raw), provider
         if model_override.startswith("ionos"):
+            if not settings.IONOS_API_KEY:
+                logger.warning("_make_client: model_override=%s but IONOS_API_KEY is not set", model_override)
             raw = openai_sdk.OpenAI(
                 api_key=settings.IONOS_API_KEY,
                 base_url=f"{settings.IONOS_API_BASE}/v1",
@@ -125,7 +127,7 @@ def _make_client(task_category: str, ai_settings: dict | None = None) -> tuple[P
     try:
         from app.services.providers.routing_matrix import resolve_model
         from app.ai.context_analyzer import analyze_context  # noqa: F401 — guard import only
-        alias = resolve_model(routing_task)
+        alias = resolve_model(routing_task, complexity=complexity)
     except Exception:
         alias = ""
 
