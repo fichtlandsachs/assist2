@@ -10,7 +10,6 @@ import logging
 import time
 from typing import Optional
 
-import httpx
 import openai
 
 from app.services.providers.base import ProviderAdapter
@@ -19,6 +18,14 @@ logger = logging.getLogger(__name__)
 
 # In-process model list cache keyed by api_base
 _MODEL_CACHE: dict = {}
+
+# Map LiteLLM aliases → real IONOS model IDs
+_IONOS_ALIAS_MAP: dict[str, str] = {
+    "ionos-fast":      "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    "ionos-quality":   "meta-llama/Meta-Llama-3.1-70B-Instruct",
+    "ionos-reasoning": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    "ionos-embed":     "BAAI/bge-m3",
+}
 
 
 class IONOSAdapter(ProviderAdapter):
@@ -45,12 +52,6 @@ class IONOSAdapter(ProviderAdapter):
             max_retries=0,
         )
 
-        self._http = httpx.AsyncClient(
-            base_url=f"{self._api_base}/v1",
-            headers={"Authorization": f"Bearer {api_key}"},
-            timeout=timeout,
-        )
-
     @property
     def provider_name(self) -> str:
         return "ionos"
@@ -65,13 +66,15 @@ class IONOSAdapter(ProviderAdapter):
         max_tokens: int,
         temperature: float,
     ) -> tuple[str, dict]:
+        resolved = _IONOS_ALIAS_MAP.get(model, model)
         resp = self._openai.chat.completions.create(
-            model=model,
+            model=resolved,
             messages=messages,
             max_tokens=max_tokens,
             temperature=temperature,
         )
-        text = resp.choices[0].message.content.strip()
+        content = resp.choices[0].message.content
+        text = (content or "").strip()
         usage = {
             "input_tokens": resp.usage.prompt_tokens,
             "output_tokens": resp.usage.completion_tokens,
@@ -79,22 +82,21 @@ class IONOSAdapter(ProviderAdapter):
         return text, usage
 
     def embed(self, model: str, texts: list[str]) -> list[list[float]]:
-        resp = self._openai.embeddings.create(model=model, input=texts)
+        resolved = _IONOS_ALIAS_MAP.get(model, model)
+        resp = self._openai.embeddings.create(model=resolved, input=texts)
         return [item.embedding for item in resp.data]
 
     async def list_models(self) -> list[str]:
+        import asyncio
         now = time.monotonic()
         cached = _MODEL_CACHE.get(self._api_base)
         if cached and self._cache_ttl > 0:
-            age = now - cached["fetched_at"]
-            if age < self._cache_ttl:
+            if now - cached["fetched_at"] < self._cache_ttl:
                 return cached["models"]
 
-        resp = await self._http.get("/models")
-        resp.raise_for_status()
-        data = resp.json()
-        model_ids = [m["id"] for m in data.get("data", [])]
-
+        loop = asyncio.get_event_loop()
+        page = await loop.run_in_executor(None, self._openai.models.list)
+        model_ids = [m.id for m in page.data]
         _MODEL_CACHE[self._api_base] = {"models": model_ids, "fetched_at": now}
         return model_ids
 

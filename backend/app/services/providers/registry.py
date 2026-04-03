@@ -41,18 +41,20 @@ def _get_legacy_adapter(model_alias: str):
     s = get_settings()
 
     class _LegacyAdapter(ProviderAdapter):
+        def __init__(self):
+            if model_alias.startswith("claude"):
+                raw = anthropic.Anthropic(api_key=s.ANTHROPIC_API_KEY)
+                self._client = ProviderClient("anthropic", raw)
+            else:
+                raw = _openai.OpenAI(api_key=s.OPENAI_API_KEY)
+                self._client = ProviderClient("openai", raw)
+
         @property
         def provider_name(self) -> str:
             return "anthropic" if model_alias.startswith("claude") else "openai"
 
         def chat(self, model, messages, max_tokens, temperature):
-            if model_alias.startswith("claude"):
-                raw = anthropic.Anthropic(api_key=s.ANTHROPIC_API_KEY)
-                client = ProviderClient("anthropic", raw)
-            else:
-                raw = _openai.OpenAI(api_key=s.OPENAI_API_KEY)
-                client = ProviderClient("openai", raw)
-            return client.call(model, max_tokens, temperature, messages)
+            return self._client.call(model, max_tokens, temperature, messages)
 
         def embed(self, model: str, texts: list[str]) -> list[list[float]]:
             raise NotImplementedError(f"{self.provider_name} embed not supported via legacy adapter")

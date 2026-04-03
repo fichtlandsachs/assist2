@@ -7,25 +7,24 @@ from unittest.mock import AsyncMock, MagicMock
 
 @pytest.mark.asyncio
 async def test_list_models_returns_ids(monkeypatch):
+    import app.services.providers.ionos_adapter as _mod
+    _mod._MODEL_CACHE.clear()  # isolate from previous test runs
+
     from app.services.providers.ionos_adapter import IONOSAdapter
 
-    mock_resp = MagicMock()
-    mock_resp.json.return_value = {
-        "data": [
-            {"id": "meta-llama/Meta-Llama-3.1-8B-Instruct"},
-            {"id": "mistralai/Mixtral-8x7B-Instruct-v0.1"},
-        ]
-    }
-    mock_resp.raise_for_status = MagicMock()
+    fake_model_a = MagicMock()
+    fake_model_a.id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    fake_model_b = MagicMock()
+    fake_model_b.id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 
-    mock_client = AsyncMock()
-    mock_client.get = AsyncMock(return_value=mock_resp)
+    fake_page = MagicMock()
+    fake_page.data = [fake_model_a, fake_model_b]
 
     adapter = IONOSAdapter(
         api_base="https://openai.ionos.com/openai",
         api_key="test-key",
     )
-    monkeypatch.setattr(adapter, "_http", mock_client)
+    monkeypatch.setattr(adapter._openai, "models", MagicMock(list=MagicMock(return_value=fake_page)))
 
     models = await adapter.list_models()
     assert "meta-llama/Meta-Llama-3.1-8B-Instruct" in models
@@ -41,21 +40,22 @@ async def test_list_models_caches_result(monkeypatch):
 
     call_count = 0
 
-    mock_resp = MagicMock()
-    mock_resp.json.return_value = {"data": [{"id": "model-a"}]}
-    mock_resp.raise_for_status = MagicMock()
+    fake_model = MagicMock()
+    fake_model.id = "model-a"
+    fake_page = MagicMock()
+    fake_page.data = [fake_model]
 
-    async def counting_get(*a, **kw):
+    def counting_list():
         nonlocal call_count
         call_count += 1
-        return mock_resp
+        return fake_page
 
     adapter = IONOSAdapter(
         api_base="https://openai.ionos.com/openai",
         api_key="test-key",
         model_cache_ttl=60,
     )
-    monkeypatch.setattr(adapter, "_http", AsyncMock(get=counting_get))
+    monkeypatch.setattr(adapter._openai, "models", MagicMock(list=counting_list))
 
     await adapter.list_models()
     await adapter.list_models()
@@ -90,6 +90,27 @@ def test_chat_returns_text_and_usage(monkeypatch):
     assert text == "Hello world"
     assert usage["input_tokens"] == 10
     assert usage["output_tokens"] == 5
+
+
+def test_chat_translates_alias_to_model_id(monkeypatch):
+    from app.services.providers.ionos_adapter import IONOSAdapter
+
+    captured_model = []
+    fake_resp = MagicMock()
+    fake_resp.choices = [MagicMock(message=MagicMock(content="ok"))]
+    fake_resp.usage = MagicMock(prompt_tokens=5, completion_tokens=3)
+
+    mock_openai = MagicMock()
+    def capture_create(**kwargs):
+        captured_model.append(kwargs["model"])
+        return fake_resp
+    mock_openai.chat.completions.create = capture_create
+
+    adapter = IONOSAdapter(api_base="https://openai.ionos.com/openai", api_key="k")
+    monkeypatch.setattr(adapter, "_openai", mock_openai)
+
+    adapter.chat(model="ionos-fast", messages=[{"role": "user", "content": "hi"}], max_tokens=10, temperature=0.5)
+    assert captured_model[0] == "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
 
 # ── routing_matrix ────────────────────────────────────────────────────────
