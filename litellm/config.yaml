@@ -1,19 +1,103 @@
+# litellm/config.yaml
+# Central LiteLLM gateway configuration.
+# All AI traffic from the backend routes through here.
+# Model names are logical aliases — the backend never hardcodes vendor model IDs.
+
 model_list:
+
+  # ── IONOS AI (OpenAI-compatible) ──────────────────────────────
+  # fast/cheap tier — Llama 3.1 8B
+  - model_name: ionos-fast
+    litellm_params:
+      model: openai/meta-llama/Meta-Llama-3.1-8B-Instruct
+      api_base: os.environ/IONOS_API_BASE
+      api_key: os.environ/IONOS_API_KEY
+      timeout: 30
+      max_retries: 2
+
+  # quality tier — Llama 3.1 70B
+  - model_name: ionos-quality
+    litellm_params:
+      model: openai/meta-llama/Meta-Llama-3.1-70B-Instruct
+      api_base: os.environ/IONOS_API_BASE
+      api_key: os.environ/IONOS_API_KEY
+      timeout: 60
+      max_retries: 2
+
+  # reasoning tier — Mixtral 8x7B
+  - model_name: ionos-reasoning
+    litellm_params:
+      model: openai/mistralai/Mixtral-8x7B-Instruct-v0.1
+      api_base: os.environ/IONOS_API_BASE
+      api_key: os.environ/IONOS_API_KEY
+      timeout: 90
+      max_retries: 1
+
+  # embeddings — BAAI bge-m3 (multilingual, production-grade)
+  - model_name: ionos-embed
+    litellm_params:
+      model: openai/BAAI/bge-m3
+      api_base: os.environ/IONOS_API_BASE
+      api_key: os.environ/IONOS_API_KEY
+      timeout: 20
+
+  # ── Anthropic ─────────────────────────────────────────────────
   - model_name: claude-sonnet-4-6
     litellm_params:
       model: anthropic/claude-sonnet-4-6
       api_key: os.environ/ANTHROPIC_API_KEY
+      timeout: 90
+      max_retries: 2
 
   - model_name: claude-haiku-4-5
     litellm_params:
       model: anthropic/claude-haiku-4-5-20251001
       api_key: os.environ/ANTHROPIC_API_KEY
+      timeout: 30
+      max_retries: 2
 
   - model_name: claude-opus-4-6
     litellm_params:
       model: anthropic/claude-opus-4-6
       api_key: os.environ/ANTHROPIC_API_KEY
+      timeout: 120
+      max_retries: 1
+
+  # ── Fallback group: ionos-fast → anthropic haiku ──────────────
+  - model_name: fallback-eu
+    litellm_params:
+      model: openai/meta-llama/Meta-Llama-3.1-8B-Instruct
+      api_base: os.environ/IONOS_API_BASE
+      api_key: os.environ/IONOS_API_KEY
+      timeout: 30
+    model_info:
+      fallback_models: [claude-haiku-4-5]
+
+router_settings:
+  num_retries: 3
+  retry_after_max_wait: 60
+  timeout: 90
+  allowed_fails: 2
+  cooldown_time: 60
+
+litellm_settings:
+  add_function_to_prompt: false
+  json_logs: true
+  log_raw_request_response: false
+  success_callback: []
+  failure_callback: []
+  cache: true
+  cache_params:
+    type: redis
+    host: redis
+    port: 6379
+    password: os.environ/REDIS_PASSWORD
+    namespace: "litellm:cache"
+    supported_call_types: [acompletion, completion, embedding]
+    ttl: 300
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
   ui_access_mode: "username_password"
+  health_check_interval: 30
+  return_response_headers: false
