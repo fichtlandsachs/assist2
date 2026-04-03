@@ -64,6 +64,12 @@ _MODEL_MAP_OPENAI: dict[str, str] = {
     "high":   "gpt-4o-mini",   # broadly accessible
 }
 
+_MODEL_MAP_IONOS: dict[str, str] = {
+    "low":    "ionos-fast",      # Llama 3.1 8B — fast, cheap
+    "medium": "ionos-quality",   # Llama 3.1 70B — balanced
+    "high":   "ionos-reasoning", # Mixtral 8x7B — complex reasoning
+}
+
 
 def route_request(
     complexity: ComplexityScore,
@@ -76,14 +82,19 @@ def route_request(
     Falls back to medium if an unknown combination is passed.
 
     model_override: org-level override takes priority over env override.
-    provider: "anthropic" (default) or "openai".
+    provider: "anthropic" (default), "openai", or "ionos".
     """
     settings = get_settings()
     level = complexity.level
     entry = _TABLE.get((task_type, level), _TABLE[("suggest", "medium")])
 
     # Priority: org-level override → env-level override → default for provider
-    model_map = _MODEL_MAP_OPENAI if provider == "openai" else _MODEL_MAP
+    if provider == "openai":
+        model_map = _MODEL_MAP_OPENAI
+    elif provider == "ionos":
+        model_map = _MODEL_MAP_IONOS
+    else:
+        model_map = _MODEL_MAP
     env_override = getattr(settings, "AI_MODEL_OVERRIDE", "")
     effective_override = model_override or env_override
     model = effective_override if effective_override else model_map[level]
