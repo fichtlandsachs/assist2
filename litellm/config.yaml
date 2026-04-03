@@ -57,6 +57,7 @@ model_list:
       max_retries: 2
 
   - model_name: claude-opus-4-6
+    # Opus timeout intentionally exceeds global router timeout (90s) — complex tasks
     litellm_params:
       model: anthropic/claude-opus-4-6
       api_key: os.environ/ANTHROPIC_API_KEY
