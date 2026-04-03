@@ -39,14 +39,17 @@ class ProviderClient:
     ) -> tuple[str, dict]:
         if self.provider == "ionos":
             from app.core.observability import timed_call
-            with timed_call("ionos", model, "call") as meta:
+            from app.services.providers.ionos_adapter import _IONOS_ALIAS_MAP
+            resolved_model = _IONOS_ALIAS_MAP.get(model, model)
+            with timed_call("ionos", resolved_model, "pipeline") as meta:
                 resp = self._client.chat.completions.create(
-                    model=model,
+                    model=resolved_model,
                     max_tokens=max_tokens,
                     temperature=temperature,
                     messages=messages,
                 )
-                text = resp.choices[0].message.content.strip()
+                content = resp.choices[0].message.content
+                text = (content or "").strip()
                 usage = {
                     "input_tokens": resp.usage.prompt_tokens,
                     "output_tokens": resp.usage.completion_tokens,
