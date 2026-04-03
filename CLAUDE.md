@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **assist2** is a multi-tenant, AI-native workspace platform that orchestrates AI agents to manage user stories, deliver code, and coordinate complex workflows. It is a monorepo with a FastAPI backend, Next.js 14 frontend, n8n workflow engine, and a plugin architecture.
 
-Detailed design documentation lives in the root `.md` files (German language, `00_overview.md` through `11_n8n_orchestrator.md`). Start with `INDEX.md` for navigation.
+Detailed design documentation lives in `/opt/claude/assist2/` (German language, `00_overview.md` through `11_n8n_orchestrator.md`). Start with `INDEX.md` there for navigation.
 
 ## Commands
 
