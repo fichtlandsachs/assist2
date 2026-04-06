@@ -256,9 +256,97 @@ Pure KI:      ✦ KI                         (nicht klickbar, gedimmtes Grau)
 
 ---
 
+---
+
+## 5. Feedback-Loop — abgelehnte Vorschläge
+
+### Ziel
+
+Vorschläge die der Nutzer explizit ablehnt, sollen bei künftigen Generierungen für diese Org nicht mehr erscheinen.
+
+### Schema — neue Tabelle `suggestion_feedback`
+
+```python
+class SuggestionFeedback(Base):
+    __tablename__ = "suggestion_feedback"
+    id:              Mapped[uuid.UUID]   # PK
+    organization_id: Mapped[uuid.UUID]   # Index — org-spezifisch
+    suggestion_type: Mapped[str]         # "dod" | "test_case" | "feature" | "story"
+    suggestion_text: Mapped[str]         # Text des abgelehnten Vorschlags (max 1000 Zeichen)
+    feedback:        Mapped[str]         # "rejected" (Phase 1 nur Negativ-Signal)
+    created_at:      Mapped[datetime]
+```
+
+Migration 0026.
+
+### Backend — Endpoint
+
+```
+POST /api/v1/suggestions/feedback
+Body: { suggestion_type, suggestion_text, feedback: "rejected" }
+```
+
+Speichert den Eintrag — kein Rückgabewert außer 204.
+
+### Nutzung bei Generierung
+
+Beim Aufbau jedes Suggestion-Prompts werden die letzten 20 abgelehnten Texte dieser Org geladen und als Negativliste injiziert:
+
+```
+--- Von der Organisation abgelehnte Vorschläge (nicht wiederholen) ---
+- Unit Tests für alle Endpunkte
+- Dokumentation auf Confluence veröffentlichen
+----------------------------------------------------------------------
+```
+
+Die Abfrage ist lightweight (kein Embedding, kein Vektor-Lookup) — ein einfaches `SELECT ... WHERE organization_id = :org_id AND suggestion_type = :type ORDER BY created_at DESC LIMIT 20`.
+
+### Frontend — Ablehnen-Button
+
+`AISuggestionItem` bekommt ein `onReject?: () => void`-Prop. Bei Klick:
+1. Lokale Optimistic-Entfernung aus der Liste
+2. `POST /api/v1/suggestions/feedback` im Hintergrund
+
+```
+┌─────────────────────────────────────────────────────┐
+│ ≡  Unit Tests für alle API-Endpunkte          [✕]  │
+│    📄 Story: Auth-Login                             │
+└─────────────────────────────────────────────────────┘
+```
+
+`✕`-Button (klein, nur bei Hover sichtbar) — gleiche Hover-Reveal-Logik wie der bestehende ExternalLink-Button.
+
+---
+
+## Dateien — Übersicht
+
+### Backend (erstellen / ändern)
+
+| Datei | Änderung |
+|-------|----------|
+| `backend/migrations/versions/0025_knowledge_chunks.py` | Neu: source_ref, source_type, source_url, source_title |
+| `backend/migrations/versions/0026_suggestion_feedback.py` | Neue Tabelle `suggestion_feedback` |
+| `backend/app/models/document_chunk.py` | file_path → source_ref, SourceType-Enum, neue Felder |
+| `backend/app/models/suggestion_feedback.py` | Neues ORM-Modell |
+| `backend/app/services/rag_service.py` | RagChunk + RagResult um Provenienz erweitern |
+| `backend/app/tasks/rag_tasks.py` | Neuer Task `index_story_knowledge` |
+| `backend/app/services/ai_story_service.py` | RAG + Negativliste in DoD/Testfall/Feature/Story-Prompts |
+| `backend/app/routers/user_stories.py` | Task-Dispatch bei Status-Wechsel |
+| `backend/app/routers/test_cases.py` | Task-Dispatch bei result → passed |
+| `backend/app/routers/suggestions.py` | Neuer Router: POST /suggestions/feedback |
+| `backend/app/schemas/user_stories.py` | `Source`-Schema, `sources`-Feld in Suggestion-Responses |
+
+### Frontend (ändern)
+
+| Datei | Änderung |
+|-------|----------|
+| `frontend/components/stories/AISuggestionItem.tsx` | `Source`-Interface, Badge-Rendering, `onReject`-Prop |
+| `frontend/app/[org]/stories/[id]/page.tsx` | `sources` + `onReject` an `AISuggestionItem` weitergeben |
+
+---
+
 ## Nicht in Scope (Phase 1)
 
 - Jira-Tickets indexieren (Phase 2)
 - Confluence-Seiten indexieren (Phase 3)
-- Nutzer-Feedback-Loop (abgelehnte Vorschläge als Negativsignal)
 - Embedding-Modell wechseln
