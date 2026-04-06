@@ -10,8 +10,9 @@ import { EpicSelector } from "@/components/stories/EpicSelector";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { DoDItem as DoDItemComponent } from "@/components/stories/DoDItem";
 import { AISuggestionItem } from "@/components/stories/AISuggestionItem";
-import { ArrowLeft, Save, Pencil, X, Plus, CheckCircle, XCircle, Sparkles, GripVertical, GitBranch, ClipboardCheck, Trash2, FileText, RefreshCw, Users, Package, Lock } from "lucide-react";
+import { ArrowLeft, Save, Pencil, X, Plus, CheckCircle, XCircle, Sparkles, GripVertical, GitBranch, ClipboardCheck, Trash2, FileText, RefreshCw, Users, Package, Lock, UserCircle } from "lucide-react";
 import { SplitStoryPanel } from "@/components/stories/SplitStoryPanel";
+import { useAuth } from "@/lib/auth/context";
 import Link from "next/link";
 
 interface StoryDocsData {
@@ -70,6 +71,61 @@ function EpicBadge({ epicId, orgId }: { epicId: string; orgId: string }) {
       <GitBranch size={10} />
       {title}
     </span>
+  );
+}
+
+function ProjectBadge({ projectId, orgId }: { projectId: string; orgId: string }) {
+  const { data: projects } = useSWR<import("@/types").Project[]>(
+    `/api/v1/projects?org_id=${orgId}`,
+    fetcher
+  );
+  const project = projects?.find((p) => p.id === projectId);
+  if (!project) return null;
+  return (
+    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--paper-warm)] text-[var(--ink-mid)] text-xs font-medium border border-[var(--paper-rule)]">
+      {project.color && (
+        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: project.color }} />
+      )}
+      <Package size={10} />
+      {project.name}
+    </span>
+  );
+}
+
+function StoryAssignmentView({ story, orgId }: { story: UserStory; orgId: string }) {
+  const { data: epics } = useSWR<Epic[]>(`/api/v1/epics?org_id=${orgId}`, fetcher);
+  const { data: projects } = useSWR<import("@/types").Project[]>(`/api/v1/projects?org_id=${orgId}`, fetcher);
+  const epic = epics?.find((e) => e.id === story.epic_id);
+  const project = projects?.find((p) => p.id === story.project_id);
+
+  if (!epic && !project) return null;
+
+  return (
+    <div className="grid grid-cols-2 gap-4 pt-1">
+      <div>
+        <p className="text-xs font-medium text-[var(--ink-faint)] mb-1">Epic</p>
+        {epic ? (
+          <span className="flex items-center gap-1 text-sm text-[var(--ink)]">
+            <GitBranch size={13} className="text-purple-600 shrink-0" />
+            {epic.title}
+          </span>
+        ) : (
+          <span className="text-sm text-[var(--ink-faint)]">—</span>
+        )}
+      </div>
+      <div>
+        <p className="text-xs font-medium text-[var(--ink-faint)] mb-1">Projekt</p>
+        {project ? (
+          <span className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
+            {project.color && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: project.color }} />}
+            <Package size={13} className="text-[var(--ink-faint)] shrink-0" />
+            {project.name}
+          </span>
+        ) : (
+          <span className="text-sm text-[var(--ink-faint)]">—</span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -188,18 +244,22 @@ function DroppableField({
 }
 
 const TEST_RESULT_COLORS: Record<TestResult, string> = {
-  pending: "bg-[var(--paper-warm)] text-[var(--ink-mid)]",
-  passed: "bg-[rgba(82,107,94,.1)] text-[var(--green)]",
-  failed: "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]",
-  skipped: "bg-[rgba(122,100,80,.1)] text-[var(--brown)]",
+  pending:     "bg-[var(--paper-warm)] text-[var(--ink-mid)]",
+  in_progress: "bg-[rgba(var(--btn-primary-rgb),.08)] text-[var(--btn-primary)]",
+  passed:      "bg-[rgba(82,107,94,.1)] text-[var(--green)]",
+  failed:      "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]",
+  skipped:     "bg-[rgba(122,100,80,.1)] text-[var(--brown)]",
 };
 
 const TEST_RESULT_LABELS: Record<TestResult, string> = {
-  pending: "Ausstehend",
-  passed: "Bestanden",
-  failed: "Fehlgeschlagen",
-  skipped: "Übersprungen",
+  pending:     "Offen",
+  in_progress: "Im Test",
+  passed:      "Erfolgreich",
+  failed:      "Fehlerhaft",
+  skipped:     "Übersprungen",
 };
+
+const TEST_RESULT_CYCLE: TestResult[] = ["pending", "in_progress", "passed", "failed"];
 
 interface AITestCaseSuggestionData {
   title: string;
@@ -296,15 +356,36 @@ function SuggestedTestCaseCard({
 }
 
 // ---------------------------------------------------------------------------
+function useMembersMap(orgId: string): Record<string, string> {
+  const { data } = useSWR<{ items: { user: { id: string; display_name: string } }[] }>(
+    orgId ? `/api/v1/organizations/${orgId}/members?page_size=100` : null,
+    fetcher
+  );
+  if (!data) return {};
+  return Object.fromEntries(data.items.map((m) => [m.user.id, m.user.display_name]));
+}
+
+function MemberTag({ name }: { name: string | null | undefined }) {
+  if (!name) return null;
+  return (
+    <span className="flex items-center gap-1 text-xs text-[var(--ink-faint)]">
+      <UserCircle size={11} />
+      {name}
+    </span>
+  );
+}
+
 // DefinitionOfDoneSection — links: Checkliste, rechts: Assistent
 // ---------------------------------------------------------------------------
 
 interface AIDoDSuggestionData {
   text: string;
   category: string | null;
+  sources?: import("@/components/stories/AISuggestionItem").Source[];
 }
 
-function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; initialDod: string | null }) {
+function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentUserId }: { storyId: string; initialDod: string | null; editing: boolean; orgId: string; currentUserId: string }) {
+  const membersMap = useMembersMap(orgId);
   function parseDod(raw: string | null): DoDItem[] {
     if (!raw) return [];
     try { return JSON.parse(raw) as DoDItem[]; } catch { return []; }
@@ -317,6 +398,7 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AIDoDSuggestionData[] | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [dodDropOver, setDodDropOver] = useState(false);
 
   async function persist(updated: DoDItem[]) {
     setSaving(true);
@@ -344,7 +426,7 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
 
   function addItem(text: string) {
     if (!text.trim()) return;
-    const updated = [...items, { text: text.trim(), done: false }];
+    const updated = [...items, { text: text.trim(), done: false, added_by_id: currentUserId }];
     setItems(updated);
     void persist(updated);
   }
@@ -352,6 +434,20 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
   function addFromSuggestion(s: AIDoDSuggestionData) {
     setAiSuggestions((prev) => prev?.filter((x) => x.text !== s.text) ?? prev);
     addItem(s.text);
+  }
+
+  async function rejectSuggestion(
+    suggestion_type: "dod" | "test_case" | "feature" | "story",
+    suggestion_text: string,
+  ) {
+    try {
+      await apiRequest("/api/v1/suggestions/feedback", {
+        method: "POST",
+        body: JSON.stringify({ organization_id: orgId, suggestion_type, suggestion_text, feedback: "rejected" }),
+      });
+    } catch {
+      // Background fire-and-forget — ignore errors
+    }
   }
 
   async function handleLoadSuggestions() {
@@ -376,7 +472,21 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
       {/* LEFT: Checkliste */}
-      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+      <div
+        className={`bg-[var(--card)] rounded-sm border overflow-hidden transition-colors ${dodDropOver ? "border-[var(--accent-red)] ring-2 ring-[rgba(var(--accent-red-rgb),.2)]" : "border-[var(--paper-rule)]"}`}
+        onDragOver={(e) => { if (editing && e.dataTransfer.types.includes("application/x-dod-suggestion")) { e.preventDefault(); setDodDropOver(true); } }}
+        onDragLeave={() => setDodDropOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDodDropOver(false);
+          if (!editing) return;
+          const text = e.dataTransfer.getData("application/x-dod-suggestion");
+          if (text) {
+            addItem(text);
+            setAiSuggestions((prev) => prev?.filter((s) => s.text !== text) ?? prev);
+          }
+        }}
+      >
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
           <div className="flex items-center gap-2">
             <ClipboardCheck size={16} className="text-[var(--ink-faint)]" />
@@ -387,13 +497,15 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
               </span>
             )}
           </div>
-          <button
-            onClick={() => setShowInput((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-xs font-medium transition-colors"
-          >
-            <Plus size={14} />
-            Kriterium
-          </button>
+          {editing && (
+            <button
+              onClick={() => setShowInput((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-xs font-medium transition-colors"
+            >
+              <Plus size={14} />
+              Kriterium
+            </button>
+          )}
         </div>
 
         <div className="p-4 space-y-3">
@@ -412,7 +524,7 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
             </div>
           )}
 
-          {showInput && (
+          {editing && showInput && (
             <div className="flex gap-2">
               <input
                 type="text"
@@ -454,13 +566,19 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
           {items.length > 0 && (
             <div className="space-y-1.5">
               {items.map((item, i) => (
-                <DoDItemComponent
-                  key={i}
-                  text={item.text}
-                  done={item.done}
-                  onToggle={() => void toggleItem(i)}
-                  onDelete={() => void removeItem(i)}
-                />
+                <div key={i}>
+                  <DoDItemComponent
+                    text={item.text}
+                    done={item.done}
+                    onToggle={() => void toggleItem(i)}
+                    onDelete={editing ? () => void removeItem(i) : undefined}
+                  />
+                  {item.added_by_id && (
+                    <div className="pl-7 mt-0.5">
+                      <MemberTag name={membersMap[item.added_by_id]} />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -479,23 +597,25 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
           </p>
         </div>
 
-        <button
-          onClick={() => void handleLoadSuggestions()}
-          disabled={aiLoading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors"
-        >
-          {aiLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-              Analysiert…
-            </>
-          ) : (
-            <>
-              <Sparkles size={16} />
-              Vorschläge
-            </>
-          )}
-        </button>
+        {(
+          <button
+            onClick={editing ? () => void handleLoadSuggestions() : undefined}
+            disabled={!editing || aiLoading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
+          >
+            {aiLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                Analysiert…
+              </>
+            ) : (
+              <>
+                <Sparkles size={16} />
+                Vorschläge
+              </>
+            )}
+          </button>
+        )}
 
         {aiError && (
           <div className="mt-3 p-3 bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm text-[var(--accent-red)] text-xs">{aiError}</div>
@@ -535,7 +655,13 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
                   key={i}
                   text={s.text}
                   category={s.category}
+                  sources={s.sources}
                   onAdd={() => void addFromSuggestion(s)}
+                  onReject={() => {
+                    setAiSuggestions((prev) => prev?.filter((_, idx) => idx !== i) ?? prev);
+                    void rejectSuggestion("dod", s.text);
+                  }}
+                  dragType={editing ? "application/x-dod-suggestion" : undefined}
                 />
               ))}
             </>
@@ -552,8 +678,9 @@ function DefinitionOfDoneSection({ storyId, initialDod }: { storyId: string; ini
 
 const LOCKED_STORY_STATUSES = new Set(["testing", "done", "archived"]);
 
-function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStatus: string }) {
+function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: string; storyStatus: string; editing: boolean; orgId: string }) {
   const isLocked = LOCKED_STORY_STATUSES.has(storyStatus);
+  const membersMap = useMembersMap(orgId);
 
   const { data: testCases, isLoading, mutate } = useSWR<TestCase[]>(
     `/api/v1/user-stories/${storyId}/test-cases`,
@@ -685,7 +812,7 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
               <Lock size={13} />
               Gesperrt
             </span>
-          ) : (
+          ) : editing ? (
             <button
               onClick={() => setShowForm(!showForm)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-xs font-medium transition-colors"
@@ -693,7 +820,7 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
               <Plus size={14} />
               Hinzufügen
             </button>
-          )}
+          ) : null}
         </div>
 
         {isLocked && (
@@ -704,7 +831,7 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
         )}
 
         <div className="p-4 space-y-3">
-          {!isLocked && showForm && (
+          {!isLocked && editing && showForm && (
             <form onSubmit={(e) => void handleAddTestCase(e)} className="border border-[var(--paper-rule)] bg-[var(--paper-warm)] rounded-sm p-4 space-y-3">
               <div>
                 <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">Titel <span className="text-[var(--accent-red)]">*</span></label>
@@ -789,19 +916,24 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
                             )}
                           </div>
                           <h4 className="text-sm font-semibold text-[var(--ink)] break-words">{tc.title}</h4>
+                          <MemberTag name={membersMap[tc.created_by_id]} />
                         </div>
                         <div className="flex items-center gap-1 sm:shrink-0 flex-wrap">
-                          <button onClick={() => void handleMark(tc.id, "passed")}
-                            disabled={markingId === tc.id || tc.result === "passed"}
-                            className="flex items-center gap-1 px-2 py-1 bg-[rgba(82,107,94,.1)] hover:bg-[rgba(82,107,94,.15)] text-[var(--green)] disabled:opacity-50 rounded-sm text-xs font-medium transition-colors">
-                            <CheckCircle size={12} />Bestanden
-                          </button>
-                          <button onClick={() => void handleMark(tc.id, "failed")}
-                            disabled={markingId === tc.id || tc.result === "failed"}
-                            className="flex items-center gap-1 px-2 py-1 bg-[rgba(var(--accent-red-rgb),.08)] hover:bg-[rgba(var(--accent-red-rgb),.12)] text-[var(--accent-red)] disabled:opacity-50 rounded-sm text-xs font-medium transition-colors">
-                            <XCircle size={12} />Fehlgeschlagen
-                          </button>
-                          {!isLocked && (
+                          {TEST_RESULT_CYCLE.map((r) => (
+                            <button
+                              key={r}
+                              onClick={() => tc.result !== r ? void handleMark(tc.id, r) : undefined}
+                              disabled={markingId === tc.id}
+                              className={`px-2 py-1 rounded-sm text-xs font-medium transition-colors disabled:opacity-50 ${
+                                tc.result === r
+                                  ? TEST_RESULT_COLORS[r] + " ring-1 ring-current cursor-default"
+                                  : "bg-transparent text-[var(--ink-faint)] hover:bg-[var(--paper-warm)] hover:text-[var(--ink-mid)]"
+                              }`}
+                            >
+                              {TEST_RESULT_LABELS[r]}
+                            </button>
+                          ))}
+                          {!isLocked && editing && (
                             <>
                               <button onClick={() => startEdit(tc)}
                                 className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] rounded-sm transition-colors">
@@ -856,9 +988,9 @@ function TestCasesSection({ storyId, storyStatus }: { storyId: string; storyStat
           </div>
         ) : (
           <button
-            onClick={() => void generateAndSave()}
-            disabled={aiLoading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors"
+            onClick={editing ? () => void generateAndSave() : undefined}
+            disabled={!editing || aiLoading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
           >
             {aiLoading ? (
               <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />Analysiert…</>
@@ -1096,11 +1228,13 @@ function EditableNotesField({
   );
 }
 
-function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refreshTrigger: number }) {
+function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string; story: UserStory; refreshTrigger: number }) {
   const { data: docs, isLoading, mutate } = useSWR<StoryDocsData | null>(
     `/api/v1/user-stories/${storyId}/docs`,
     fetcher
   );
+  const { data: testCases } = useSWR<TestCase[]>(`/api/v1/user-stories/${storyId}/test-cases`, fetcher);
+  const { data: features } = useSWR<Feature[]>(`/api/v1/features?org_id=${story.organization_id}&story_id=${storyId}`, fetcher);
   const [regenerating, setRegenerating] = useState(false);
   const [regenError, setRegenError] = useState<string | null>(null);
 
@@ -1158,54 +1292,172 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
             </div>
           )}
 
-          {!isLoading && !docs && !regenerating && (
-            <div className="text-center py-6">
-              <p className="text-sm text-[var(--ink-faint)]">
-                Noch keine Dokumentation vorhanden. Starte die Generierung oder speichere die Story.
-              </p>
-            </div>
-          )}
+          {/* ── Pre-filled doc outline — always visible once loaded ── */}
+          {!isLoading && (() => {
+            const dodItems: DoDItem[] = (() => {
+              try { return story.definition_of_done ? JSON.parse(story.definition_of_done) : []; }
+              catch { return []; }
+            })();
 
-          {docs && (
-            <div className="space-y-5">
-              <div>
-                <h3 className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Zusammenfassung</h3>
-                <p className="text-sm text-[var(--ink-mid)] leading-relaxed bg-[var(--card)] rounded-sm p-3">{docs.summary}</p>
+            type OutlineSection = {
+              num: number;
+              label: string;
+              content: React.ReactNode;
+              hasContent: boolean;
+              aiOnly?: boolean;
+            };
+
+            const sections: OutlineSection[] = [
+              {
+                num: 1,
+                label: "Story-Titel",
+                hasContent: !!story.title,
+                content: story.title
+                  ? <p className="text-sm text-[var(--ink)] font-medium">{story.title}</p>
+                  : null,
+              },
+              {
+                num: 2,
+                label: "Beschreibung",
+                hasContent: !!story.description,
+                content: story.description
+                  ? <p className="text-sm text-[var(--ink-mid)] leading-relaxed line-clamp-4">{story.description}</p>
+                  : null,
+              },
+              {
+                num: 3,
+                label: "Akzeptanzkriterien",
+                hasContent: !!story.acceptance_criteria,
+                content: story.acceptance_criteria
+                  ? <p className="text-sm text-[var(--ink-mid)] leading-relaxed line-clamp-4">{story.acceptance_criteria}</p>
+                  : null,
+              },
+              {
+                num: 4,
+                label: "Definition of Done",
+                hasContent: dodItems.length > 0,
+                content: dodItems.length > 0
+                  ? (
+                    <ul className="space-y-1">
+                      {dodItems.slice(0, 5).map((d, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-[var(--ink-mid)]">
+                          <CheckCircle size={12} className={`mt-0.5 shrink-0 ${d.done ? "text-[var(--green)]" : "text-[var(--ink-faintest)]"}`} />
+                          <span className="line-clamp-1">{d.text}</span>
+                        </li>
+                      ))}
+                      {dodItems.length > 5 && <li className="text-xs text-[var(--ink-faint)] pl-5">+{dodItems.length - 5} weitere</li>}
+                    </ul>
+                  )
+                  : null,
+              },
+              {
+                num: 5,
+                label: "Features",
+                hasContent: (features?.length ?? 0) > 0,
+                content: features && features.length > 0
+                  ? (
+                    <ul className="space-y-1">
+                      {features.slice(0, 5).map((f) => (
+                        <li key={f.id} className="flex items-start gap-2 text-sm text-[var(--ink-mid)]">
+                          <GitBranch size={12} className="mt-0.5 shrink-0 text-[var(--ink-faintest)]" />
+                          <span className="line-clamp-1">{f.title}</span>
+                        </li>
+                      ))}
+                      {features.length > 5 && <li className="text-xs text-[var(--ink-faint)] pl-5">+{features.length - 5} weitere</li>}
+                    </ul>
+                  )
+                  : null,
+              },
+              {
+                num: 6,
+                label: "Testfälle",
+                hasContent: (testCases?.length ?? 0) > 0,
+                content: testCases && testCases.length > 0
+                  ? (
+                    <ul className="space-y-1">
+                      {testCases.slice(0, 5).map((t) => (
+                        <li key={t.id} className="flex items-start gap-2 text-sm text-[var(--ink-mid)]">
+                          <ClipboardCheck size={12} className="mt-0.5 shrink-0 text-[var(--ink-faintest)]" />
+                          <span className="line-clamp-1">{t.title}</span>
+                        </li>
+                      ))}
+                      {testCases.length > 5 && <li className="text-xs text-[var(--ink-faint)] pl-5">+{testCases.length - 5} weitere</li>}
+                    </ul>
+                  )
+                  : null,
+              },
+              {
+                num: 7,
+                label: "Zusammenfassung",
+                aiOnly: true,
+                hasContent: !!docs?.summary,
+                content: docs?.summary
+                  ? <p className="text-sm text-[var(--ink-mid)] leading-relaxed line-clamp-3">{docs.summary}</p>
+                  : null,
+              },
+              {
+                num: 8,
+                label: "Technische Hinweise",
+                aiOnly: true,
+                hasContent: !!docs?.technical_notes,
+                content: docs?.technical_notes
+                  ? <p className="text-sm text-[var(--ink-mid)] leading-relaxed line-clamp-3">{docs.technical_notes}</p>
+                  : null,
+              },
+              {
+                num: 9,
+                label: "Changelog-Eintrag",
+                aiOnly: true,
+                hasContent: !!docs?.changelog_entry,
+                content: docs?.changelog_entry
+                  ? <pre className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap font-mono line-clamp-3">{docs.changelog_entry}</pre>
+                  : null,
+              },
+            ];
+
+            return (
+              <div className="space-y-1.5">
+                {sections.map((sec) => (
+                  <div key={sec.num} className={`rounded-sm border overflow-hidden ${sec.hasContent ? "border-[var(--paper-rule)]" : "border-dashed border-[var(--ink-faintest)]"}`}>
+                    <div className={`flex items-center gap-2.5 px-3 py-2 ${sec.hasContent ? "bg-[var(--paper-warm)]" : "bg-transparent"}`}>
+                      <span className={`shrink-0 w-5 h-5 rounded-full text-xs flex items-center justify-center font-semibold ${sec.hasContent ? "bg-[rgba(var(--accent-red-rgb),.1)] text-[var(--accent-red)]" : "bg-[var(--paper-rule)] text-[var(--ink-faintest)]"}`}>
+                        {sec.num}
+                      </span>
+                      <span className={`text-xs font-semibold uppercase tracking-wide ${sec.hasContent ? "text-[var(--ink-mid)]" : "text-[var(--ink-faintest)]"}`}>
+                        {sec.label}
+                      </span>
+                      {sec.aiOnly && (
+                        <span className="ml-auto flex items-center gap-1 text-[10px] text-[var(--ink-faintest)]">
+                          <Sparkles size={9} />
+                          KI
+                        </span>
+                      )}
+                      {!sec.hasContent && (
+                        <span className="ml-auto text-[10px] text-[var(--ink-faintest)] italic">
+                          {sec.aiOnly ? "Noch nicht generiert" : "Kein Inhalt vorhanden"}
+                        </span>
+                      )}
+                    </div>
+                    {sec.hasContent && sec.content && (
+                      <div className="px-3 pb-3 pt-2">
+                        {sec.content}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
+            );
+          })()}
 
-              <div>
-                <h3 className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Changelog-Eintrag</h3>
-                <pre className="text-xs text-[var(--ink-mid)] bg-[var(--card)] rounded-sm p-3 whitespace-pre-wrap font-mono overflow-x-auto">{docs.changelog_entry}</pre>
-              </div>
-
-              <div>
-                <h3 className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Dokumenten-Gliederung</h3>
-                <ol className="space-y-1.5">
-                  {docs.pdf_outline.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-[var(--ink-mid)]">
-                      <span className="shrink-0 w-5 h-5 rounded-full bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] text-xs flex items-center justify-center font-semibold mt-0.5">{i + 1}</span>
-                      {item}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-              <div>
-                <h3 className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Technische Hinweise</h3>
-                <p className="text-sm text-[var(--ink-mid)] leading-relaxed bg-[var(--card)] rounded-sm p-3 whitespace-pre-wrap">{docs.technical_notes}</p>
-              </div>
-
-              {docs.confluence_page_url && (
-                <a
-                  href={docs.confluence_page_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-[rgba(74,85,104,.06)] border border-[rgba(74,85,104,.2)] text-[var(--navy)] hover:bg-[rgba(74,85,104,.1)] rounded-sm text-xs font-medium transition-colors"
-                >
-                  In Confluence öffnen →
-                </a>
-              )}
-            </div>
+          {docs?.confluence_page_url && (
+            <a
+              href={docs.confluence_page_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-[rgba(74,85,104,.06)] border border-[rgba(74,85,104,.2)] text-[var(--navy)] hover:bg-[rgba(74,85,104,.1)] rounded-sm text-xs font-medium transition-colors"
+            >
+              In Confluence öffnen →
+            </a>
           )}
 
           {/* Divider for user-editable sections — always visible */}
@@ -1261,21 +1513,17 @@ function StoryDocsSection({ storyId, refreshTrigger }: { storyId: string; refres
         )}
 
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-3">Generierte Abschnitte</p>
+          <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-3">KI-Abschnitte</p>
           {[
-            { label: "Zusammenfassung" },
-            { label: "Changelog-Eintrag" },
-            { label: "Dokumenten-Gliederung" },
-            { label: "Technische Hinweise" },
-          ].map(({ label }) => (
+            { label: "Zusammenfassung", ok: !!docs?.summary },
+            { label: "Changelog-Eintrag", ok: !!docs?.changelog_entry },
+            { label: "Technische Hinweise", ok: !!docs?.technical_notes },
+          ].map(({ label, ok }) => (
             <div key={label} className="flex items-center gap-2 p-3 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${docs ? "bg-[var(--green)]" : "bg-[var(--paper-rule)]"}`} />
+              <div className={`w-2 h-2 rounded-full shrink-0 ${ok ? "bg-[var(--green)]" : "bg-[var(--paper-rule)]"}`} />
               <span className="text-xs text-[var(--ink-mid)]">{label}</span>
             </div>
           ))}
-          {!docs && (
-            <p className="text-xs text-[var(--ink-faint)] text-center pt-1">Wird nach dem Generieren befüllt.</p>
-          )}
 
           <div className="border-t border-[var(--paper-rule)] pt-4 mt-4 space-y-2">
             <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-3">Manuell gepflegt</p>
@@ -1327,6 +1575,7 @@ interface AIFeatureSuggestion {
   description: string | null;
   priority: StoryPriority;
   story_points: number | null;
+  sources?: import("@/components/stories/AISuggestionItem").Source[];
 }
 
 function FeatureCard({
@@ -1334,11 +1583,15 @@ function FeatureCard({
   onEdit,
   onDelete,
   deletingId,
+  creatorName,
+  editing,
 }: {
   feature: Feature;
   onEdit: (f: Feature) => void;
   onDelete: (id: string) => Promise<void>;
   deletingId: string | null;
+  creatorName?: string | null;
+  editing: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -1357,6 +1610,7 @@ function FeatureCard({
             )}
           </div>
           <p className="text-sm font-medium text-[var(--ink)] leading-snug">{feature.title}</p>
+          <MemberTag name={creatorName} />
           {feature.description && (
             <>
               {!expanded && (
@@ -1375,28 +1629,30 @@ function FeatureCard({
             </>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => onEdit(feature)}
-            className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] rounded-sm transition-colors"
-            title="Bearbeiten"
-          >
-            <Pencil size={13} />
-          </button>
-          <button
-            type="button"
-            onClick={() => void onDelete(feature.id)}
-            disabled={deletingId === feature.id}
-            className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] rounded-sm transition-colors"
-            title="Löschen"
-          >
-            {deletingId === feature.id
-              ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-[var(--accent-red)] border-t-transparent" />
-              : <Trash2 size={13} />
-            }
-          </button>
-        </div>
+        {editing && (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => onEdit(feature)}
+              className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] rounded-sm transition-colors"
+              title="Bearbeiten"
+            >
+              <Pencil size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => void onDelete(feature.id)}
+              disabled={deletingId === feature.id}
+              className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] rounded-sm transition-colors"
+              title="Löschen"
+            >
+              {deletingId === feature.id
+                ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-[var(--accent-red)] border-t-transparent" />
+                : <Trash2 size={13} />
+              }
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1418,9 +1674,20 @@ function SuggestedFeatureCard({
     finally { setAdding(false); }
   }
 
+  function handleDragStart(e: React.DragEvent) {
+    e.dataTransfer.setData("application/x-feature-suggestion", JSON.stringify(suggestion));
+    e.dataTransfer.setData("text/plain", suggestion.title);
+    e.dataTransfer.effectAllowed = "copy";
+  }
+
   return (
-    <div className="border border-emerald-200 rounded-sm bg-emerald-50 hover:border-emerald-300 transition-colors">
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      className="border border-emerald-200 rounded-sm bg-emerald-50 hover:border-emerald-300 transition-colors cursor-grab active:cursor-grabbing"
+    >
       <div className="flex items-start gap-2 px-3 py-2.5">
+        <GripVertical size={13} className="shrink-0 mt-1 text-emerald-400" />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
             <span className={`text-xs font-medium ${PRIORITY_COLORS[suggestion.priority ?? "medium"]}`}>
@@ -1464,7 +1731,8 @@ function SuggestedFeatureCard({
   );
 }
 
-function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string }) {
+function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: string; editing: boolean }) {
+  const membersMap = useMembersMap(orgId);
   const { data: features, mutate } = useSWR<Feature[]>(
     `/api/v1/features?org_id=${orgId}&story_id=${storyId}`,
     fetcher
@@ -1488,6 +1756,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
   const [editSaving, setEditSaving] = useState(false);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [featureDropOver, setFeatureDropOver] = useState(false);
 
   // AI
   const [aiSuggestions, setAiSuggestions] = useState<AIFeatureSuggestion[]>([]);
@@ -1582,14 +1851,32 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
       {/* LEFT: Feature list */}
-      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-4">
+      <div
+        className={`bg-[var(--card)] rounded-sm border p-4 sm:p-6 space-y-4 transition-colors ${featureDropOver ? "border-[var(--accent-red)] ring-2 ring-[rgba(var(--accent-red-rgb),.2)]" : "border-[var(--paper-rule)]"}`}
+        onDragOver={(e) => { if (editing && e.dataTransfer.types.includes("application/x-feature-suggestion")) { e.preventDefault(); setFeatureDropOver(true); } }}
+        onDragLeave={() => setFeatureDropOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setFeatureDropOver(false);
+          if (!editing) return;
+          const raw = e.dataTransfer.getData("application/x-feature-suggestion");
+          if (raw) {
+            try {
+              const s: AIFeatureSuggestion = JSON.parse(raw);
+              void handleAddSuggestion(s).then(() => {
+                setAiSuggestions((prev) => prev.filter((x) => x.title !== s.title));
+              });
+            } catch { /* ignore */ }
+          }
+        }}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Package size={16} className="text-[var(--accent-red)]" />
-            <h3 className="font-semibold text-[var(--ink)]">Features</h3>
+            <h2 className="text-base font-semibold text-[var(--ink)]">Features</h2>
             <span className="text-xs text-[var(--ink-faint)] bg-[var(--paper-warm)] px-2 py-0.5 rounded-full">{features?.length ?? 0}</span>
           </div>
-          {!showAddForm && (
+          {editing && !showAddForm && (
             <button
               onClick={() => setShowAddForm(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-xs font-medium transition-colors"
@@ -1600,7 +1887,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
         </div>
 
         {/* Add form */}
-        {showAddForm && (
+        {editing && showAddForm && (
           <div className="border border-[var(--paper-rule)] rounded-sm p-3 bg-[var(--paper-warm)] space-y-3">
             <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">Neues Feature</p>
             <input
@@ -1688,7 +1975,7 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
                   </div>
                 </div>
               ) : (
-                <FeatureCard key={f.id} feature={f} onEdit={startEdit} onDelete={handleDelete} deletingId={deletingId} />
+                <FeatureCard key={f.id} feature={f} onEdit={startEdit} onDelete={handleDelete} deletingId={deletingId} creatorName={membersMap[f.created_by_id]} editing={editing} />
               )
             )}
           </div>
@@ -1705,16 +1992,18 @@ function FeaturesSection({ storyId, orgId }: { storyId: string; orgId: string })
           Analysiert die User Story und schlägt konkrete, implementierbare Features (Teilfunktionen) vor.
         </p>
 
-        <button
-          onClick={() => void handleAiSuggest()}
-          disabled={aiLoading}
-          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors"
-        >
-          {aiLoading
-            ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Wird analysiert…</>
-            : <><Sparkles size={14} /> Features vorschlagen</>
-          }
-        </button>
+        {(
+          <button
+            onClick={editing ? () => void handleAiSuggest() : undefined}
+            disabled={!editing || aiLoading}
+            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
+          >
+            {aiLoading
+              ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Wird analysiert…</>
+              : <><Sparkles size={14} /> Features vorschlagen</>
+            }
+          </button>
+        )}
 
         {aiError && (
           <p className="text-sm text-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] px-3 py-2 rounded-sm">{aiError}</p>
@@ -1768,6 +2057,7 @@ export default function StoryDetailPage({
 }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const { user: currentUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1839,6 +2129,7 @@ export default function StoryDetailPage({
       setStoryPoints(story.story_points?.toString() ?? "");
       setDorPassed(story.dor_passed);
       setEpicId(story.epic_id);
+      setProjectId(story.project_id);
     }
     setEditing(false);
     setFieldErrors({});
@@ -1971,6 +2262,9 @@ export default function StoryDetailPage({
               )}
               {story.epic_id && (
                 <EpicBadge epicId={story.epic_id} orgId={story.organization_id} />
+              )}
+              {story.project_id && (
+                <ProjectBadge projectId={story.project_id} orgId={story.organization_id} />
               )}
             </div>
             <h1 className="text-xl font-bold text-[var(--ink)] break-words">
@@ -2220,6 +2514,13 @@ export default function StoryDetailPage({
               editing={editing}
             />
 
+            {!editing && (
+              <StoryAssignmentView
+                story={story}
+                orgId={story.organization_id}
+              />
+            )}
+
             {editing && (
               <>
               <div className="grid grid-cols-2 gap-4">
@@ -2331,22 +2632,22 @@ export default function StoryDetailPage({
 
       {/* DoD tab */}
       {activeTab === "dod" && (
-        <DefinitionOfDoneSection storyId={resolvedParams.id} initialDod={story.definition_of_done} />
+        <DefinitionOfDoneSection storyId={resolvedParams.id} initialDod={story.definition_of_done} editing={editing} orgId={story.organization_id} currentUserId={currentUser?.id ?? ""} />
       )}
 
       {/* Tests tab */}
       {activeTab === "tests" && (
-        <TestCasesSection storyId={resolvedParams.id} storyStatus={story.status} />
+        <TestCasesSection storyId={resolvedParams.id} storyStatus={story.status} editing={editing} orgId={story.organization_id} />
       )}
 
       {/* Features tab */}
       {activeTab === "features" && (
-        <FeaturesSection storyId={resolvedParams.id} orgId={story.organization_id} />
+        <FeaturesSection storyId={resolvedParams.id} orgId={story.organization_id} editing={editing} />
       )}
 
       {/* Docs tab */}
       {activeTab === "docs" && (
-        <StoryDocsSection storyId={resolvedParams.id} refreshTrigger={docsRefreshTrigger} />
+        <StoryDocsSection storyId={resolvedParams.id} story={story} refreshTrigger={docsRefreshTrigger} />
       )}
 
       {/* KI-Prompt tab */}

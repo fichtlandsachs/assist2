@@ -258,6 +258,13 @@ export interface Feature {
 export interface DoDItem {
   text: string;
   done: boolean;
+  added_by_id?: string;
+}
+
+export interface Source {
+  title: string;
+  url: string;
+  type: string;
 }
 
 export interface AISuggestion {
@@ -268,6 +275,7 @@ export interface AISuggestion {
   dor_issues: string[];
   quality_score: number | null;
   source?: "rag_direct" | "rag_context" | "llm";
+  sources?: Source[];
 }
 
 // ─── Pagination ──────────────────────────────────────────────────
@@ -286,7 +294,7 @@ export interface ApiError {
 }
 
 // ─── TestCase ─────────────────────────────────────────────────────
-export type TestResult = "pending" | "passed" | "failed" | "skipped";
+export type TestResult = "pending" | "in_progress" | "passed" | "failed" | "skipped";
 export interface TestCase {
   id: string;
   story_id: string;
