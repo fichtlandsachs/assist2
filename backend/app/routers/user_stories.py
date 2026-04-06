@@ -57,6 +57,7 @@ from app.ai.complexity_scorer import score_complexity
 from app.core.exceptions import NotFoundException
 from app.tasks.agent_tasks import analyze_story_task
 from app.tasks.pdf_tasks import generate_story_pdf
+from app.tasks.rag_tasks import index_story_knowledge
 from app.models.pdf_settings import PdfSettings
 from app.models.feature import Feature
 from app.services.pdf_service import pdf_service
@@ -142,6 +143,7 @@ async def _regenerate_docs_bg(
 async def list_user_stories(
     org_id: uuid.UUID,
     project_id: Optional[uuid.UUID] = None,
+    epic_id: Optional[uuid.UUID] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[UserStoryRead]:
@@ -153,6 +155,8 @@ async def list_user_stories(
     )
     if project_id is not None:
         stmt = stmt.where(UserStory.project_id == project_id)
+    if epic_id is not None:
+        stmt = stmt.where(UserStory.epic_id == epic_id)
     result = await db.execute(stmt)
     stories = result.scalars().all()
     return [UserStoryRead.model_validate(s) for s in stories]
@@ -261,6 +265,16 @@ async def update_user_story(
     if data.status is not None and data.status == StoryStatus.done and old_status != StoryStatus.done:
         generate_story_pdf.delay(str(story.id), str(story.organization_id))
 
+    # Dispatch knowledge indexing when story reaches ready or done
+    if data.status is not None and data.status in (StoryStatus.ready, StoryStatus.done):
+        from app.models.organization import Organization
+        org_result = await db.execute(
+            select(Organization).where(Organization.id == story.organization_id)
+        )
+        org = org_result.scalar_one_or_none()
+        org_slug = org.slug if org else str(story.organization_id)
+        index_story_knowledge.delay(str(story.id), str(story.organization_id), org_slug)
+
     if needs_regen:
         background_tasks.add_task(
             _regenerate_docs_bg, story.id, story.organization_id, story.title, story.description, story.acceptance_criteria
@@ -317,6 +331,44 @@ async def score_user_story(
         risk=context.risk,
         domain=context.domain,
     )
+
+
+@router.post(
+    "/user-stories/{story_id}/validate",
+    response_model=UserStoryRead,
+    summary="Run AI quality validation and persist score on a story",
+)
+async def validate_user_story(
+    story_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserStoryRead:
+    """Run AI quality analysis, persist quality_score + ai_suggestions, return updated story."""
+    stmt = select(UserStory).where(UserStory.id == story_id)
+    result = await db.execute(stmt)
+    story = result.scalar_one_or_none()
+    if story is None:
+        raise NotFoundException("User story not found")
+
+    await _check_llm_allowed(story.organization_id, db)
+    ai_settings = await _get_ai_settings(story.organization_id, db)
+
+    data = AISuggestRequest(
+        title=story.title,
+        description=story.description,
+        acceptance_criteria=story.acceptance_criteria,
+        story_id=story_id,
+    )
+    suggestion = await get_story_suggestions(data, ai_settings=ai_settings, org_id=story.organization_id, db=db)
+
+    story.quality_score = suggestion.quality_score
+    story.ai_suggestions = json.dumps(suggestion.model_dump(), ensure_ascii=False)
+    # Auto-set dor_passed: no DoR issues AND quality_score meets threshold
+    story.dor_passed = len(suggestion.dor_issues) == 0 and (suggestion.quality_score or 0) >= 80
+    await db.commit()
+    await db.refresh(story)
+
+    return UserStoryRead.model_validate(story)
 
 
 @router.post(
