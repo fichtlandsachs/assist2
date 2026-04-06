@@ -33,6 +33,40 @@ logger = logging.getLogger(__name__)
 # Learning config helper (reads admin config at call-time)
 # ---------------------------------------------------------------------------
 
+async def _get_rejected_suggestions(
+    org_id: "uuid.UUID", suggestion_type: str, db: "AsyncSession"
+) -> list[str]:
+    """Return up to 20 recently rejected suggestion texts for this org+type."""
+    try:
+        from sqlalchemy import select as _select
+        from app.models.suggestion_feedback import SuggestionFeedback
+        result = await db.execute(
+            _select(SuggestionFeedback.suggestion_text)
+            .where(
+                SuggestionFeedback.organization_id == org_id,
+                SuggestionFeedback.suggestion_type == suggestion_type,
+                SuggestionFeedback.feedback == "rejected",
+            )
+            .order_by(SuggestionFeedback.created_at.desc())
+            .limit(20)
+        )
+        return [row[0] for row in result.fetchall()]
+    except Exception as e:
+        logger.warning("Failed to load rejected suggestions: %s", e)
+        return []
+
+
+def _build_rejection_block(rejected: list[str]) -> str:
+    if not rejected:
+        return ""
+    lines = "\n".join(f"- {t}" for t in rejected)
+    return f"""--- Von der Organisation abgelehnte Vorschläge (nicht wiederholen) ---
+{lines}
+----------------------------------------------------------------------
+
+"""
+
+
 async def _get_learning_flags(org_id, db) -> dict:
     """Return key learning flags for the given org. Falls back to safe defaults."""
     try:
@@ -407,7 +441,12 @@ async def generate_test_case_suggestions(
         except Exception as e:
             logger.warning("RAG retrieval error in generate_test_case_suggestions (skipping): %s", e)
 
-    prompt = _build_test_cases_prompt(title, acceptance_criteria, rag_context=rag_context_block)
+    rejection_block = ""
+    if org_id is not None and db is not None:
+        rejected = await _get_rejected_suggestions(org_id, "test_case", db)
+        rejection_block = _build_rejection_block(rejected)
+
+    prompt = _build_test_cases_prompt(title, acceptance_criteria, rag_context=rag_context_block, rejection_block=rejection_block)
 
     t0 = time.monotonic()
     raw, usage = execute_pipeline(client, prompt, decision)
@@ -430,6 +469,7 @@ def _build_test_cases_prompt(
     title: str,
     acceptance_criteria: str | None,
     rag_context: str | None = None,
+    rejection_block: str = "",
 ) -> str:
     ac_text = acceptance_criteria or "(keine Akzeptanzkriterien angegeben)"
     context_section = ""
@@ -439,7 +479,7 @@ def _build_test_cases_prompt(
 -----------------------------------------
 
 """
-    return f"""{context_section}Du bist ein erfahrener QA-Ingenieur. Leite aus den folgenden Akzeptanzkriterien konkrete Testfälle ab.
+    return f"""{rejection_block}{context_section}Du bist ein erfahrener QA-Ingenieur. Leite aus den folgenden Akzeptanzkriterien konkrete Testfälle ab.
 
 User Story: {title}
 Akzeptanzkriterien:
@@ -582,7 +622,13 @@ async def generate_dod_suggestions(
         except Exception as e:
             logger.warning("RAG retrieval error in generate_dod_suggestions (skipping): %s", e)
 
-    prompt = _build_dod_prompt(title, description, acceptance_criteria, rag_context=rag_context_block)
+    # Load rejected DoD suggestions for this org
+    rejection_block = ""
+    if org_id is not None and db is not None:
+        rejected = await _get_rejected_suggestions(org_id, "dod", db)
+        rejection_block = _build_rejection_block(rejected)
+
+    prompt = _build_dod_prompt(title, description, acceptance_criteria, rag_context=rag_context_block, rejection_block=rejection_block)
 
     t0 = time.monotonic()
     raw, usage = execute_pipeline(client, prompt, decision)
@@ -607,6 +653,7 @@ def _build_dod_prompt(
     description: str | None,
     acceptance_criteria: str | None,
     rag_context: str | None = None,
+    rejection_block: str = "",
 ) -> str:
     desc = description or "(keine)"
     ac = acceptance_criteria or "(keine)"
@@ -617,7 +664,7 @@ def _build_dod_prompt(
 -----------------------------------------
 
 """
-    return f"""{context_section}Du bist ein erfahrener Scrum Master. Schlage konkrete Definition-of-Done-Kriterien und messbare KPIs für diese User Story vor.
+    return f"""{rejection_block}{context_section}Du bist ein erfahrener Scrum Master. Schlage konkrete Definition-of-Done-Kriterien und messbare KPIs für diese User Story vor.
 
 User Story:
 Titel: {title}
@@ -682,7 +729,12 @@ async def generate_feature_suggestions(
         except Exception as e:
             logger.warning("RAG retrieval error in generate_feature_suggestions (skipping): %s", e)
 
-    prompt = _build_feature_suggestions_prompt(title, description, acceptance_criteria, rag_context=rag_context_block)
+    rejection_block = ""
+    if org_id is not None and db is not None:
+        rejected = await _get_rejected_suggestions(org_id, "feature", db)
+        rejection_block = _build_rejection_block(rejected)
+
+    prompt = _build_feature_suggestions_prompt(title, description, acceptance_criteria, rag_context=rag_context_block, rejection_block=rejection_block)
 
     t0 = time.monotonic()
     raw, usage = execute_pipeline(client, prompt, decision)
@@ -706,6 +758,7 @@ def _build_feature_suggestions_prompt(
     description: str | None,
     acceptance_criteria: str | None,
     rag_context: str | None = None,
+    rejection_block: str = "",
 ) -> str:
     desc = description or "(keine)"
     ac = acceptance_criteria or "(keine)"
@@ -716,7 +769,7 @@ def _build_feature_suggestions_prompt(
 -----------------------------------------
 
 """
-    return f"""{context_section}Du bist ein erfahrener Senior Developer und Product Owner. Analysiere diese User Story und schlage konkrete, implementierbare Features (Teilfunktionen) vor.
+    return f"""{rejection_block}{context_section}Du bist ein erfahrener Senior Developer und Product Owner. Analysiere diese User Story und schlage konkrete, implementierbare Features (Teilfunktionen) vor.
 
 User Story:
 Titel: {title}
