@@ -239,7 +239,13 @@ async def get_story_suggestions(
     if org_id is not None and db is not None:
         try:
             from app.services.rag_service import retrieve
-            rag = await retrieve(f"{data.title} {data.description}", org_id, db)
+            rag = await retrieve(
+                f"{data.title} {data.description}",
+                org_id,
+                db,
+                min_score=0.75,
+                source_types=["jira", "confluence", "karl_story"],
+            )
             if rag.mode == "direct" and rag.context:
                 return AISuggestion(
                     title=None,
@@ -252,7 +258,7 @@ async def get_story_suggestions(
                 )
             if rag.mode == "context" and rag.chunks:
                 rag_context_block = "\n".join(
-                    [f"[Kontext]\n{c.text}" for c in rag.chunks]
+                    [f"[{c.source_type.upper()}]\n{c.text}" for c in rag.chunks]
                 )
                 rag_source = "rag_context"
         except Exception as e:
@@ -376,7 +382,7 @@ async def generate_test_case_suggestions(
             from app.services.rag_service import retrieve
             rag = await retrieve(f"{title} {acceptance_criteria or ''}", org_id, db)
             if rag.mode in ("direct", "context") and rag.chunks:
-                rag_context_block = "\n".join([f"[Kontext]\n{c.text}" for c in rag.chunks])
+                rag_context_block = "\n".join([f"[{c.source_type.upper()}]\n{c.text}" for c in rag.chunks])
                 rag_chunks = rag.chunks
         except Exception as e:
             logger.warning("RAG retrieval error in generate_test_case_suggestions (skipping): %s", e)
@@ -557,7 +563,7 @@ async def generate_dod_suggestions(
             from app.services.rag_service import retrieve
             rag = await retrieve(f"{title} {description or ''}", org_id, db)
             if rag.mode in ("direct", "context") and rag.chunks:
-                rag_context_block = "\n".join([f"[Kontext]\n{c.text}" for c in rag.chunks])
+                rag_context_block = "\n".join([f"[{c.source_type.upper()}]\n{c.text}" for c in rag.chunks])
                 rag_chunks = rag.chunks
         except Exception as e:
             logger.warning("RAG retrieval error in generate_dod_suggestions (skipping): %s", e)
@@ -664,7 +670,7 @@ async def generate_feature_suggestions(
                 f"{title} {description or ''} {acceptance_criteria or ''}", org_id, db
             )
             if rag.mode in ("direct", "context") and rag.chunks:
-                rag_context_block = "\n".join([f"[Kontext]\n{c.text}" for c in rag.chunks])
+                rag_context_block = "\n".join([f"[{c.source_type.upper()}]\n{c.text}" for c in rag.chunks])
                 rag_chunks = rag.chunks
         except Exception as e:
             logger.warning("RAG retrieval error in generate_feature_suggestions (skipping): %s", e)

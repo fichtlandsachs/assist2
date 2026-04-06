@@ -128,3 +128,94 @@ async def test_extract_story_short_transcript_returns_empty(auth_override):
         data = response.json()
         assert data == {"story": [], "accept": [], "tests": [], "release": []}
         MockClient.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_chat_injects_rag_context(auth_override):
+    """When RAG returns chunks, a context system message is prepended."""
+    from app.services.rag_service import RagResult, RagChunk
+    from app.deps import get_db
+
+    mock_db = AsyncMock()
+    app.dependency_overrides[get_db] = lambda: mock_db
+
+    rag_chunk = RagChunk(
+        text="Confluence Inhalt: Das Deployment erfolgt montags.",
+        score=0.80,
+        source_type="confluence",
+        source_url=None,
+        source_title="Deployment Guide",
+    )
+    mock_rag = RagResult(mode="context", chunks=[rag_chunk])
+
+    with patch("app.routers.ai.AsyncOpenAI") as MockOAI, \
+         patch("app.routers.ai.rag_retrieve", new_callable=AsyncMock, return_value=mock_rag):
+
+        mock_choice = MagicMock()
+        mock_choice.choices = [MagicMock(delta=MagicMock(content="OK"))]
+        mock_stream = MagicMock()
+        mock_stream.__aiter__ = MagicMock(return_value=iter([mock_choice]))
+
+        captured_messages = []
+
+        async def capture_and_return(*args, **kwargs):
+            messages = kwargs.get("messages", [])
+            captured_messages.extend(messages)
+            return mock_stream
+
+        MockOAI.return_value.chat.completions.create = capture_and_return
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/ai/chat",
+                json={
+                    "messages": [{"role": "user", "content": "Wann ist Deployment?"}],
+                    "mode": "chat",
+                    "org_id": "00000000-0000-0000-0000-000000000001",
+                },
+                headers={"Authorization": "Bearer fake"},
+            )
+        assert resp.status_code == 200
+        assert any(
+            "Relevanter Kontext" in m.get("content", "")
+            for m in captured_messages
+            if m["role"] == "system"
+        ), "RAG context should be injected as a system message"
+
+    app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_chat_continues_on_rag_timeout(auth_override):
+    """RAG timeout → chat proceeds without context, no error."""
+    import asyncio as _asyncio
+    from app.deps import get_db
+
+    mock_db = AsyncMock()
+    app.dependency_overrides[get_db] = lambda: mock_db
+
+    async def slow_rag(*args, **kwargs):
+        await _asyncio.sleep(2)
+
+    with patch("app.routers.ai.AsyncOpenAI") as MockOAI, \
+         patch("app.routers.ai.rag_retrieve", new_callable=AsyncMock, side_effect=slow_rag):
+
+        mock_choice = MagicMock()
+        mock_choice.choices = [MagicMock(delta=MagicMock(content="OK"))]
+        mock_stream = MagicMock()
+        mock_stream.__aiter__ = MagicMock(return_value=iter([mock_choice]))
+        MockOAI.return_value.chat.completions.create = AsyncMock(return_value=mock_stream)
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/ai/chat",
+                json={
+                    "messages": [{"role": "user", "content": "Hallo"}],
+                    "mode": "chat",
+                    "org_id": "00000000-0000-0000-0000-000000000001",
+                },
+                headers={"Authorization": "Bearer fake"},
+            )
+        assert resp.status_code == 200
+
+    app.dependency_overrides.pop(get_db, None)

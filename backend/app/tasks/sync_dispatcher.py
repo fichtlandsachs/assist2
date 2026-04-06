@@ -11,6 +11,7 @@ from app.models.mail_connection import MailConnection
 from app.models.calendar_connection import CalendarConnection, CalendarProvider
 from app.tasks.mail_sync import sync_mailbox_task
 from app.tasks.calendar_sync import sync_calendar_task
+from app.tasks.rag_tasks import index_org_documents, index_confluence_space
 import app.models  # noqa: F401 — ensure all models registered with SQLAlchemy mapper
 
 
@@ -108,15 +109,18 @@ async def _dispatch_rag_index() -> dict:
     try:
         async with SessionLocal() as db:
             result = await db.execute(
-                select(Organization.id, Organization.slug).where(Organization.deleted_at.is_(None))
+                select(Organization.id, Organization.slug).where(
+                    Organization.deleted_at.is_(None),
+                    Organization.is_active.is_(True),
+                )
             )
             orgs = result.fetchall()
     finally:
         await engine.dispose()
 
-    from app.tasks.rag_tasks import index_org_documents
     for org_id, org_slug in orgs:
         index_org_documents.delay(str(org_id), org_slug)
+        index_confluence_space.delay(str(org_id))
 
     return {"dispatched": len(orgs)}
 

@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.schedules import crontab
 from app.config import get_settings
 
 settings = get_settings()
@@ -39,6 +40,6 @@ celery.conf.beat_schedule = {
     },
     "dispatch-rag-index": {
         "task": "sync_dispatcher.dispatch_rag_index",
-        "schedule": 86400.0,  # once per day
+        "schedule": crontab(hour=2, minute=0),  # daily at 02:00 UTC
     },
 }

@@ -21,6 +21,7 @@ from app.routers.stats import router as stats_router
 from app.routers.contact import router as contact_router
 from app.routers.suggestions import router as suggestions_router
 from app.routers.confluence import router as confluence_router
+from app.routers.webhooks import router as webhooks_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -118,3 +119,4 @@ app.include_router(projects_router, prefix="/api/v1", tags=["Projects"])
 app.include_router(contact_router, prefix="/api/v1", tags=["Contact"])
 app.include_router(suggestions_router, prefix="/api/v1", tags=["Suggestions"])
 app.include_router(confluence_router, prefix="/api/v1", tags=["Confluence"])
+app.include_router(webhooks_router, prefix="/api/v1", tags=["Webhooks"])
