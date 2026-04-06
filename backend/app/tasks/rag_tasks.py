@@ -411,3 +411,99 @@ def index_story_knowledge(self, story_id: str, org_id: str, org_slug: str) -> di
     except Exception as exc:
         logger.error("index_story_knowledge failed for story %s: %s", story_id, exc)
         raise self.retry(exc=exc, countdown=60)
+
+
+async def _index_jira_ticket_async(ticket_key: str, org_id: str, db: AsyncSession) -> None:
+    """Index a single Jira ticket into pgvector. Silent no-op if Jira not configured."""
+    from app.models.document_chunk import DocumentChunk
+    from app.models.organization import Organization
+    from app.models.jira_story import JiraStory
+
+    org_uuid = uuid.UUID(org_id)
+
+    # Load org to check Jira config
+    org_result = await db.execute(select(Organization).where(Organization.id == org_uuid))
+    org = org_result.scalar_one_or_none()
+    if org is None:
+        return
+
+    metadata = getattr(org, "metadata_", None) or {}
+    jira_cfg = metadata.get("integrations", {}).get("jira", {})
+    if not jira_cfg.get("base_url") or not jira_cfg.get("api_token_enc"):
+        logger.debug("index_jira_ticket: Jira not configured for org %s — skipping", org_id)
+        return
+
+    jira_base_url = jira_cfg["base_url"].rstrip("/")
+
+    # Load JiraStory record
+    story_result = await db.execute(
+        select(JiraStory).where(
+            JiraStory.ticket_key == ticket_key.upper(),
+            JiraStory.organization_id == org_uuid,
+        )
+    )
+    jira_story = story_result.scalar_one_or_none()
+    if jira_story is None:
+        logger.warning("index_jira_ticket: ticket %s not found in DB", ticket_key)
+        return
+
+    summary = jira_story.source_summary or ticket_key
+    content = jira_story.content or ""
+    chunk_text = f"{ticket_key}: {summary}\n{content}"[:4000]
+    source_ref = f"jira:{ticket_key}"
+    source_url = f"{jira_base_url}/browse/{ticket_key}"
+    source_title = f"Jira: {ticket_key} — {summary[:60]}"
+
+    try:
+        embeddings = await _embed_chunks([chunk_text])
+    except Exception as e:
+        logger.warning("index_jira_ticket: embedding failed for %s: %s", ticket_key, e)
+        return
+
+    # Delete existing chunk for this ticket
+    await db.execute(
+        delete(DocumentChunk).where(
+            DocumentChunk.org_id == org_uuid,
+            DocumentChunk.source_ref == source_ref,
+        )
+    )
+
+    embedding_str = "[" + ",".join(str(x) for x in embeddings[0]) + "]"
+    chunk = DocumentChunk(
+        org_id=org_uuid,
+        source_ref=source_ref,
+        source_type="jira",
+        source_url=source_url,
+        source_title=source_title,
+        file_hash=_sha256(chunk_text.encode()),
+        chunk_index=0,
+        chunk_text=chunk_text,
+        embedding=embedding_str,
+    )
+    db.add(chunk)
+    await db.commit()
+    logger.info("index_jira_ticket: indexed ticket %s for org %s", ticket_key, org_id)
+
+
+@celery.task(name="rag_tasks.index_jira_ticket", bind=True, max_retries=3)
+def index_jira_ticket(self, ticket_key: str, org_id: str) -> dict:
+    """Celery task: index a Jira ticket into pgvector."""
+    from app.config import get_settings
+
+    async def run():
+        engine = create_async_engine(
+            get_settings().DATABASE_URL, echo=False, pool_pre_ping=True
+        )
+        SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        try:
+            async with SessionLocal() as db:
+                await _index_jira_ticket_async(ticket_key, org_id, db)
+        finally:
+            await engine.dispose()
+
+    try:
+        asyncio.run(run())
+        return {"status": "ok", "ticket_key": ticket_key}
+    except Exception as exc:
+        logger.error("index_jira_ticket failed for %s: %s", ticket_key, exc)
+        raise self.retry(exc=exc, countdown=60)
