@@ -1,4 +1,5 @@
 # backend/tests/unit/test_dispatch_tasks.py
+import uuid
 import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -114,3 +115,32 @@ async def test_dispatch_calendar_syncs_due_connections():
 
     assert result["dispatched"] == 1
     mock_task.delay.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_dispatch_rag_index_triggers_confluence_and_jira():
+    """_dispatch_rag_index must call index_confluence_space for each active org."""
+    from app.tasks.sync_dispatcher import _dispatch_rag_index
+
+    mock_org_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    mock_org_slug = "test-org"
+
+    mock_db = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.fetchall.return_value = [(mock_org_id, mock_org_slug)]
+    mock_db.execute = AsyncMock(return_value=mock_result)
+
+    with patch("app.tasks.sync_dispatcher.create_async_engine") as mock_engine_factory, \
+         patch("app.tasks.sync_dispatcher.async_sessionmaker") as mock_sm, \
+         patch("app.tasks.rag_tasks.index_org_documents") as mock_nextcloud, \
+         patch("app.tasks.rag_tasks.index_confluence_space") as mock_confluence:
+
+        mock_engine = MagicMock()
+        mock_engine.dispose = AsyncMock()
+        mock_engine_factory.return_value = mock_engine
+        mock_sm.return_value.return_value.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_sm.return_value.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        result = await _dispatch_rag_index()
+
+    mock_confluence.delay.assert_called()

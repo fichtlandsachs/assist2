@@ -114,9 +114,10 @@ async def _dispatch_rag_index() -> dict:
     finally:
         await engine.dispose()
 
-    from app.tasks.rag_tasks import index_org_documents
+    from app.tasks.rag_tasks import index_org_documents, index_confluence_space
     for org_id, org_slug in orgs:
         index_org_documents.delay(str(org_id), org_slug)
+        index_confluence_space.delay(str(org_id))
 
     return {"dispatched": len(orgs)}
 
