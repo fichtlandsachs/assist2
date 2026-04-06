@@ -23,12 +23,13 @@ async def test_retrieve_direct_mode():
     )
 
     with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
-        mock_embed.return_value = [0.1] * 1536
+        mock_embed.return_value = [0.1] * 1024
         result = await retrieve("test query", uuid.uuid4(), mock_db)
 
     assert result.mode == "direct"
-    assert result.direct_answer == "Direktantwort Text"
-    assert result.chunks == []
+    assert result.context == "Direktantwort Text"
+    assert len(result.chunks) == 1
+    assert result.chunks[0].text == "Direktantwort Text"
 
 
 @pytest.mark.asyncio
@@ -46,12 +47,12 @@ async def test_retrieve_context_mode():
     )
 
     with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
-        mock_embed.return_value = [0.1] * 1536
+        mock_embed.return_value = [0.1] * 1024
         result = await retrieve("test query", uuid.uuid4(), mock_db)
 
     assert result.mode == "context"
     assert len(result.chunks) == 2
-    assert result.direct_answer is None
+    assert result.context is None
 
 
 @pytest.mark.asyncio
@@ -66,7 +67,7 @@ async def test_retrieve_none_mode():
     )
 
     with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
-        mock_embed.return_value = [0.1] * 1536
+        mock_embed.return_value = [0.1] * 1024
         result = await retrieve("test query", uuid.uuid4(), mock_db)
 
     assert result.mode == "none"
@@ -83,7 +84,7 @@ async def test_retrieve_empty_db():
     mock_db.execute.return_value.fetchall = MagicMock(return_value=[])
 
     with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
-        mock_embed.return_value = [0.1] * 1536
+        mock_embed.return_value = [0.1] * 1024
         result = await retrieve("test query", uuid.uuid4(), mock_db)
 
     assert result.mode == "none"
@@ -113,7 +114,7 @@ async def test_retrieve_db_error_fallback():
     mock_db.execute = AsyncMock(side_effect=Exception("DB failure"))
 
     with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
-        mock_embed.return_value = [0.1] * 1536
+        mock_embed.return_value = [0.1] * 1024
         result = await retrieve("test query", uuid.uuid4(), mock_db)
 
     assert result.mode == "none"
@@ -131,11 +132,11 @@ async def test_retrieve_direct_mode_at_boundary():
     )
 
     with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
-        mock_embed.return_value = [0.1] * 1536
+        mock_embed.return_value = [0.1] * 1024
         result = await retrieve("test query", uuid.uuid4(), mock_db)
 
     assert result.mode == "direct"
-    assert result.direct_answer == "Grenzwert Text"
+    assert result.context == "Grenzwert Text"
 
 
 @pytest.mark.asyncio
@@ -150,7 +151,7 @@ async def test_retrieve_context_mode_at_boundary():
     )
 
     with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
-        mock_embed.return_value = [0.1] * 1536
+        mock_embed.return_value = [0.1] * 1024
         result = await retrieve("test query", uuid.uuid4(), mock_db)
 
     assert result.mode == "context"
@@ -169,7 +170,7 @@ async def test_retrieve_none_just_below_context_threshold():
     )
 
     with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
-        mock_embed.return_value = [0.1] * 1536
+        mock_embed.return_value = [0.1] * 1024
         result = await retrieve("test query", uuid.uuid4(), mock_db)
 
     assert result.mode == "none"
@@ -193,7 +194,7 @@ async def test_retrieve_context_truncates_to_max_chunks():
     )
 
     with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
-        mock_embed.return_value = [0.1] * 1536
+        mock_embed.return_value = [0.1] * 1024
         result = await retrieve("test query", uuid.uuid4(), mock_db)
 
     assert result.mode == "context"

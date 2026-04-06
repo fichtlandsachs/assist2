@@ -151,9 +151,9 @@ async def _embed_chunks(chunks: list[str]) -> list[list[float]]:
 
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
-            f"{settings.LITELLM_URL}/embeddings",
+            f"{settings.LITELLM_URL}/v1/embeddings",
             headers=headers,
-            json={"model": "text-embedding-3-small", "input": chunks},
+            json={"model": "ionos-embed", "input": chunks},
         )
         resp.raise_for_status()
     data = resp.json()["data"]

@@ -44,9 +44,9 @@ async def _embed_query(query: str) -> list[float]:
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
-            f"{settings.LITELLM_URL}/embeddings",
+            f"{settings.LITELLM_URL}/v1/embeddings",
             headers=headers,
-            json={"model": "text-embedding-3-small", "input": query},
+            json={"model": "ionos-embed", "input": query},
         )
         resp.raise_for_status()
     return resp.json()["data"][0]["embedding"]
