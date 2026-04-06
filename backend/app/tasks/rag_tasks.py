@@ -191,7 +191,7 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
             select(DocumentChunk.file_hash)
             .where(
                 DocumentChunk.org_id == org_uuid,
-                DocumentChunk.file_path == href,
+                DocumentChunk.source_ref == href,
             )
             .limit(1)
         )
@@ -220,7 +220,7 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
         await db.execute(
             delete(DocumentChunk).where(
                 DocumentChunk.org_id == org_uuid,
-                DocumentChunk.file_path == href,
+                DocumentChunk.source_ref == href,
             )
         )
 
@@ -229,7 +229,10 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
             embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
             chunk = DocumentChunk(
                 org_id=org_uuid,
-                file_path=href,
+                source_ref=href,
+                source_type="nextcloud",
+                source_url=None,
+                source_title=href.rsplit("/", 1)[-1],
                 file_hash=file_hash,
                 chunk_index=i,
                 chunk_text=chunk_text,
