@@ -1,7 +1,9 @@
 """AI utility routes — transcription, chat streaming, story extraction."""
+import asyncio
 import json
 import logging
 import re
+import uuid as _uuid_module
 from typing import AsyncIterator
 
 import httpx
@@ -9,10 +11,12 @@ from openai import AsyncOpenAI
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.deps import get_current_user
+from app.deps import get_current_user, get_db
 from app.models.user import User
+from app.services.rag_service import retrieve as rag_retrieve
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -142,6 +146,7 @@ async def transcribe(
 async def chat_stream(
     body: ChatRequest,
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     """Stream a chat response via LiteLLM as Server-Sent Events."""
     settings = get_settings()
@@ -162,9 +167,37 @@ async def chat_stream(
                 blocks.append({"type": "text", "text": b.text or ""})
         return blocks
 
-    messages = [{"role": "system", "content": system_prompt}] + [
-        {"role": m.role, "content": _build_content(m)} for m in body.messages
-    ]
+    # RAG retrieval — 800ms timeout, never blocks response on failure
+    rag_context = ""
+    if body.org_id:
+        try:
+            last_user_text = next(
+                (m.to_text() for m in reversed(body.messages) if m.role == "user"), ""
+            )
+            if last_user_text:
+                rag_result = await asyncio.wait_for(
+                    rag_retrieve(last_user_text, _uuid_module.UUID(body.org_id), db),
+                    timeout=0.8,
+                )
+                if rag_result.mode in ("direct", "context") and rag_result.chunks:
+                    _label = {
+                        "confluence": "[Confluence]",
+                        "jira": "[Jira]",
+                        "karl_story": "[Karl Story]",
+                        "user_action": "[Team-Wissen]",
+                        "nextcloud": "[Dokument]",
+                    }
+                    rag_context = "\n\n".join(
+                        f"{_label.get(c.source_type, '[Kontext]')} {c.source_title or ''}\n{c.text}"
+                        for c in rag_result.chunks
+                    )
+        except Exception:
+            pass  # RAG failure is never fatal
+
+    messages = [{"role": "system", "content": system_prompt}]
+    if rag_context:
+        messages.append({"role": "system", "content": f"Relevanter Kontext:\n\n{rag_context}"})
+    messages += [{"role": m.role, "content": _build_content(m)} for m in body.messages]
 
     async def event_stream() -> AsyncIterator[str]:
         try:
