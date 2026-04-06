@@ -11,10 +11,11 @@ from app.models.base import Base
 
 
 class SourceType(str, enum.Enum):
-    nextcloud  = "nextcloud"
-    karl_story = "karl_story"
-    jira       = "jira"        # Phase 2
-    confluence = "confluence"  # Phase 3
+    nextcloud   = "nextcloud"
+    karl_story  = "karl_story"
+    jira        = "jira"        # Phase 2
+    confluence  = "confluence"  # Phase 3
+    user_action = "user_action"
 
 
 class DocumentChunk(Base):
