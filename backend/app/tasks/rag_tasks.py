@@ -271,3 +271,143 @@ def index_org_documents(self, org_id: str, org_slug: str) -> dict:
     except Exception as exc:
         logger.error("index_org_documents failed for org %s: %s", org_id, exc)
         raise self.retry(exc=exc, countdown=60)
+
+
+async def _index_story_knowledge_async(story_id: str, org_id: str, org_slug: str, db: AsyncSession) -> None:
+    """Index story + its ready/done DoD items, done features, passed test cases."""
+    from app.models.document_chunk import DocumentChunk
+    from app.models.user_story import UserStory
+    from app.models.test_case import TestCase
+    from app.models.feature import Feature, FeatureStatus
+    from app.models.test_case import TestResult
+
+    org_uuid = uuid.UUID(org_id)
+    story_uuid = uuid.UUID(story_id)
+    source_ref = f"story:{story_id}"
+    source_url = f"/{org_slug}/stories/{story_id}"
+
+    # Load story
+    result = await db.execute(select(UserStory).where(UserStory.id == story_uuid))
+    story = result.scalar_one_or_none()
+    if story is None:
+        logger.warning("index_story_knowledge: story %s not found", story_id)
+        return
+
+    source_title = f"Story: {story.title}"
+
+    # Build raw chunks
+    raw_chunks: list[str] = []
+
+    # Story chunk
+    parts = [story.title or ""]
+    if story.description:
+        parts.append(story.description)
+    if story.acceptance_criteria:
+        parts.append(story.acceptance_criteria)
+    raw_chunks.append("\n".join(parts))
+
+    # DoD items (stored as JSON in definition_of_done field)
+    if story.definition_of_done:
+        import json as _json
+        try:
+            dod_items = _json.loads(story.definition_of_done)
+            for item in dod_items:
+                text = item.get("text", "") if isinstance(item, dict) else str(item)
+                if text.strip():
+                    raw_chunks.append(text.strip())
+        except Exception:
+            pass
+
+    # Done features
+    feat_result = await db.execute(
+        select(Feature).where(
+            Feature.story_id == story_uuid,
+            Feature.status == FeatureStatus.done,
+        )
+    )
+    for feat in feat_result.scalars().all():
+        parts = [feat.title or ""]
+        if feat.description:
+            parts.append(feat.description)
+        raw_chunks.append("\n".join(parts))
+
+    # Passed test cases
+    tc_result = await db.execute(
+        select(TestCase).where(
+            TestCase.story_id == story_uuid,
+            TestCase.result == TestResult.passed,
+        )
+    )
+    for tc in tc_result.scalars().all():
+        parts = [tc.title or ""]
+        if tc.steps:
+            parts.append(tc.steps)
+        if tc.expected_result:
+            parts.append(tc.expected_result)
+        raw_chunks.append("\n".join(parts))
+
+    if not raw_chunks:
+        return
+
+    # Embed all chunks
+    try:
+        embeddings = await _embed_chunks(raw_chunks)
+    except Exception as e:
+        logger.warning("index_story_knowledge: embedding failed for story %s: %s", story_id, e)
+        return
+
+    # Delete existing chunks for this story
+    await db.execute(
+        delete(DocumentChunk).where(
+            DocumentChunk.org_id == org_uuid,
+            DocumentChunk.source_ref == source_ref,
+        )
+    )
+
+    # Insert new chunks
+    for i, (chunk_text, embedding) in enumerate(zip(raw_chunks, embeddings)):
+        embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+        chunk = DocumentChunk(
+            org_id=org_uuid,
+            source_ref=source_ref,
+            source_type="karl_story",
+            source_url=source_url,
+            source_title=source_title,
+            file_hash=_sha256(chunk_text.encode()),
+            chunk_index=i,
+            chunk_text=chunk_text,
+            embedding=embedding_str,
+        )
+        db.add(chunk)
+
+    try:
+        await db.commit()
+        logger.info("index_story_knowledge: indexed %d chunks for story %s", len(raw_chunks), story_id)
+    except Exception as e:
+        await db.rollback()
+        logger.error("index_story_knowledge: commit failed for story %s: %s", story_id, e)
+        raise
+
+
+@celery.task(name="rag_tasks.index_story_knowledge", bind=True, max_retries=3)
+def index_story_knowledge(self, story_id: str, org_id: str, org_slug: str) -> dict:
+    """Celery task: index story knowledge (story + DoD + features + test cases) into pgvector."""
+    from app.config import get_settings
+
+    async def run():
+        engine = create_async_engine(
+            get_settings().DATABASE_URL, echo=False, pool_pre_ping=True
+        )
+        SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        try:
+            async with SessionLocal() as db:
+                await _index_story_knowledge_async(story_id, org_id, org_slug, db)
+        finally:
+            await engine.dispose()
+
+    try:
+        asyncio.run(run())
+        return {"status": "ok", "story_id": story_id}
+    except Exception as exc:
+        logger.error("index_story_knowledge failed for story %s: %s", story_id, exc)
+        raise self.retry(exc=exc, countdown=60)
