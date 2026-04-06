@@ -12,7 +12,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   loginWithAtlassian: () => void;
   loginWithGitHub: () => void;
-  register: (email: string, password: string, displayName: string) => Promise<void>;
+  register: (email: string, password: string, displayName: string, organizationName: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -107,10 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     _handleOAuthPopup("/api/v1/auth/github/start", "github_login");
   }, [_handleOAuthPopup]);
 
-  const register = async (email: string, password: string, displayName: string) => {
+  const register = async (email: string, password: string, displayName: string, organizationName: string) => {
     const data = await apiRequest<TokenResponse>("/api/v1/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, password, display_name: displayName })
+      body: JSON.stringify({ email, password, display_name: displayName, organization_name: organizationName })
     });
     setTokens(data.access_token, data.refresh_token);
     await fetchUser();

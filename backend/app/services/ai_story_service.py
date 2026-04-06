@@ -108,95 +108,35 @@ class DocsGenerateResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _make_client(task_category: str, ai_settings: dict | None = None, complexity: str = "medium") -> tuple[ProviderClient, str]:
-    """Create a provider-aware LLM client based on task category.
+    """All AI calls route through LiteLLM (OpenAI-compatible gateway).
 
-    Resolution order:
-      1. If ai_settings has an explicit model_override → legacy path (detect
-         provider from model name prefix).
-      2. Otherwise → routing_matrix.resolve_model(routing_task) and route by
-         prefix.  "story" maps to "suggest", "dev" maps to "docs".
-      3. Absolute fallback: original hardcoded logic.
+    Returns (ProviderClient → LiteLLM, provider_name_for_route_request).
 
-    task_category:
-      "story" → routing task "suggest" (story writing, DoD, test cases, splitting)
-      "dev"   → routing task "docs"    (features, technical docs)
-
-    ai_settings: dict with org-level keys returned by get_ai_client_settings().
-    Falls back to global env vars when None.
-
-    Returns (ProviderClient, provider_name).
+    provider_name controls which model map route_request() uses:
+      "ionos"     → ionos-fast / ionos-quality / ionos-reasoning  (default)
+      "anthropic" → claude-haiku / claude-sonnet  (org override with claude-* model)
     """
     import openai as openai_sdk
 
     settings = get_settings()
+
+    litellm = openai_sdk.OpenAI(
+        base_url=f"{settings.LITELLM_URL}/v1",
+        api_key=settings.LITELLM_API_KEY or "sk-assist2",
+        timeout=90,
+        max_retries=0,
+    )
+    client = ProviderClient("openai", litellm)
+
+    # Respect org-level model override — detect provider from model name prefix
     model_override = (ai_settings or {}).get("model_override", "")
+    if model_override.startswith("claude"):
+        return client, "anthropic"
+    if model_override.startswith("gpt") or model_override.startswith("openai"):
+        return client, "openai"
 
-    # ── 1. Explicit model_override → legacy provider detection ────────────────
-    if model_override:
-        if model_override.startswith("claude"):
-            provider = "anthropic"
-            api_key = (ai_settings or {}).get("anthropic_api_key") or settings.ANTHROPIC_API_KEY
-            raw = anthropic.Anthropic(api_key=api_key)
-            return ProviderClient(provider, raw), provider
-        if model_override.startswith("gpt") or model_override.startswith("openai"):
-            provider = "openai"
-            api_key = (ai_settings or {}).get("openai_api_key") or settings.OPENAI_API_KEY
-            raw = openai_sdk.OpenAI(api_key=api_key)
-            return ProviderClient(provider, raw), provider
-        if model_override.startswith("ionos"):
-            if not settings.IONOS_API_KEY:
-                logger.warning("_make_client: model_override=%s but IONOS_API_KEY is not set", model_override)
-            raw = openai_sdk.OpenAI(
-                api_key=settings.IONOS_API_KEY,
-                base_url=f"{settings.IONOS_API_BASE}/v1",
-                timeout=60,
-                max_retries=0,
-            )
-            return ProviderClient("ionos", raw), "ionos"
-
-    # ── 2. Routing matrix ─────────────────────────────────────────────────────
-    _TASK_MAP = {"story": "suggest", "dev": "docs"}
-    routing_task = _TASK_MAP.get(task_category, "suggest")
-
-    try:
-        from app.services.providers.routing_matrix import resolve_model
-        from app.ai.context_analyzer import analyze_context  # noqa: F401 — guard import only
-        alias = resolve_model(routing_task, complexity=complexity)
-    except Exception:
-        alias = ""
-
-    if alias.startswith("ionos"):
-        raw = openai_sdk.OpenAI(
-            api_key=settings.IONOS_API_KEY,
-            base_url=f"{settings.IONOS_API_BASE}/v1",
-            timeout=60,
-            max_retries=0,
-        )
-        return ProviderClient("ionos", raw), "ionos"
-
-    if alias.startswith("claude"):
-        provider = "anthropic"
-        api_key = (ai_settings or {}).get("anthropic_api_key") or settings.ANTHROPIC_API_KEY
-        raw = anthropic.Anthropic(api_key=api_key)
-        return ProviderClient(provider, raw), provider
-
-    if alias.startswith("gpt") or alias.startswith("openai"):
-        provider = "openai"
-        api_key = (ai_settings or {}).get("openai_api_key") or settings.OPENAI_API_KEY
-        raw = openai_sdk.OpenAI(api_key=api_key)
-        return ProviderClient(provider, raw), provider
-
-    # ── 3. Absolute fallback: original hardcoded logic ─────────────────────────
-    if task_category == "dev":
-        provider = "anthropic"
-        api_key = (ai_settings or {}).get("anthropic_api_key") or settings.ANTHROPIC_API_KEY
-        raw = anthropic.Anthropic(api_key=api_key)
-    else:  # "story" and default
-        provider = "openai"
-        api_key = (ai_settings or {}).get("openai_api_key") or settings.OPENAI_API_KEY
-        raw = openai_sdk.OpenAI(api_key=api_key)
-
-    return ProviderClient(provider, raw), provider
+    # Default: workspace uses IONOS exclusively
+    return client, "ionos"
 
 
 def _log_decision(fn: str, decision: RouteDecision, usage: dict, elapsed_ms: int) -> None:

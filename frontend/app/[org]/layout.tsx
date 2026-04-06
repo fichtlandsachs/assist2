@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
+import { Breadcrumb } from "@/components/shell/Breadcrumb";
 import { useOrg } from "@/lib/hooks/useOrg";
 
 export default function OrgLayout({
@@ -39,6 +40,7 @@ export default function OrgLayout({
       <Sidebar
         orgSlug={resolvedParams.org}
         orgId={org?.id}
+        orgName={org?.name}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
@@ -55,7 +57,10 @@ export default function OrgLayout({
           {/* Subtle dot grid overlay (src_agile style) */}
           <div className="dot-grid-overlay pointer-events-none absolute inset-0 opacity-[0.03]"
             style={{ backgroundImage: "radial-gradient(#000 0.5px, transparent 0.5px)", backgroundSize: "30px 30px" }} />
-          {children}
+          <div className="relative min-h-full flex flex-col">
+            <Breadcrumb orgSlug={resolvedParams.org} />
+            {children}
+          </div>
         </main>
       </div>
     </div>

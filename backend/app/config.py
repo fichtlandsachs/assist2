@@ -100,8 +100,16 @@ class Settings(BaseSettings):
     WHISPER_URL: str = "http://assist2-whisper:9000"
 
     # LiteLLM (internal AI gateway)
-    LITELLM_URL: str = "http://litellm:4000"
+    LITELLM_URL: str = "http://assist2-litellm:4000"
     LITELLM_API_KEY: str = ""
+
+    # Contact form / outbound SMTP
+    SMTP_HOST: str = "smtp.hostinger.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""   # leave empty for direct MX delivery
+    SMTP_PASS: str = ""
+    SMTP_FROM: str = "noreply@heykarl.app"
+    CONTACT_EMAIL_TO: str = "info@heykarl.app"
 
     # Sync defaults (used as initial value when creating connections)
     MAIL_SYNC_INTERVAL_MINUTES: int = 15

@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Send, Sparkles, FileText, CheckSquare, TestTube, Tag, GripVertical, ImagePlus, X, Plus } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ProjectSelector } from "@/components/stories/ProjectSelector";
+
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -79,6 +81,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
   const [storyData, setStoryData] = useState<StoryData | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [saveProjectId, setSaveProjectId] = useState<string | null>(null);
   const [jiraPanel, setJiraPanel] = useState<JiraStoryPanel | null>(null);
   const [savedStory, setSavedStory] = useState<SavedJiraStory | null>(null);
   const [savingJira, setSavingJira] = useState(false);
@@ -86,6 +89,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
   const [recording, setRecording] = useState(false);
   const [storyPct, setStoryPct] = useState(50);
   const [pendingImages, setPendingImages] = useState<{ mediaType: string; data: string }[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -122,6 +126,13 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
       window.removeEventListener("mouseup", onDragEnd);
     };
   }, [onDragMove, onDragEnd]);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -300,6 +311,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
           description: storyData.story.join("\n"),
           acceptance_criteria: storyData.accept.join("\n"),
           priority: "medium",
+          project_id: saveProjectId || null,
         }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -434,39 +446,22 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ background: "var(--paper)" }}>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden" style={{ background: "var(--paper)" }}>
 
       {/* ── Story-Assistent ── */}
       {tab === "story" && (
-        <div ref={splitContainerRef} className="flex flex-1 overflow-hidden">
+        <div ref={splitContainerRef} className={`flex-1 flex overflow-hidden min-w-0 ${isMobile ? "flex-col" : "flex-row"}`}>
 
           {/* Left: Chat panel */}
-          <div className="flex flex-col min-w-0 overflow-hidden border-r" style={{ width: `${100 - storyPct}%`, borderColor: "var(--paper-rule)" }}>
-
-            {/* Mode selector */}
-            <div
-              className="flex items-center gap-2 px-4 py-2 border-b"
-              style={{ borderColor: "var(--paper-rule)", background: "var(--paper-warm)" }}
-            >
-              {(["chat", "docs", "tasks", "jira"] as ChatMode[]).map(m => (
-                <button
-                  key={m}
-                  onClick={() => setMode(m)}
-                  className="px-3 py-1 rounded-sm transition-colors"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "8px",
-                    letterSpacing: ".06em",
-                    textTransform: "uppercase",
-                    background: mode === m ? "var(--ink)" : "transparent",
-                    color: mode === m ? "var(--paper)" : "var(--ink-faint)",
-                    border: `0.5px solid ${mode === m ? "var(--ink)" : "transparent"}`,
-                  }}
-                >
-                  {m === "chat" ? "Chat" : m === "docs" ? "Dokumente" : m === "tasks" ? "Aufgaben" : "Jira"}
-                </button>
-              ))}
-            </div>
+          <div
+            className="flex flex-col min-w-0 overflow-hidden"
+            style={{
+              width: isMobile ? "100%" : `${100 - storyPct}%`,
+              flex: isMobile ? "1 1 0" : "none",
+              borderRight: !isMobile ? "1px solid var(--paper-rule)" : undefined,
+              borderBottom: isMobile ? "1px solid var(--paper-rule)" : undefined,
+            }}
+          >
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
@@ -632,24 +627,30 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
             </div>
           </div>
 
-          {/* Drag handle */}
-          <div
-            className="relative flex items-center justify-center shrink-0 cursor-col-resize group"
-            style={{ width: "1px", background: "var(--paper-rule)" }}
-            onMouseDown={onDragStart}
-          >
+          {/* Drag handle — desktop only */}
+          {!isMobile && (
             <div
-              className="absolute opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-sm"
-              style={{ width: "14px", height: "32px", background: "var(--paper-warm)", border: "0.5px solid var(--paper-rule)", zIndex: 10 }}
+              className="relative flex items-center justify-center shrink-0 cursor-col-resize group"
+              style={{ width: "1px", background: "var(--paper-rule)" }}
+              onMouseDown={onDragStart}
             >
-              <GripVertical size={10} style={{ color: "var(--ink-faint)" }} />
+              <div
+                className="absolute opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-sm"
+                style={{ width: "14px", height: "32px", background: "var(--paper-warm)", border: "0.5px solid var(--paper-rule)", zIndex: 10 }}
+              >
+                <GripVertical size={10} style={{ color: "var(--ink-faint)" }} />
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Right: Story panel */}
+          {/* Right: Story / Extraction panel */}
           <div
             className="flex flex-col overflow-hidden"
-            style={{ width: `${storyPct}%`, background: "var(--paper-warm)" }}
+            style={{
+              width: isMobile ? "100%" : `${storyPct}%`,
+              flex: isMobile ? "1 1 0" : "none",
+              background: "var(--paper-warm)",
+            }}
           >
             {mode === "jira" ? (
               <>
@@ -757,6 +758,16 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                       <StorySection icon={<CheckSquare size={11} />} label="Akzeptanzkriterien" variant="open" items={storyData.accept} />
                       <StorySection icon={<TestTube size={11} />} label="Testfälle" variant="partial" items={storyData.tests} />
                       <StorySection icon={<Tag size={11} />} label="Release" variant="llm" items={storyData.release} />
+                      {org && (
+                        <div className="pt-1">
+                          <ProjectSelector
+                            orgId={org.id}
+                            value={saveProjectId}
+                            onChange={setSaveProjectId}
+                            label="Projekt (optional)"
+                          />
+                        </div>
+                      )}
                       <div className="pt-2">
                         <Button
                           size="sm"

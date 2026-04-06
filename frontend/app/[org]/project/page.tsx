@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useCallback } from "react";
 import useSWR from "swr";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
@@ -8,12 +8,12 @@ import type { Project, ProjectStatus } from "@/types";
 import Link from "next/link";
 import { Plus, X, Folder } from "lucide-react";
 
-const STATUS_LABELS: Record<ProjectStatus, string> = {
-  planning: "Planung",
-  active:   "Aktiv",
-  done:     "Fertig",
-  archived: "Archiviert",
-};
+const COLUMNS: { status: ProjectStatus; label: string; dot: string }[] = [
+  { status: "planning",  label: "Planung",    dot: "bg-slate-400" },
+  { status: "active",    label: "Aktiv",      dot: "bg-teal-500" },
+  { status: "done",      label: "Fertig",     dot: "bg-emerald-500" },
+  { status: "archived",  label: "Archiviert", dot: "bg-slate-300" },
+];
 
 const STATUS_COLORS: Record<ProjectStatus, string> = {
   planning: "bg-slate-100 text-slate-600",
@@ -30,46 +30,56 @@ const COLOR_OPTIONS = [
   "#E11D48", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#6B7280",
 ];
 
-function ProjectCard({ project, orgSlug }: { project: Project; orgSlug: string }) {
+function ProjectCard({
+  project,
+  orgSlug,
+  onDragStart,
+}: {
+  project: Project;
+  orgSlug: string;
+  onDragStart: (id: string) => void;
+}) {
   return (
-    <Link href={`/${orgSlug}/project/${project.id}`}
-      className="bg-[var(--card)] border-2 border-slate-900/10 rounded-2xl p-5 hover:border-slate-900/30 hover:shadow-[4px_4px_0_rgba(0,0,0,.08)] transition-all flex flex-col gap-3 group">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+    <div
+      draggable
+      onDragStart={() => onDragStart(project.id)}
+      className="bg-[var(--card)] border border-slate-900/10 rounded-xl p-4 hover:border-slate-900/25 hover:shadow-[2px_2px_0_rgba(0,0,0,.06)] transition-all cursor-grab active:cursor-grabbing"
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
           {project.color ? (
-            <span className="w-4 h-4 rounded-full flex-shrink-0 border-2 border-white shadow" style={{ background: project.color }} />
+            <span className="w-3 h-3 rounded-full flex-shrink-0 border border-white shadow" style={{ background: project.color }} />
           ) : (
-            <Folder size={16} className="text-slate-400 flex-shrink-0" />
+            <Folder size={13} className="text-slate-400 flex-shrink-0" />
           )}
-          <span className="font-bold text-slate-900 font-['Architects_Daughter'] text-[15px] group-hover:text-teal-600 transition-colors leading-snug">
+          <Link
+            href={`/${orgSlug}/project/${project.id}`}
+            className="font-bold text-slate-900 font-['Architects_Daughter'] text-[13px] hover:text-teal-600 transition-colors leading-snug truncate"
+            onClick={e => e.stopPropagation()}
+          >
             {project.name}
-          </span>
+          </Link>
         </div>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 font-['Architects_Daughter'] ${STATUS_COLORS[project.status]}`}>
-          {STATUS_LABELS[project.status]}
+        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 font-['Architects_Daughter'] ${STATUS_COLORS[project.status]}`}>
+          {COLUMNS.find(c => c.status === project.status)?.label}
         </span>
       </div>
       {project.description && (
-        <p className="text-[12px] text-slate-500 line-clamp-2 leading-relaxed">{project.description}</p>
+        <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed mb-2">{project.description}</p>
       )}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         {project.deadline && (
-          <span className="text-[10px] text-slate-400 font-['Architects_Daughter']">
+          <span className="text-[9px] text-slate-400 font-['Architects_Daughter']">
             ⏰ {new Date(project.deadline).toLocaleDateString("de-DE")}
           </span>
         )}
         {project.effort && (
-          <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-['Architects_Daughter']">
-            Aufwand: {EFFORT_LABELS[project.effort]}
-          </span>
-        )}
-        {project.complexity && (
-          <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-['Architects_Daughter']">
-            Kompl.: {project.complexity.toUpperCase()}
+          <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-['Architects_Daughter']">
+            {EFFORT_LABELS[project.effort]}
           </span>
         )}
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -81,6 +91,8 @@ export default function ProjectListPage({ params }: { params: Promise<{ org: str
   const [description, setDescription] = useState("");
   const [color, setColor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<ProjectStatus | null>(null);
 
   const { data: projects, isLoading, mutate } = useSWR<Project[]>(
     org ? `/api/v1/projects?org_id=${org.id}` : null,
@@ -106,9 +118,32 @@ export default function ProjectListPage({ params }: { params: Promise<{ org: str
     }
   }
 
+  const handleDrop = useCallback(async (status: ProjectStatus) => {
+    if (!draggingId) return;
+    setDropTarget(null);
+    setDraggingId(null);
+    const project = projects?.find(p => p.id === draggingId);
+    if (!project || project.status === status) return;
+    // Optimistic update
+    mutate(prev => prev?.map(p => p.id === draggingId ? { ...p, status } : p), false);
+    try {
+      await apiRequest(`/api/v1/projects/${draggingId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      mutate();
+    } catch {
+      mutate(); // revert on error
+    }
+  }, [draggingId, projects, mutate]);
+
+  const byStatus = (status: ProjectStatus) =>
+    (projects ?? []).filter(p => p.status === status);
+
   return (
-    <div className="relative">
-      <div className="flex items-center justify-between mb-6">
+    <div className="relative h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 font-['Architects_Daughter']">Projekte</h1>
           <p className="text-[12px] text-slate-400 font-['Architects_Daughter'] mt-0.5">
@@ -124,6 +159,7 @@ export default function ProjectListPage({ params }: { params: Promise<{ org: str
         </button>
       </div>
 
+      {/* Create modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <form onSubmit={e => void handleCreate(e)}
@@ -183,21 +219,50 @@ export default function ProjectListPage({ params }: { params: Promise<{ org: str
         </div>
       )}
 
-      {!isLoading && (projects ?? []).length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Folder size={40} className="text-slate-300 mb-3" />
-          <p className="text-slate-400 font-['Architects_Daughter'] text-sm">Noch keine Projekte</p>
-          <button onClick={() => setShowForm(true)} className="mt-3 text-teal-600 text-sm font-bold font-['Architects_Daughter'] hover:underline">
-            Erstes Projekt anlegen →
-          </button>
+      {/* Kanban board */}
+      {!isLoading && (
+        <div className="flex gap-4 flex-1 overflow-x-auto pb-4">
+          {COLUMNS.map(col => (
+            <div
+              key={col.status}
+              className={`flex flex-col flex-shrink-0 rounded-2xl transition-colors ${dropTarget === col.status ? "bg-teal-50 border-2 border-teal-300" : "bg-slate-50 border-2 border-slate-900/5"}`}
+              style={{ width: 280, minHeight: 200 }}
+              onDragOver={e => { e.preventDefault(); setDropTarget(col.status); }}
+              onDragLeave={() => setDropTarget(null)}
+              onDrop={() => void handleDrop(col.status)}
+            >
+              {/* Column header */}
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-900/5">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${col.dot}`} />
+                <span className="font-bold text-slate-700 font-['Architects_Daughter'] text-[12px] uppercase tracking-wider flex-1">
+                  {col.label}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 font-['Architects_Daughter'] bg-white rounded-full px-1.5 py-0.5 border border-slate-200">
+                  {byStatus(col.status).length}
+                </span>
+              </div>
+
+              {/* Cards */}
+              <div className="flex flex-col gap-2.5 p-3 flex-1">
+                {byStatus(col.status).map(project => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    orgSlug={orgSlug}
+                    onDragStart={setDraggingId}
+                  />
+                ))}
+                {byStatus(col.status).length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Folder size={20} className="text-slate-300 mb-2" />
+                    <p className="text-[10px] text-slate-300 font-['Architects_Daughter']">Leer</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(projects ?? []).map(project => (
-          <ProjectCard key={project.id} project={project} orgSlug={orgSlug} />
-        ))}
-      </div>
     </div>
   );
 }

@@ -281,7 +281,14 @@ export function StoryPointsBadge({ points, className }: { points: number; classN
 }
 
 /** Quality score badge — colour depends on score value */
-export function QualityScoreBadge({ score, className }: { score: number; className?: string }) {
+export function QualityScoreBadge({ score, className }: { score: number | null; className?: string }) {
+  if (score === null) {
+    return (
+      <Badge variant="quality_low" className={cn("gap-0.5 opacity-40", className)}>
+        — Score
+      </Badge>
+    );
+  }
   const variant = score >= 80 ? "quality_high" : score >= 60 ? "quality_mid" : "quality_low";
   return (
     <Badge variant={variant} className={cn("gap-0.5", className)}>

@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import ConflictException, UnauthorizedException
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from app.schemas.organization import OrgCreate
 from app.services.authentik_client import authentik_client
+from app.services.org_service import org_service
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +112,22 @@ class AuthService:
         db.add(user)
         await db.commit()
         await db.refresh(user)
+
+        # Create organization and make user the owner
+        import re
+        base_slug = re.sub(r"[^a-z0-9]+", "-", data.organization_name.lower()).strip("-")
+        base_slug = base_slug[:48] if len(base_slug) > 48 else base_slug
+        if len(base_slug) < 2:
+            base_slug = "org"
+        slug = base_slug
+        suffix = 0
+        while True:
+            try:
+                await org_service.create(db, OrgCreate(name=data.organization_name, slug=slug), user.id)
+                break
+            except ConflictException:
+                suffix += 1
+                slug = f"{base_slug}-{suffix}"
 
         return await self.login(db, LoginRequest(email=data.email.lower(), password=data.password))
 

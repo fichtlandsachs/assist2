@@ -5,30 +5,32 @@
 
 model_list:
 
-  # ── IONOS AI (OpenAI-compatible) ──────────────────────────────
+  # ── IONOS AI (OpenAI-compatible, inference.de-txl.ionos.com) ──
+  # Requires a PaaS inference API key (NOT the cloud management JWT).
+  # Create one in the IONOS AI Model Hub console and set IONOS_API_KEY.
   # fast/cheap tier — Llama 3.1 8B
   - model_name: ionos-fast
     litellm_params:
-      model: openai/meta-llama/Meta-Llama-3.1-8B-Instruct
-      api_base: os.environ/IONOS_API_BASE
+      model: openai/meta-llama-3-8b-instruct
+      api_base: https://inference.de-txl.ionos.com
       api_key: os.environ/IONOS_API_KEY
       timeout: 30
       max_retries: 2
 
-  # quality tier — Llama 3.1 70B
+  # quality tier — Llama 3.3 70B
   - model_name: ionos-quality
     litellm_params:
-      model: openai/meta-llama/Meta-Llama-3.1-70B-Instruct
-      api_base: os.environ/IONOS_API_BASE
+      model: openai/meta-llama-3-3-70b-instruct
+      api_base: https://inference.de-txl.ionos.com
       api_key: os.environ/IONOS_API_KEY
       timeout: 60
       max_retries: 2
 
-  # reasoning tier — Mixtral 8x7B
+  # reasoning tier — Mistral Small 24B
   - model_name: ionos-reasoning
     litellm_params:
-      model: openai/mistralai/Mixtral-8x7B-Instruct-v0.1
-      api_base: os.environ/IONOS_API_BASE
+      model: openai/mistral-small-24b-instruct
+      api_base: https://inference.de-txl.ionos.com
       api_key: os.environ/IONOS_API_KEY
       timeout: 90
       max_retries: 1
@@ -36,8 +38,8 @@ model_list:
   # embeddings — BAAI bge-m3 (multilingual, production-grade)
   - model_name: ionos-embed
     litellm_params:
-      model: openai/BAAI/bge-m3
-      api_base: os.environ/IONOS_API_BASE
+      model: openai/bge-m3
+      api_base: https://inference.de-txl.ionos.com
       api_key: os.environ/IONOS_API_KEY
       timeout: 20
 
@@ -67,8 +69,8 @@ model_list:
   # ── Fallback group: ionos-fast → anthropic haiku ──────────────
   - model_name: fallback-eu
     litellm_params:
-      model: openai/meta-llama/Meta-Llama-3.1-8B-Instruct
-      api_base: os.environ/IONOS_API_BASE
+      model: openai/meta-llama-3-8b-instruct
+      api_base: https://inference.de-txl.ionos.com
       api_key: os.environ/IONOS_API_KEY
       timeout: 30
     model_info:

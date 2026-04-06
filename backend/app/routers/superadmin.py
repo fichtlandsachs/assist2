@@ -59,7 +59,7 @@ COMPONENTS = [
         "label": "AI Proxy",
         "internal_url": "http://assist2-litellm:4000",
         "health_path": "/health/liveliness",
-        "admin_url": "https://admin.fichtlworks.com/litellm/ui",
+        "admin_url": "https://admin.heykarl.app/litellm/ui",
     },
     {
         "name": "Nextcloud",

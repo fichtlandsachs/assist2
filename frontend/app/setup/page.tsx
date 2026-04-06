@@ -129,7 +129,7 @@ export default function SetupPage() {
               </label>
               <div className="flex items-center border border-slate-300 rounded-lg focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent overflow-hidden">
                 <span className="px-3 py-2 text-sm text-slate-400 bg-slate-50 border-r border-slate-300 shrink-0">
-                  assist2.fichtlworks.com/
+                  heykarl.app/
                 </span>
                 <input
                   id="slug"

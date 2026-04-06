@@ -6,7 +6,7 @@ import useSWR from "swr";
 import type { UserStory, StoryStatus, StoryPriority } from "@/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, LayoutList, Columns, Layers, GitBranch, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, AlertTriangle } from "lucide-react";
 import { use, useState } from "react";
 
 // Order matches the board lane sequence (left → right)
@@ -96,22 +96,6 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
         >
           <Plus size={16} />
           Neue Story
-        </Link>
-      </div>
-
-      {/* View tabs */}
-      <div className="flex gap-1 border-b border-[var(--paper-rule)] overflow-x-auto">
-        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[var(--accent-red)] text-[var(--accent-red)] whitespace-nowrap">
-          <LayoutList size={15} /> Liste
-        </span>
-        <Link href={`/${resolvedParams.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap">
-          <Columns size={15} /> Board
-        </Link>
-        <Link href={`/${resolvedParams.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap">
-          <Layers size={15} /> Features
-        </Link>
-        <Link href={`/${resolvedParams.org}/stories/epics/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap">
-          <GitBranch size={15} /> Epics
         </Link>
       </div>
 

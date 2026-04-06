@@ -6,9 +6,10 @@ import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
 import type { UserStory, StoryStatus } from "@/types";
 import Link from "next/link";
-import { LayoutList, Columns, Plus, GitBranch, AlertTriangle, Layers } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
 import { StoryCard } from "@/components/stories/StoryCard";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
+import { useSearchParams } from "next/navigation";
 
 const COLUMNS: { status: StoryStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
   { status: "draft",       label: "Entwurf",        color: "bg-[var(--paper-warm)] text-[var(--ink-mid)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",   dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
@@ -27,10 +28,13 @@ function getQualityScore(story: UserStory): number | null {
 export default function StoriesBoardPage({ params }: { params: Promise<{ org: string }> }) {
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
+  const searchParams = useSearchParams();
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<StoryStatus | null>(null);
   const [blockedMsg, setBlockedMsg] = useState<string | null>(null);
-  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | null>(
+    searchParams.get("project_id") ?? null
+  );
   const dragCounters = useRef<Record<string, number>>({});
 
   const { data: stories, isLoading, error, mutate } = useSWR<UserStory[]>(
@@ -141,35 +145,6 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
             Neue Story
           </Link>
         </div>
-      </div>
-
-      {/* View tabs */}
-      <div className="flex gap-1 border-b border-[var(--paper-rule)] shrink-0 overflow-x-auto">
-        <Link
-          href={`/${resolvedParams.org}/stories/list`}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap"
-        >
-          <LayoutList size={15} />
-          Liste
-        </Link>
-        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[var(--accent-red)] text-[var(--accent-red)] whitespace-nowrap">
-          <Columns size={15} />
-          Board
-        </span>
-        <Link
-          href={`/${resolvedParams.org}/stories/features/board`}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap"
-        >
-          <Layers size={15} />
-          Features
-        </Link>
-        <Link
-          href={`/${resolvedParams.org}/stories/epics/board`}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap"
-        >
-          <GitBranch size={15} />
-          Epics
-        </Link>
       </div>
 
       {isLoading && (

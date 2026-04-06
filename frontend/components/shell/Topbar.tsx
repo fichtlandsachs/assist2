@@ -15,11 +15,12 @@ interface TopbarProps {
 
 const PAGE_TITLES: Record<string, string> = {
   dashboard:      "Dashboard",
-  "ai-workspace": "KI Workspace",
+  "ai-workspace": "Workspace",
   project:        "Projekte",
   stories:        "User Stories",
   inbox:          "Posteingang",
   calendar:       "Kalender",
+  dateien:        "Dateien",
   workflows:      "Workflows",
   docs:           "Dokumentation",
   settings:       "Einstellungen",

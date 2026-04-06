@@ -391,7 +391,7 @@ export default function WorkspacePage() {
                       ['Version',   '1.2'],
                       ['Status',    'Entwurf'],
                       ['Erstellt',  '28.03.2026'],
-                      ['Autor',     'assist2 Engine'],
+                      ['Autor',     'Karl Engine'],
                     ].map(([k, v]) => (
                       <div key={k} className="flex justify-between items-center border-b border-[#f0f0f0] pb-2">
                         <span className="text-[#6B6B6B] font-medium">{k}</span>

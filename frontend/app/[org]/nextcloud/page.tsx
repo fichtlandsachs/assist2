@@ -144,7 +144,7 @@ function FileList({
 
         {!isLoading && !!error && (
           <div className="px-6 py-12 text-center text-sm text-[var(--ink-faint)]">
-            Nextcloud momentan nicht erreichbar.
+            Dateiablage momentan nicht erreichbar.
           </div>
         )}
 
