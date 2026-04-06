@@ -320,19 +320,144 @@ Die Abfrage ist lightweight (kein Embedding, kein Vektor-Lookup) — ein einfach
 
 ## Dateien — Übersicht
 
+
+---
+
+---
+
+## 6. Phase 2 — Jira-Tickets indexieren
+
+### Ziel
+
+Beim Import eines Jira-Tickets (`POST /jira/ai`) wird das Ticket in den Wissens-Index aufgenommen. Vorschläge können damit auf historische Jira-Tickets verweisen mit direktem Link zum Ticket.
+
+### Abbruchbedingung
+
+```python
+jira_cfg = org.metadata_.get("integrations", {}).get("jira", {})
+if not jira_cfg.get("base_url") or not jira_cfg.get("api_token_enc"):
+    return  # Jira nicht konfiguriert — kein Index-Versuch
+```
+
+Kein Fehler, kein Log-Spam — stiller Abbruch.
+
+### Was wird indexiert
+
+| Quelle | Chunk-Inhalt |
+|--------|-------------|
+| Jira-Ticket | `f"{ticket_key}: {summary}\n{description_plaintext}"` |
+
+```python
+DocumentChunk(
+    source_type  = "jira",
+    source_ref   = f"jira:{ticket_key}",
+    source_url   = f"{jira_base_url}/browse/{ticket_key}",
+    source_title = f"Jira: {ticket_key} — {summary[:60]}",
+    chunk_text   = f"{ticket_key}: {summary}\n{description}",
+    ...
+)
+```
+
+### Trigger
+
+In `POST /jira/ai` (nach erfolgreicher Transformation zu User Story):
+```python
+index_jira_ticket.delay(ticket_key, org_id)
+```
+
+Celery Task `index_jira_ticket` in `rag_tasks.py` — lädt Ticket-Text aus `jira_story`-Tabelle, baut einen Chunk, embedded und persistiert.
+
+### Frontend-Badge
+
+```
+🔗 Jira: ABC-123 — Login-Feature    (öffnet Jira-Ticket in neuem Tab)
+```
+
+---
+
+## 7. Phase 3 — Confluence-Seiten indexieren
+
+### Ziel
+
+Confluence-Seiten aus konfigurierten Spaces werden indexiert und stehen als Wissensquelle für Vorschläge zur Verfügung — mit direktem Link zur Confluence-Seite.
+
+### Abbruchbedingung
+
+```python
+conf_cfg = org.metadata_.get("integrations", {}).get("confluence", {})
+if not conf_cfg.get("base_url") or not conf_cfg.get("api_token_enc"):
+    return  # Confluence nicht konfiguriert — kein Index-Versuch
+```
+
+Stiller Abbruch in jedem Trigger-Punkt und Task.
+
+### Was wird indexiert
+
+Alle Seiten aus den in den Org-Einstellungen hinterlegten Confluence-Spaces. Pro Seite: Titel + Plaintext-Body in 2000-Zeichen-Chunks (identisch zur Nextcloud-Logik).
+
+```python
+DocumentChunk(
+    source_type  = "confluence",
+    source_ref   = f"confluence:{page_id}",
+    source_url   = f"{confluence_base_url}/wiki/spaces/{space_key}/pages/{page_id}",
+    source_title = f"Confluence: {page_title}",
+    chunk_text   = f"{page_title}\n{page_body_plaintext}",
+    ...
+)
+```
+
+### Trigger
+
+**Manuell on-demand** (Settings → Confluence → "Jetzt indexieren"-Button):
+```
+POST /api/v1/confluence/index
+```
+Startet Celery Task `index_confluence_space(org_id)`.
+
+**Automatisch** bei erfolgreichem Confluence-Publish (`POST /confluence/publish`): Re-indexiert die betroffene Seite.
+
+### Task: `index_confluence_space`
+
+```python
+@celery_app.task
+def index_confluence_space(org_id: str) -> None:
+    cfg = get_confluence_config(org_id)
+    if not cfg:
+        return  # Abbruchpunkt
+
+    for space_key in cfg.space_keys:
+        pages = confluence_service.list_pages(space_key)
+        for page in pages:
+            body = confluence_service.get_page_body_plaintext(page.id)
+            chunks = chunk_text(f"{page.title}\n{body}")
+            # Embed + persistiere (identisch zu Nextcloud-Logik)
+```
+
+### Frontend-Badge
+
+```
+📘 Confluence: Architektur-Übersicht    (öffnet Confluence-Seite in neuem Tab)
+```
+
+---
+
+## Dateien — Übersicht
+
 ### Backend (erstellen / ändern)
 
 | Datei | Änderung |
 |-------|----------|
 | `backend/migrations/versions/0025_knowledge_chunks.py` | Neu: source_ref, source_type, source_url, source_title |
 | `backend/migrations/versions/0026_suggestion_feedback.py` | Neue Tabelle `suggestion_feedback` |
-| `backend/app/models/document_chunk.py` | file_path → source_ref, SourceType-Enum, neue Felder |
+| `backend/app/models/document_chunk.py` | file_path → source_ref, SourceType-Enum (inkl. jira, confluence), neue Felder |
 | `backend/app/models/suggestion_feedback.py` | Neues ORM-Modell |
 | `backend/app/services/rag_service.py` | RagChunk + RagResult um Provenienz erweitern |
-| `backend/app/tasks/rag_tasks.py` | Neuer Task `index_story_knowledge` |
-| `backend/app/services/ai_story_service.py` | RAG + Negativliste in DoD/Testfall/Feature/Story-Prompts |
+| `backend/app/tasks/rag_tasks.py` | `index_story_knowledge`, `index_jira_ticket`, `index_confluence_space` |
+| `backend/app/services/ai_story_service.py` | RAG + Negativliste in allen Suggestion-Prompts |
 | `backend/app/routers/user_stories.py` | Task-Dispatch bei Status-Wechsel |
 | `backend/app/routers/test_cases.py` | Task-Dispatch bei result → passed |
+| `backend/app/routers/jira.py` | Task-Dispatch nach Ticket-Import |
+| `backend/app/routers/confluence.py` | Neuer Endpoint POST /confluence/index; Task-Dispatch nach Publish |
 | `backend/app/routers/suggestions.py` | Neuer Router: POST /suggestions/feedback |
 | `backend/app/schemas/user_stories.py` | `Source`-Schema, `sources`-Feld in Suggestion-Responses |
 
@@ -342,11 +467,11 @@ Die Abfrage ist lightweight (kein Embedding, kein Vektor-Lookup) — ein einfach
 |-------|----------|
 | `frontend/components/stories/AISuggestionItem.tsx` | `Source`-Interface, Badge-Rendering, `onReject`-Prop |
 | `frontend/app/[org]/stories/[id]/page.tsx` | `sources` + `onReject` an `AISuggestionItem` weitergeben |
+| `frontend/app/[org]/settings/page.tsx` | "Jetzt indexieren"-Button im Confluence-Tab |
 
 ---
 
-## Nicht in Scope (Phase 1)
+## Nicht in Scope
 
-- Jira-Tickets indexieren (Phase 2)
-- Confluence-Seiten indexieren (Phase 3)
 - Embedding-Modell wechseln
+- Automatischer Confluence-Sync-Scheduler (Phase 4)
