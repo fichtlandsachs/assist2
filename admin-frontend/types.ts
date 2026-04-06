@@ -27,3 +27,11 @@ export interface AdminSession {
   id_token: string;
   expires_at: number; // Unix timestamp ms
 }
+
+export interface ConfigEntry {
+  value: string | null;
+  is_secret: boolean;
+  is_set?: boolean; // only present when is_secret=true
+}
+
+export type ConfigMap = Record<string, ConfigEntry>;
