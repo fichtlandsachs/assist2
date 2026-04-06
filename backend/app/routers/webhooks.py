@@ -43,7 +43,10 @@ async def confluence_webhook(
     if org is None:
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
 
-    payload: dict[str, Any] = await request.json()
+    try:
+        payload: dict[str, Any] = await request.json()
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid JSON body")
     event = payload.get("event", "")
     page_id = str(
         payload.get("page", {}).get("id", "")
@@ -84,7 +87,10 @@ async def jira_webhook(
     if org is None:
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
 
-    payload: dict[str, Any] = await request.json()
+    try:
+        payload: dict[str, Any] = await request.json()
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid JSON body")
     issue_key = (
         payload.get("issue", {}).get("key", "")
         or payload.get("issueKey", "")
