@@ -5,6 +5,12 @@ import uuid
 from app.models.user_story import StoryStatus, StoryPriority
 
 
+class Source(BaseModel):
+    title: str
+    url: str
+    type: str  # "karl_story" | "nextcloud" | "jira" | "confluence"
+
+
 class UserStoryCreate(BaseModel):
     title: str
     description: Optional[str] = None
@@ -73,6 +79,7 @@ class AISuggestion(BaseModel):
     dor_issues: list[str] = []
     quality_score: Optional[int] = None  # 0-100; None when answered from RAG knowledge base
     source: Literal["rag_direct", "rag_context", "llm"] = "llm"
+    sources: list[Source] = []
 
 
 class AISuggestResponse(BaseModel):
@@ -153,6 +160,7 @@ class AITestCaseSuggestion(BaseModel):
     title: str
     steps: Optional[str] = None
     expected_result: Optional[str] = None
+    sources: list[Source] = []
 
 
 class AITestCaseSuggestResponse(BaseModel):
@@ -167,6 +175,7 @@ class DoDItem(BaseModel):
 class AIDoDSuggestion(BaseModel):
     text: str
     category: Optional[str] = None  # e.g. "Qualität", "Tests", "Dokumentation"
+    sources: list[Source] = []
 
 
 class AIDoDSuggestResponse(BaseModel):
