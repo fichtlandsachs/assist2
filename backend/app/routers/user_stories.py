@@ -443,7 +443,11 @@ async def ai_suggest_test_cases(
     # Generate suggestions via AI
     ai_settings = await _get_ai_settings(story.organization_id, db)
     suggestions = await generate_test_case_suggestions(
-        story.title, story.acceptance_criteria, ai_settings=ai_settings
+        story.title,
+        story.acceptance_criteria,
+        ai_settings=ai_settings,
+        org_id=story.organization_id,
+        db=db,
     )
 
     # Delete existing AI-generated test cases for this story
@@ -495,7 +499,14 @@ async def ai_suggest_dod(
         raise NotFoundException("User story not found")
     await _check_llm_allowed(story.organization_id, db)
     ai_settings = await _get_ai_settings(story.organization_id, db)
-    suggestions = await generate_dod_suggestions(story.title, story.description, story.acceptance_criteria, ai_settings=ai_settings)
+    suggestions = await generate_dod_suggestions(
+        story.title,
+        story.description,
+        story.acceptance_criteria,
+        ai_settings=ai_settings,
+        org_id=story.organization_id,
+        db=db,
+    )
     return AIDoDSuggestResponse(suggestions=suggestions)
 
 
@@ -518,7 +529,12 @@ async def ai_suggest_features(
     await _check_llm_allowed(story.organization_id, db)
     ai_settings = await _get_ai_settings(story.organization_id, db)
     suggestions = await generate_feature_suggestions(
-        story.title, story.description, story.acceptance_criteria, ai_settings=ai_settings
+        story.title,
+        story.description,
+        story.acceptance_criteria,
+        ai_settings=ai_settings,
+        org_id=story.organization_id,
+        db=db,
     )
     return AIFeatureSuggestResponse(suggestions=suggestions)
 

@@ -373,7 +373,11 @@ async def generate_story_docs(
 # ---------------------------------------------------------------------------
 
 async def generate_test_case_suggestions(
-    title: str, acceptance_criteria: str | None, ai_settings: dict | None = None
+    title: str,
+    acceptance_criteria: str | None,
+    ai_settings: dict | None = None,
+    org_id: "uuid.UUID | None" = None,
+    db: "AsyncSession | None" = None,
 ) -> list[AITestCaseSuggestion]:
     """
     Derive concrete test cases from a story's acceptance criteria.
@@ -390,7 +394,20 @@ async def generate_test_case_suggestions(
     client, provider = _make_client("story", ai_settings)
     decision = route_request(complexity, "suggest", provider=provider, model_override=model_override)
 
-    prompt = _build_test_cases_prompt(title, acceptance_criteria)
+    # RAG retrieval
+    rag_chunks: list = []
+    rag_context_block: str | None = None
+    if org_id is not None and db is not None:
+        try:
+            from app.services.rag_service import retrieve
+            rag = await retrieve(f"{title} {acceptance_criteria or ''}", org_id, db)
+            if rag.mode in ("direct", "context") and rag.chunks:
+                rag_context_block = "\n".join([f"[Kontext]\n{c.text}" for c in rag.chunks])
+                rag_chunks = rag.chunks
+        except Exception as e:
+            logger.warning("RAG retrieval error in generate_test_case_suggestions (skipping): %s", e)
+
+    prompt = _build_test_cases_prompt(title, acceptance_criteria, rag_context=rag_context_block)
 
     t0 = time.monotonic()
     raw, usage = execute_pipeline(client, prompt, decision)
@@ -399,15 +416,30 @@ async def generate_test_case_suggestions(
     _log_decision("generate_test_case_suggestions", decision, usage, elapsed_ms)
 
     parsed = _parse_json(raw)
+    sources_payload = [
+        {"title": c.source_title or "", "url": c.source_url or "", "type": c.source_type}
+        for c in rag_chunks if c.source_url
+    ]
     if isinstance(parsed, list):
-        return [AITestCaseSuggestion(**item) for item in parsed]
+        return [AITestCaseSuggestion(**item, sources=sources_payload) for item in parsed]
     items = parsed.get("suggestions", [])
-    return [AITestCaseSuggestion(**item) for item in items]
+    return [AITestCaseSuggestion(**item, sources=sources_payload) for item in items]
 
 
-def _build_test_cases_prompt(title: str, acceptance_criteria: str | None) -> str:
+def _build_test_cases_prompt(
+    title: str,
+    acceptance_criteria: str | None,
+    rag_context: str | None = None,
+) -> str:
     ac_text = acceptance_criteria or "(keine Akzeptanzkriterien angegeben)"
-    return f"""Du bist ein erfahrener QA-Ingenieur. Leite aus den folgenden Akzeptanzkriterien konkrete Testfälle ab.
+    context_section = ""
+    if rag_context:
+        context_section = f"""--- Org-Wissen (aus Karl / Nextcloud) ---
+{rag_context}
+-----------------------------------------
+
+"""
+    return f"""{context_section}Du bist ein erfahrener QA-Ingenieur. Leite aus den folgenden Akzeptanzkriterien konkrete Testfälle ab.
 
 User Story: {title}
 Akzeptanzkriterien:
@@ -523,6 +555,8 @@ async def generate_dod_suggestions(
     description: str | None,
     acceptance_criteria: str | None,
     ai_settings: dict | None = None,
+    org_id: "uuid.UUID | None" = None,
+    db: "AsyncSession | None" = None,
 ) -> list[AIDoDSuggestion]:
     """
     Suggest Definition of Done criteria and relevant KPIs for a User Story.
@@ -535,7 +569,20 @@ async def generate_dod_suggestions(
     client, provider = _make_client("story", ai_settings)
     decision = route_request(complexity, "suggest", provider=provider, model_override=model_override)
 
-    prompt = _build_dod_prompt(title, description, acceptance_criteria)
+    # RAG retrieval
+    rag_chunks: list = []
+    rag_context_block: str | None = None
+    if org_id is not None and db is not None:
+        try:
+            from app.services.rag_service import retrieve
+            rag = await retrieve(f"{title} {description or ''}", org_id, db)
+            if rag.mode in ("direct", "context") and rag.chunks:
+                rag_context_block = "\n".join([f"[Kontext]\n{c.text}" for c in rag.chunks])
+                rag_chunks = rag.chunks
+        except Exception as e:
+            logger.warning("RAG retrieval error in generate_dod_suggestions (skipping): %s", e)
+
+    prompt = _build_dod_prompt(title, description, acceptance_criteria, rag_context=rag_context_block)
 
     t0 = time.monotonic()
     raw, usage = execute_pipeline(client, prompt, decision)
@@ -544,20 +591,33 @@ async def generate_dod_suggestions(
     _log_decision("generate_dod_suggestions", decision, usage, elapsed_ms)
 
     parsed = _parse_json(raw)
+    sources_payload = [
+        {"title": c.source_title or "", "url": c.source_url or "", "type": c.source_type}
+        for c in rag_chunks if c.source_url
+    ]
     if isinstance(parsed, list):
-        return [AIDoDSuggestion(**item) for item in parsed]
-    items = parsed.get("suggestions", [])
-    return [AIDoDSuggestion(**item) for item in items]
+        items = parsed
+    else:
+        items = parsed.get("suggestions", [])
+    return [AIDoDSuggestion(**item, sources=sources_payload) for item in items]
 
 
 def _build_dod_prompt(
     title: str,
     description: str | None,
     acceptance_criteria: str | None,
+    rag_context: str | None = None,
 ) -> str:
     desc = description or "(keine)"
     ac = acceptance_criteria or "(keine)"
-    return f"""Du bist ein erfahrener Scrum Master. Schlage konkrete Definition-of-Done-Kriterien und messbare KPIs für diese User Story vor.
+    context_section = ""
+    if rag_context:
+        context_section = f"""--- Org-Wissen (aus Karl / Nextcloud) ---
+{rag_context}
+-----------------------------------------
+
+"""
+    return f"""{context_section}Du bist ein erfahrener Scrum Master. Schlage konkrete Definition-of-Done-Kriterien und messbare KPIs für diese User Story vor.
 
 User Story:
 Titel: {title}
@@ -593,6 +653,8 @@ async def generate_feature_suggestions(
     description: str | None,
     acceptance_criteria: str | None,
     ai_settings: dict | None = None,
+    org_id: "uuid.UUID | None" = None,
+    db: "AsyncSession | None" = None,
 ) -> list[AIFeatureSuggestion]:
     """
     Suggest concrete, implementable features (sub-functions) for a User Story.
@@ -605,7 +667,22 @@ async def generate_feature_suggestions(
     client, provider = _make_client("dev", ai_settings)
     decision = route_request(complexity, "suggest", provider=provider, model_override=model_override)
 
-    prompt = _build_feature_suggestions_prompt(title, description, acceptance_criteria)
+    # RAG retrieval
+    rag_chunks: list = []
+    rag_context_block: str | None = None
+    if org_id is not None and db is not None:
+        try:
+            from app.services.rag_service import retrieve
+            rag = await retrieve(
+                f"{title} {description or ''} {acceptance_criteria or ''}", org_id, db
+            )
+            if rag.mode in ("direct", "context") and rag.chunks:
+                rag_context_block = "\n".join([f"[Kontext]\n{c.text}" for c in rag.chunks])
+                rag_chunks = rag.chunks
+        except Exception as e:
+            logger.warning("RAG retrieval error in generate_feature_suggestions (skipping): %s", e)
+
+    prompt = _build_feature_suggestions_prompt(title, description, acceptance_criteria, rag_context=rag_context_block)
 
     t0 = time.monotonic()
     raw, usage = execute_pipeline(client, prompt, decision)
@@ -613,21 +690,33 @@ async def generate_feature_suggestions(
 
     _log_decision("generate_feature_suggestions", decision, usage, elapsed_ms)
 
+    sources_payload = [
+        {"title": c.source_title or "", "url": c.source_url or "", "type": c.source_type}
+        for c in rag_chunks if c.source_url
+    ]
     parsed = _parse_json(raw)
     if isinstance(parsed, list):
-        return [AIFeatureSuggestion(**item) for item in parsed]
+        return [AIFeatureSuggestion(**item, sources=sources_payload) for item in parsed]
     items = parsed.get("features", parsed.get("suggestions", []))
-    return [AIFeatureSuggestion(**item) for item in items]
+    return [AIFeatureSuggestion(**item, sources=sources_payload) for item in items]
 
 
 def _build_feature_suggestions_prompt(
     title: str,
     description: str | None,
     acceptance_criteria: str | None,
+    rag_context: str | None = None,
 ) -> str:
     desc = description or "(keine)"
     ac = acceptance_criteria or "(keine)"
-    return f"""Du bist ein erfahrener Senior Developer und Product Owner. Analysiere diese User Story und schlage konkrete, implementierbare Features (Teilfunktionen) vor.
+    context_section = ""
+    if rag_context:
+        context_section = f"""--- Org-Wissen (aus Karl / Nextcloud) ---
+{rag_context}
+-----------------------------------------
+
+"""
+    return f"""{context_section}Du bist ein erfahrener Senior Developer und Product Owner. Analysiere diese User Story und schlage konkrete, implementierbare Features (Teilfunktionen) vor.
 
 User Story:
 Titel: {title}
