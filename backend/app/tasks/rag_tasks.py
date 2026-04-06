@@ -507,3 +507,137 @@ def index_jira_ticket(self, ticket_key: str, org_id: str) -> dict:
     except Exception as exc:
         logger.error("index_jira_ticket failed for %s: %s", ticket_key, exc)
         raise self.retry(exc=exc, countdown=60)
+
+
+async def _index_confluence_space_async(org_id: str, db: AsyncSession) -> None:
+    """Index all Confluence pages for the org. Silent no-op if Confluence not configured."""
+    from app.models.document_chunk import DocumentChunk
+    from app.models.organization import Organization
+
+    org_uuid = uuid.UUID(org_id)
+
+    org_result = await db.execute(select(Organization).where(Organization.id == org_uuid))
+    org = org_result.scalar_one_or_none()
+    if org is None:
+        return
+
+    metadata = getattr(org, "metadata_", None) or {}
+    conf_cfg = metadata.get("integrations", {}).get("confluence", {})
+    if not conf_cfg.get("base_url") or not conf_cfg.get("api_token_enc"):
+        logger.debug("index_confluence_space: Confluence not configured for org %s — skipping", org_id)
+        return
+
+    conf_base_url = conf_cfg["base_url"].rstrip("/")
+    space_keys: list[str] = conf_cfg.get("space_keys", [])
+    api_token_enc: str = conf_cfg["api_token_enc"]
+    conf_user: str = conf_cfg.get("user_email", "")
+
+    if not space_keys:
+        logger.debug("index_confluence_space: no space_keys configured for org %s", org_id)
+        return
+
+    # Decrypt token
+    try:
+        from app.core.security import decrypt_value
+        api_token = decrypt_value(api_token_enc)
+    except ImportError:
+        api_token = api_token_enc  # fallback: treat as plaintext
+    except Exception as e:
+        logger.error("index_confluence_space: failed to decrypt Confluence token: %s", e)
+        return
+
+    import base64 as _base64
+    auth_header = "Basic " + _base64.b64encode(f"{conf_user}:{api_token}".encode()).decode()
+    headers = {"Authorization": auth_header, "Accept": "application/json"}
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        for space_key in space_keys:
+            try:
+                resp = await client.get(
+                    f"{conf_base_url}/rest/api/content",
+                    headers=headers,
+                    params={"spaceKey": space_key, "type": "page", "limit": 50, "expand": "body.storage"},
+                )
+                resp.raise_for_status()
+            except Exception as e:
+                logger.warning("index_confluence_space: failed to list pages for space %s: %s", space_key, e)
+                continue
+
+            pages = resp.json().get("results", [])
+            for page in pages:
+                page_id = str(page.get("id", ""))
+                page_title = page.get("title", "")
+                body_html = page.get("body", {}).get("storage", {}).get("value", "")
+
+                # Strip HTML tags for plaintext
+                import re as _re
+                body_text = _re.sub(r"<[^>]+>", " ", body_html).strip()
+                body_text = _re.sub(r"\s+", " ", body_text)
+
+                if not body_text:
+                    continue
+
+                full_text = f"{page_title}\n{body_text}"
+                source_ref = f"confluence:{page_id}"
+                source_url = f"{conf_base_url}/wiki/spaces/{space_key}/pages/{page_id}"
+                source_title = f"Confluence: {page_title}"
+
+                raw_chunks = _chunk_text(full_text)
+                if not raw_chunks:
+                    continue
+
+                try:
+                    embeddings = await _embed_chunks(raw_chunks)
+                except Exception as e:
+                    logger.warning("index_confluence_space: embedding failed for page %s: %s", page_id, e)
+                    continue
+
+                # Delete existing chunks for this page
+                await db.execute(
+                    delete(DocumentChunk).where(
+                        DocumentChunk.org_id == org_uuid,
+                        DocumentChunk.source_ref == source_ref,
+                    )
+                )
+
+                for i, (chunk_text_item, embedding) in enumerate(zip(raw_chunks, embeddings)):
+                    embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+                    chunk = DocumentChunk(
+                        org_id=org_uuid,
+                        source_ref=source_ref,
+                        source_type="confluence",
+                        source_url=source_url,
+                        source_title=source_title,
+                        file_hash=_sha256(chunk_text_item.encode()),
+                        chunk_index=i,
+                        chunk_text=chunk_text_item,
+                        embedding=embedding_str,
+                    )
+                    db.add(chunk)
+
+                await db.commit()
+                logger.info("index_confluence_space: indexed page %s (%s)", page_id, page_title)
+
+
+@celery.task(name="rag_tasks.index_confluence_space", bind=True, max_retries=3)
+def index_confluence_space(self, org_id: str) -> dict:
+    """Celery task: index all Confluence pages for the org."""
+    from app.config import get_settings
+
+    async def run():
+        engine = create_async_engine(
+            get_settings().DATABASE_URL, echo=False, pool_pre_ping=True
+        )
+        SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        try:
+            async with SessionLocal() as db:
+                await _index_confluence_space_async(org_id, db)
+        finally:
+            await engine.dispose()
+
+    try:
+        asyncio.run(run())
+        return {"status": "ok", "org_id": org_id}
+    except Exception as exc:
+        logger.error("index_confluence_space failed for org %s: %s", org_id, exc)
+        raise self.retry(exc=exc, countdown=60)
