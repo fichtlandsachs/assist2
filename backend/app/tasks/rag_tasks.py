@@ -481,8 +481,13 @@ async def _index_jira_ticket_async(ticket_key: str, org_id: str, db: AsyncSessio
         embedding=embedding_str,
     )
     db.add(chunk)
-    await db.commit()
-    logger.info("index_jira_ticket: indexed ticket %s for org %s", ticket_key, org_id)
+    try:
+        await db.commit()
+        logger.info("index_jira_ticket: indexed ticket %s for org %s", ticket_key, org_id)
+    except Exception as e:
+        await db.rollback()
+        logger.error("index_jira_ticket: commit failed for ticket %s: %s", ticket_key, e)
+        raise
 
 
 @celery.task(name="rag_tasks.index_jira_ticket", bind=True, max_retries=3)
@@ -615,8 +620,13 @@ async def _index_confluence_space_async(org_id: str, db: AsyncSession) -> None:
                     )
                     db.add(chunk)
 
-                await db.commit()
-                logger.info("index_confluence_space: indexed page %s (%s)", page_id, page_title)
+                try:
+                    await db.commit()
+                    logger.info("index_confluence_space: indexed page %s (%s)", page_id, page_title)
+                except Exception as e:
+                    await db.rollback()
+                    logger.error("index_confluence_space: commit failed for page %s: %s", page_id, e)
+                    continue  # skip this page, continue with others
 
 
 @celery.task(name="rag_tasks.index_confluence_space", bind=True, max_retries=3)
