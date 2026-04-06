@@ -155,7 +155,15 @@ async def test_chat_injects_rag_context(auth_override):
         mock_choice.choices = [MagicMock(delta=MagicMock(content="OK"))]
         mock_stream = MagicMock()
         mock_stream.__aiter__ = MagicMock(return_value=iter([mock_choice]))
-        MockOAI.return_value.chat.completions.create = AsyncMock(return_value=mock_stream)
+
+        captured_messages = []
+
+        async def capture_and_return(*args, **kwargs):
+            messages = kwargs.get("messages", [])
+            captured_messages.extend(messages)
+            return mock_stream
+
+        MockOAI.return_value.chat.completions.create = capture_and_return
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -168,6 +176,11 @@ async def test_chat_injects_rag_context(auth_override):
                 headers={"Authorization": "Bearer fake"},
             )
         assert resp.status_code == 200
+        assert any(
+            "Relevanter Kontext" in m.get("content", "")
+            for m in captured_messages
+            if m["role"] == "system"
+        ), "RAG context should be injected as a system message"
 
     app.dependency_overrides.pop(get_db, None)
 

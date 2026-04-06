@@ -191,8 +191,10 @@ async def chat_stream(
                         f"{_label.get(c.source_type, '[Kontext]')} {c.source_title or ''}\n{c.text}"
                         for c in rag_result.chunks
                     )
-        except Exception:
-            pass  # RAG failure is never fatal
+        except asyncio.TimeoutError:
+            pass  # RAG timeout is normal under load
+        except Exception as rag_exc:
+            logger.warning("RAG retrieval error (suppressed): %s", rag_exc)
 
     messages = [{"role": "system", "content": system_prompt}]
     if rag_context:
