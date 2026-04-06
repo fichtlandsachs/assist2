@@ -266,19 +266,19 @@ async def get_story_suggestions(
         try:
             from app.services.rag_service import retrieve
             rag = await retrieve(f"{data.title} {data.description}", org_id, db)
-            if rag.mode == "direct" and rag.direct_answer:
+            if rag.mode == "direct" and rag.context:
                 return AISuggestion(
                     title=None,
                     description=None,
                     acceptance_criteria=None,
-                    explanation=rag.direct_answer,
+                    explanation=rag.context,
                     dor_issues=[],
                     quality_score=None,
                     source="rag_direct",
                 )
             if rag.mode == "context" and rag.chunks:
                 rag_context_block = "\n".join(
-                    [f"[Kontext]\n{c}" for c in rag.chunks]
+                    [f"[Kontext]\n{c.text}" for c in rag.chunks]
                 )
                 rag_source = "rag_context"
         except Exception as e:
