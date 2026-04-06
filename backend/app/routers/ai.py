@@ -4,8 +4,8 @@ import logging
 import re
 from typing import AsyncIterator
 
-import anthropic
 import httpx
+from openai import AsyncOpenAI
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -111,6 +111,7 @@ class ExtractStoryRequest(BaseModel):
 
 class CompactChatRequest(BaseModel):
     messages: list[ChatMessage]
+    org_id: str | None = None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -142,33 +143,45 @@ async def chat_stream(
     body: ChatRequest,
     current_user: User = Depends(get_current_user),
 ) -> StreamingResponse:
-    """Stream an Anthropic chat response as Server-Sent Events."""
+    """Stream a chat response via LiteLLM as Server-Sent Events."""
     settings = get_settings()
     system_prompt = CHAT_SYSTEM_PROMPTS.get(body.mode, CHAT_SYSTEM_PROMPTS["chat"])
 
     def _build_content(m: ChatMessage) -> str | list:
         if isinstance(m.content, str):
             return m.content
-        return [
-            ({"type": "image", "source": {"type": b.source.type, "media_type": b.source.media_type, "data": b.source.data}}
-             if b.type == "image" and b.source
-             else {"type": "text", "text": b.text or ""})
-            for b in m.content
-        ]
+        blocks = []
+        for b in m.content:
+            if b.type == "image" and b.source:
+                # Convert Anthropic image format → OpenAI image_url format
+                blocks.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{b.source.media_type};base64,{b.source.data}"},
+                })
+            else:
+                blocks.append({"type": "text", "text": b.text or ""})
+        return blocks
 
-    messages = [{"role": m.role, "content": _build_content(m)} for m in body.messages]
+    messages = [{"role": "system", "content": system_prompt}] + [
+        {"role": m.role, "content": _build_content(m)} for m in body.messages
+    ]
 
     async def event_stream() -> AsyncIterator[str]:
         try:
-            client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-            async with client.messages.stream(
-                model="claude-sonnet-4-6",
+            oai = AsyncOpenAI(
+                api_key=settings.LITELLM_API_KEY or "sk-assist2",
+                base_url=f"{settings.LITELLM_URL}/v1",
+            )
+            stream = await oai.chat.completions.create(
+                model="ionos-reasoning",
                 max_tokens=2048,
-                system=system_prompt,
                 messages=messages,
-            ) as stream:
-                async for text in stream.text_stream:
-                    yield f"data: {text}\n\n"
+                stream=True,
+            )
+            async for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yield f"data: {delta}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as exc:
             logger.error("AI chat stream error: %s", exc)
@@ -200,14 +213,31 @@ async def compact_chat(
         "Maximale Länge: 500 Wörter."
     )
     try:
-        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        msg = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=1024,
-            system=system,
-            messages=[{"role": "user", "content": transcript}],
+        oai = AsyncOpenAI(
+            api_key=settings.LITELLM_API_KEY or "sk-assist2",
+            base_url=f"{settings.LITELLM_URL}/v1",
         )
-        summary = msg.content[0].text if msg.content else ""
+        resp = await oai.chat.completions.create(
+            model="claude-haiku-4-5",
+            max_tokens=1024,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": transcript},
+            ],
+        )
+        summary = resp.choices[0].message.content or ""
+        # Index chat summary as user action knowledge (fire-and-forget)
+        if body.org_id and len(summary) > 100:
+            try:
+                from app.tasks.rag_tasks import index_user_action
+                index_user_action.delay(
+                    body.org_id,
+                    "chat_summary",
+                    summary,
+                    str(current_user.id),
+                )
+            except Exception:
+                pass  # never block response for indexing failure
         return {"summary": summary}
     except Exception as exc:
         logger.error("AI compact-chat error: %s", exc)

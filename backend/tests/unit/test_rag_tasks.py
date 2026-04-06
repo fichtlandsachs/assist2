@@ -175,6 +175,39 @@ async def test_index_deletes_old_chunks_before_insert():
 
 
 @pytest.mark.asyncio
+async def test_index_user_action_short_content_skipped():
+    """Content under 20 chars → no embedding called."""
+    from app.tasks.rag_tasks import _index_user_action_async
+
+    mock_db = AsyncMock()
+    with patch("app.tasks.rag_tasks._embed_chunks", new_callable=AsyncMock) as mock_embed:
+        await _index_user_action_async("org-id", "chat_summary", "short", "user-1", mock_db)
+    mock_embed.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_index_user_action_stores_chunk():
+    """Valid content → chunk stored with source_type=user_action."""
+    from app.tasks.rag_tasks import _index_user_action_async
+
+    org_id = str(uuid.uuid4())
+    content = "Der Nutzer hat User Story PROJ-42 abgelehnt wegen fehlender Akzeptanzkriterien"
+
+    mock_db = AsyncMock()
+    mock_db.add = MagicMock()
+    mock_db.commit = AsyncMock()
+
+    with patch("app.tasks.rag_tasks._embed_chunks", new_callable=AsyncMock) as mock_embed:
+        mock_embed.return_value = [[0.1] * 1024]
+        await _index_user_action_async(org_id, "story_feedback", content, "user-ref", mock_db)
+
+    mock_db.add.assert_called_once()
+    added_chunk = mock_db.add.call_args[0][0]
+    assert added_chunk.source_type == "user_action"
+    assert "story_feedback" in added_chunk.chunk_text
+
+
+@pytest.mark.asyncio
 async def test_embed_chunks_batches_single_call():
     """_embed_chunks sends all chunks in one API call, not N sequential calls."""
     from app.tasks.rag_tasks import _embed_chunks

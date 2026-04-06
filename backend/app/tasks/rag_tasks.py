@@ -651,3 +651,70 @@ def index_confluence_space(self, org_id: str) -> dict:
     except Exception as exc:
         logger.error("index_confluence_space failed for org %s: %s", org_id, exc)
         raise self.retry(exc=exc, countdown=60)
+
+
+async def _index_user_action_async(
+    org_id: str, action_type: str, content: str, user_ref: str, db: AsyncSession
+) -> None:
+    """Index a user action (feedback, chat summary, workflow event) as a knowledge chunk."""
+    from app.models.document_chunk import DocumentChunk
+
+    if not content or len(content) < 20:
+        return
+
+    org_uuid = uuid.UUID(org_id)
+    chunk_text = f"User Action [{action_type}]: {content}"[:2000]
+    # Use a deterministic source_ref so identical actions deduplicate
+    source_ref = f"user_action:{action_type}:{_sha256(chunk_text.encode())[:16]}"
+
+    try:
+        embeddings = await _embed_chunks([chunk_text])
+    except Exception as e:
+        logger.warning("index_user_action: embedding failed: %s", e)
+        return
+
+    embedding_str = "[" + ",".join(str(x) for x in embeddings[0]) + "]"
+    chunk = DocumentChunk(
+        org_id=org_uuid,
+        source_ref=source_ref,
+        source_type="user_action",
+        source_url=None,
+        source_title=f"User Action: {action_type}",
+        file_hash=_sha256(chunk_text.encode()),
+        chunk_index=0,
+        chunk_text=chunk_text,
+        embedding=embedding_str,
+    )
+    db.add(chunk)
+    try:
+        await db.commit()
+        logger.info("index_user_action: indexed action %s for org %s", action_type, org_id)
+    except Exception as e:
+        await db.rollback()
+        logger.error("index_user_action: commit failed: %s", e)
+
+
+@celery.task(name="rag_tasks.index_user_action", bind=True, max_retries=3)
+def index_user_action(
+    self, org_id: str, action_type: str, content: str, user_ref: str = ""
+) -> dict:
+    """Celery task: index a user action into pgvector knowledge base."""
+    from app.config import get_settings
+
+    async def run():
+        engine = create_async_engine(
+            get_settings().DATABASE_URL, echo=False, pool_pre_ping=True
+        )
+        SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        try:
+            async with SessionLocal() as db:
+                await _index_user_action_async(org_id, action_type, content, user_ref, db)
+        finally:
+            await engine.dispose()
+
+    try:
+        asyncio.run(run())
+        return {"status": "ok", "action_type": action_type}
+    except Exception as exc:
+        logger.error("index_user_action failed: %s", exc)
+        raise self.retry(exc=exc, countdown=30)
