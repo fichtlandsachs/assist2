@@ -8,6 +8,9 @@ def make_db_row(chunk_text: str, score: float) -> MagicMock:
     row = MagicMock()
     row.chunk_text = chunk_text
     row.score = score
+    row.source_type = "nextcloud"
+    row.source_url = None
+    row.source_title = None
     return row
 
 
@@ -253,5 +256,9 @@ async def test_retrieve_source_type_filter():
             source_types=["jira", "confluence", "karl_story"]
         )
 
-    # Verify db.execute was called (the source_types filter was applied)
+    # Verify db.execute was called with the source_types filter
     mock_db.execute.assert_called_once()
+    call_args = mock_db.execute.call_args
+    params_str = str(call_args)
+    assert "jira" in params_str, f"Expected source_types filter in SQL params but got: {params_str}"
+    assert "confluence" in params_str, f"Expected source_types filter in SQL params but got: {params_str}"
