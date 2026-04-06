@@ -239,7 +239,13 @@ async def get_story_suggestions(
     if org_id is not None and db is not None:
         try:
             from app.services.rag_service import retrieve
-            rag = await retrieve(f"{data.title} {data.description}", org_id, db)
+            rag = await retrieve(
+                f"{data.title} {data.description}",
+                org_id,
+                db,
+                min_score=0.75,
+                source_types=["jira", "confluence", "karl_story"],
+            )
             if rag.mode == "direct" and rag.context:
                 return AISuggestion(
                     title=None,

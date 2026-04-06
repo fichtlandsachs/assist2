@@ -52,14 +52,31 @@ async def _embed_query(query: str) -> list[float]:
     return resp.json()["data"][0]["embedding"]
 
 
-async def retrieve(query: str, org_id: uuid.UUID, db: AsyncSession) -> RagResult:
+async def retrieve(
+    query: str,
+    org_id: uuid.UUID,
+    db: AsyncSession,
+    min_score: float = CONTEXT_THRESHOLD,
+    source_types: list[str] | None = None,
+) -> RagResult:
     """
     Embed query, find top-5 most similar chunks for this org, apply thresholds.
 
+    Args:
+        query:        The search query string.
+        org_id:       Organization UUID — results are scoped to this org.
+        db:           Async SQLAlchemy session.
+        min_score:    Minimum cosine similarity score to include a chunk
+                      (default: CONTEXT_THRESHOLD = 0.50). Effective minimum
+                      is max(min_score, CONTEXT_THRESHOLD).
+        source_types: Optional list of source_type values to filter on
+                      (e.g. ["jira", "confluence", "karl_story"]).
+                      When None, all source types are included.
+
     Returns:
         RagResult(mode='direct')  — score >= 0.92: use context as direct answer, no LLM needed
-        RagResult(mode='context') — score 0.50-0.92: inject chunks into prompt
-        RagResult(mode='none')    — score < 0.50 or any error: skip RAG
+        RagResult(mode='context') — score >= effective_min: inject chunks into prompt
+        RagResult(mode='none')    — score below threshold or any error: skip RAG
     """
     try:
         embedding = await _embed_query(query)
@@ -69,19 +86,40 @@ async def retrieve(query: str, org_id: uuid.UUID, db: AsyncSession) -> RagResult
 
     try:
         embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
-        sql = text("""
-            SELECT chunk_text,
-                   source_type,
-                   source_url,
-                   source_title,
-                   1 - (embedding <=> :embedding ::vector) AS score
-            FROM document_chunks
-            WHERE org_id = :org_id
-              AND embedding IS NOT NULL
-            ORDER BY score DESC
-            LIMIT 5
-        """)
-        result = await db.execute(sql, {"embedding": embedding_str, "org_id": str(org_id)})
+        if source_types:
+            sql = text("""
+                SELECT chunk_text,
+                       source_type,
+                       source_url,
+                       source_title,
+                       1 - (embedding <=> :embedding ::vector) AS score
+                FROM document_chunks
+                WHERE org_id = :org_id
+                  AND embedding IS NOT NULL
+                  AND source_type = ANY(:source_types)
+                ORDER BY score DESC
+                LIMIT 5
+            """)
+            params = {
+                "embedding": embedding_str,
+                "org_id": str(org_id),
+                "source_types": source_types,
+            }
+        else:
+            sql = text("""
+                SELECT chunk_text,
+                       source_type,
+                       source_url,
+                       source_title,
+                       1 - (embedding <=> :embedding ::vector) AS score
+                FROM document_chunks
+                WHERE org_id = :org_id
+                  AND embedding IS NOT NULL
+                ORDER BY score DESC
+                LIMIT 5
+            """)
+            params = {"embedding": embedding_str, "org_id": str(org_id)}
+        result = await db.execute(sql, params)
         rows = result.fetchall()
     except Exception as e:
         logger.warning("RAG DB query failed, skipping: %s", e)
@@ -106,7 +144,9 @@ async def retrieve(query: str, org_id: uuid.UUID, db: AsyncSession) -> RagResult
             )],
         )
 
-    if top_score >= CONTEXT_THRESHOLD:
+    effective_min = max(min_score, CONTEXT_THRESHOLD)
+    qualifying = [r for r in rows if r.score >= effective_min]
+    if qualifying:
         chunks = [
             RagChunk(
                 text=r.chunk_text,
@@ -115,8 +155,7 @@ async def retrieve(query: str, org_id: uuid.UUID, db: AsyncSession) -> RagResult
                 source_url=r.source_url,
                 source_title=r.source_title,
             )
-            for r in rows[:MAX_CHUNKS]
-            if r.score >= CONTEXT_THRESHOLD
+            for r in qualifying[:MAX_CHUNKS]
         ]
         return RagResult(mode="context", chunks=chunks)
 

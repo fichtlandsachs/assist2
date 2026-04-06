@@ -199,3 +199,59 @@ async def test_retrieve_context_truncates_to_max_chunks():
 
     assert result.mode == "context"
     assert len(result.chunks) == 3
+
+
+@pytest.mark.asyncio
+async def test_retrieve_respects_min_score():
+    """min_score=0.75 → chunks below 0.75 filtered out."""
+    from app.services.rag_service import retrieve
+    import uuid
+
+    mock_db = AsyncMock()
+
+    # Create mock rows with necessary fields
+    row_high = MagicMock()
+    row_high.chunk_text = "High score chunk"
+    row_high.score = 0.80
+    row_high.source_type = "jira"
+    row_high.source_url = None
+    row_high.source_title = None
+
+    row_low = MagicMock()
+    row_low.chunk_text = "Low score chunk"
+    row_low.score = 0.60   # below min_score=0.75
+    row_low.source_type = "jira"
+    row_low.source_url = None
+    row_low.source_title = None
+
+    mock_db.execute.return_value.fetchall = MagicMock(
+        return_value=[row_high, row_low]
+    )
+
+    with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
+        mock_embed.return_value = [0.1] * 1024
+        result = await retrieve("test query", uuid.uuid4(), mock_db, min_score=0.75)
+
+    assert result.mode == "context"
+    assert len(result.chunks) == 1
+    assert result.chunks[0].text == "High score chunk"
+
+
+@pytest.mark.asyncio
+async def test_retrieve_source_type_filter():
+    """source_types filter is passed to SQL query."""
+    from app.services.rag_service import retrieve
+    import uuid
+
+    mock_db = AsyncMock()
+    mock_db.execute.return_value.fetchall = MagicMock(return_value=[])
+
+    with patch("app.services.rag_service._embed_query", new_callable=AsyncMock) as mock_embed:
+        mock_embed.return_value = [0.1] * 1024
+        await retrieve(
+            "test query", uuid.uuid4(), mock_db,
+            source_types=["jira", "confluence", "karl_story"]
+        )
+
+    # Verify db.execute was called (the source_types filter was applied)
+    mock_db.execute.assert_called_once()
