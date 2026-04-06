@@ -228,16 +228,18 @@ async def compact_chat(
         summary = resp.choices[0].message.content or ""
         # Index chat summary as user action knowledge (fire-and-forget)
         if body.org_id and len(summary) > 100:
-            try:
-                from app.tasks.rag_tasks import index_user_action
-                index_user_action.delay(
-                    body.org_id,
-                    "chat_summary",
-                    summary,
-                    str(current_user.id),
-                )
-            except Exception:
-                pass  # never block response for indexing failure
+            caller_org_ids = {str(m.organization_id) for m in (current_user.memberships or [])}
+            if body.org_id in caller_org_ids:
+                try:
+                    from app.tasks.rag_tasks import index_user_action
+                    index_user_action.delay(
+                        body.org_id,
+                        "chat_summary",
+                        summary,
+                        str(current_user.id),
+                    )
+                except Exception:
+                    pass  # never block response for indexing failure
         return {"summary": summary}
     except Exception as exc:
         logger.error("AI compact-chat error: %s", exc)

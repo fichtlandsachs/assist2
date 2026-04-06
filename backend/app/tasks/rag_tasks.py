@@ -662,7 +662,11 @@ async def _index_user_action_async(
     if not content or len(content) < 20:
         return
 
-    org_uuid = uuid.UUID(org_id)
+    try:
+        org_uuid = uuid.UUID(org_id)
+    except ValueError:
+        logger.error("index_user_action: invalid org_id %r, skipping", org_id)
+        return
     chunk_text = f"User Action [{action_type}]: {content}"[:2000]
     # Use a deterministic source_ref so identical actions deduplicate
     source_ref = f"user_action:{action_type}:{_sha256(chunk_text.encode())[:16]}"

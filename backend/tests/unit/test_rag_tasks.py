@@ -181,7 +181,7 @@ async def test_index_user_action_short_content_skipped():
 
     mock_db = AsyncMock()
     with patch("app.tasks.rag_tasks._embed_chunks", new_callable=AsyncMock) as mock_embed:
-        await _index_user_action_async("org-id", "chat_summary", "short", "user-1", mock_db)
+        await _index_user_action_async(str(uuid.uuid4()), "chat_summary", "short", "user-1", mock_db)
     mock_embed.assert_not_called()
 
 
