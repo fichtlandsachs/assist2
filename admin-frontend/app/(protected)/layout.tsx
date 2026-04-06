@@ -49,6 +49,13 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
           >
             Ressourcen
           </a>
+          <a
+            href="/settings/system"
+            className="text-sm transition-colors hover:underline"
+            style={{ color: "var(--ink-mid)" }}
+          >
+            Einstellungen
+          </a>
           <button
             onClick={logout}
             className="text-sm px-3 py-1 rounded-sm border transition-colors hover:bg-[var(--paper-warm)]"

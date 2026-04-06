@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import { fetchConfig, patchConfig } from "@/lib/api";
 import type { ConfigMap } from "@/types";
 
@@ -76,7 +75,11 @@ function ToolSection({
         style={{ color: "var(--ink)" }}
       >
         <span>{title}</span>
-        {open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+        {open ? (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+        ) : (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+        )}
       </button>
 
       {open && (
