@@ -132,8 +132,8 @@ async def test_dispatch_rag_index_triggers_confluence_and_jira():
 
     with patch("app.tasks.sync_dispatcher.create_async_engine") as mock_engine_factory, \
          patch("app.tasks.sync_dispatcher.async_sessionmaker") as mock_sm, \
-         patch("app.tasks.rag_tasks.index_org_documents") as mock_nextcloud, \
-         patch("app.tasks.rag_tasks.index_confluence_space") as mock_confluence:
+         patch("app.tasks.sync_dispatcher.index_org_documents") as mock_nextcloud, \
+         patch("app.tasks.sync_dispatcher.index_confluence_space") as mock_confluence:
 
         mock_engine = MagicMock()
         mock_engine.dispose = AsyncMock()
@@ -143,4 +143,5 @@ async def test_dispatch_rag_index_triggers_confluence_and_jira():
 
         result = await _dispatch_rag_index()
 
-    mock_confluence.delay.assert_called()
+    mock_nextcloud.delay.assert_called_once_with(str(mock_org_id), mock_org_slug)
+    mock_confluence.delay.assert_called_once_with(str(mock_org_id))
