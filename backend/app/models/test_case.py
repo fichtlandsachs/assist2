@@ -9,6 +9,7 @@ from app.models.base import Base
 
 class TestResult(str, enum.Enum):
     pending = "pending"
+    in_progress = "in_progress"
     passed = "passed"
     failed = "failed"
     skipped = "skipped"

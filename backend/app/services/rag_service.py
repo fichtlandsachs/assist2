@@ -20,10 +20,19 @@ MAX_CHUNKS = 3
 
 
 @dataclass
+class RagChunk:
+    text:         str
+    score:        float
+    source_type:  str
+    source_url:   str | None
+    source_title: str | None
+
+
+@dataclass
 class RagResult:
-    mode: Literal["direct", "context", "none"]
-    chunks: list[str] = field(default_factory=list)
-    direct_answer: str | None = None
+    mode:    Literal["direct", "context", "none"]
+    chunks:  list[RagChunk] = field(default_factory=list)
+    context: str | None = None   # direct answer text (mode="direct")
 
 
 async def _embed_query(query: str) -> list[float]:
@@ -48,7 +57,7 @@ async def retrieve(query: str, org_id: uuid.UUID, db: AsyncSession) -> RagResult
     Embed query, find top-5 most similar chunks for this org, apply thresholds.
 
     Returns:
-        RagResult(mode='direct')  — score >= 0.92: use direct_answer, no LLM needed
+        RagResult(mode='direct')  — score >= 0.92: use context as direct answer, no LLM needed
         RagResult(mode='context') — score 0.50-0.92: inject chunks into prompt
         RagResult(mode='none')    — score < 0.50 or any error: skip RAG
     """
@@ -61,7 +70,11 @@ async def retrieve(query: str, org_id: uuid.UUID, db: AsyncSession) -> RagResult
     try:
         embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
         sql = text("""
-            SELECT chunk_text, 1 - (embedding <=> :embedding ::vector) AS score
+            SELECT chunk_text,
+                   source_type,
+                   source_url,
+                   source_title,
+                   1 - (embedding <=> :embedding ::vector) AS score
             FROM document_chunks
             WHERE org_id = :org_id
               AND embedding IS NOT NULL
@@ -80,10 +93,31 @@ async def retrieve(query: str, org_id: uuid.UUID, db: AsyncSession) -> RagResult
     top_score = rows[0].score
 
     if top_score >= DIRECT_THRESHOLD:
-        return RagResult(mode="direct", direct_answer=rows[0].chunk_text)
+        top = rows[0]
+        return RagResult(
+            mode="direct",
+            context=top.chunk_text,
+            chunks=[RagChunk(
+                text=top.chunk_text,
+                score=top.score,
+                source_type=top.source_type,
+                source_url=top.source_url,
+                source_title=top.source_title,
+            )],
+        )
 
     if top_score >= CONTEXT_THRESHOLD:
-        chunks = [r.chunk_text for r in rows[:MAX_CHUNKS] if r.score >= CONTEXT_THRESHOLD]
+        chunks = [
+            RagChunk(
+                text=r.chunk_text,
+                score=r.score,
+                source_type=r.source_type,
+                source_url=r.source_url,
+                source_title=r.source_title,
+            )
+            for r in rows[:MAX_CHUNKS]
+            if r.score >= CONTEXT_THRESHOLD
+        ]
         return RagResult(mode="context", chunks=chunks)
 
     return RagResult(mode="none")

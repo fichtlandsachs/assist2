@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/api/client";
 import type { UserStory, StoryPriority } from "@/types";
 import { AISuggestPanel } from "@/components/stories/AISuggestPanel";
 import { EpicSelector } from "@/components/stories/EpicSelector";
+import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { VoiceRecorder } from "@/components/voice/VoiceRecorder";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
@@ -190,6 +191,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
   const [priority, setPriority] = useState<StoryPriority>("medium");
   const [storyPoints, setStoryPoints] = useState("");
   const [epicId, setEpicId] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; general?: string }>({});
 
@@ -230,6 +232,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
             priority,
             story_points: storyPoints ? parseInt(storyPoints, 10) : null,
             epic_id: epicId || null,
+            project_id: projectId || null,
           }),
         }
       );
@@ -343,6 +346,14 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
                 orgId={org.id}
                 value={epicId}
                 onChange={setEpicId}
+              />
+            )}
+
+            {org && (
+              <ProjectSelector
+                orgId={org.id}
+                value={projectId}
+                onChange={setProjectId}
               />
             )}
           </div>

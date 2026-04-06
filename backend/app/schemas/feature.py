@@ -4,6 +4,7 @@ from datetime import datetime
 import uuid
 from app.models.feature import FeatureStatus
 from app.models.user_story import StoryPriority
+from app.schemas.user_story import Source
 
 
 class AIFeatureSuggestion(BaseModel):
@@ -11,6 +12,7 @@ class AIFeatureSuggestion(BaseModel):
     description: Optional[str] = None
     priority: str = "medium"   # low | medium | high | critical
     story_points: Optional[int] = None
+    sources: list[Source] = []
 
 
 class AIFeatureSuggestResponse(BaseModel):

@@ -41,12 +41,18 @@ export function EpicSelector({ orgId, value, onChange, disabled }: Props) {
   }
 
   const inputCls =
-    "px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 bg-white";
+    "px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)] bg-[var(--card)]";
+
+  const selected = epics?.find(e => e.id === value);
 
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-1.5">Epic</label>
-      {creating ? (
+      <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">Epic</label>
+      {disabled ? (
+        <div className="px-3 py-2 text-sm text-[var(--ink-mid)] bg-[var(--paper-warm)] rounded-sm border border-[var(--paper-rule)]">
+          {selected?.title ?? "—"}
+        </div>
+      ) : creating ? (
         <div className="flex gap-2">
           <input
             autoFocus
@@ -62,7 +68,7 @@ export function EpicSelector({ orgId, value, onChange, disabled }: Props) {
           <button
             onClick={() => void handleCreate()}
             disabled={saving || !newTitle.trim()}
-            className="px-3 py-2 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-3 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 text-white rounded-sm text-sm font-medium transition-colors"
           >
             {saving ? (
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -72,7 +78,7 @@ export function EpicSelector({ orgId, value, onChange, disabled }: Props) {
           </button>
           <button
             onClick={() => { setCreating(false); setNewTitle(""); }}
-            className="px-3 py-2 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm transition-colors"
+            className="px-3 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-sm transition-colors"
           >
             <X size={14} />
           </button>
@@ -82,8 +88,7 @@ export function EpicSelector({ orgId, value, onChange, disabled }: Props) {
           <select
             value={value ?? ""}
             onChange={(e) => onChange(e.target.value || null)}
-            disabled={disabled}
-            className={`flex-1 ${inputCls} disabled:bg-slate-50 disabled:text-slate-500`}
+            className={`flex-1 ${inputCls}`}
           >
             <option value="">— Kein Epic —</option>
             {(epics ?? []).map((epic) => (
@@ -92,15 +97,13 @@ export function EpicSelector({ orgId, value, onChange, disabled }: Props) {
               </option>
             ))}
           </select>
-          {!disabled && (
-            <button
-              onClick={() => setCreating(true)}
-              className="flex items-center gap-1.5 px-3 py-2 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm transition-colors whitespace-nowrap"
-            >
-              <Plus size={14} />
-              Neu
-            </button>
-          )}
+          <button
+            onClick={() => setCreating(true)}
+            className="flex items-center gap-1.5 px-3 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-sm transition-colors whitespace-nowrap"
+          >
+            <Plus size={14} />
+            Neu
+          </button>
         </div>
       )}
     </div>

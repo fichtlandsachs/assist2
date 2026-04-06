@@ -5,6 +5,12 @@ import uuid
 from app.models.user_story import StoryStatus, StoryPriority
 
 
+class Source(BaseModel):
+    title: str
+    url: str
+    type: str  # "karl_story" | "nextcloud" | "jira" | "confluence"
+
+
 class UserStoryCreate(BaseModel):
     title: str
     description: Optional[str] = None
@@ -12,6 +18,7 @@ class UserStoryCreate(BaseModel):
     priority: StoryPriority = StoryPriority.medium
     story_points: Optional[int] = None
     epic_id: Optional[uuid.UUID] = None
+    project_id: Optional[uuid.UUID] = None
 
 
 class UserStoryUpdate(BaseModel):
@@ -26,6 +33,7 @@ class UserStoryUpdate(BaseModel):
     doc_additional_info: Optional[str] = None
     doc_workarounds: Optional[str] = None
     epic_id: Optional[uuid.UUID] = None
+    project_id: Optional[uuid.UUID] = None
 
 
 class UserStoryRead(BaseModel):
@@ -46,6 +54,7 @@ class UserStoryRead(BaseModel):
     generated_docs: Optional[str]
     confluence_page_url: Optional[str]
     is_split: bool
+    project_id: Optional[uuid.UUID]
     epic_id: Optional[uuid.UUID]
     parent_story_id: Optional[uuid.UUID]
     definition_of_done: Optional[str]
@@ -70,6 +79,7 @@ class AISuggestion(BaseModel):
     dor_issues: list[str] = []
     quality_score: Optional[int] = None  # 0-100; None when answered from RAG knowledge base
     source: Literal["rag_direct", "rag_context", "llm"] = "llm"
+    sources: list[Source] = []
 
 
 class AISuggestResponse(BaseModel):
@@ -100,12 +110,14 @@ class StoryDocsRead(BaseModel):
 class EpicCreate(BaseModel):
     title: str
     description: Optional[str] = None
+    project_id: Optional[uuid.UUID] = None
 
 
 class EpicUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
+    project_id: Optional[uuid.UUID] = None
 
 
 class EpicRead(BaseModel):
@@ -115,6 +127,7 @@ class EpicRead(BaseModel):
     title: str
     description: Optional[str]
     status: str = "planning"
+    project_id: Optional[uuid.UUID]
     created_at: datetime
     updated_at: datetime
 
@@ -147,6 +160,7 @@ class AITestCaseSuggestion(BaseModel):
     title: str
     steps: Optional[str] = None
     expected_result: Optional[str] = None
+    sources: list[Source] = []
 
 
 class AITestCaseSuggestResponse(BaseModel):
@@ -161,6 +175,7 @@ class DoDItem(BaseModel):
 class AIDoDSuggestion(BaseModel):
     text: str
     category: Optional[str] = None  # e.g. "Qualität", "Tests", "Dokumentation"
+    sources: list[Source] = []
 
 
 class AIDoDSuggestResponse(BaseModel):

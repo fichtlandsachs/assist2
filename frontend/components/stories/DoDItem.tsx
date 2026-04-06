@@ -6,7 +6,7 @@ export interface DoDItemProps {
   text: string;
   done: boolean;
   onToggle: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   /** Disables toggle + delete; used for locked story statuses */
   readOnly?: boolean;
 }
@@ -47,7 +47,7 @@ export function DoDItem({ text, done, onToggle, onDelete, readOnly = false }: Do
         {text}
       </span>
 
-      {!readOnly && (
+      {!readOnly && onDelete && (
         <button
           type="button"
           onClick={onDelete}

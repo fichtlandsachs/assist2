@@ -67,13 +67,13 @@ export function StoryCard({
           : "border-[var(--paper-rule)] hover:border-[rgba(var(--accent-red-rgb),.3)]"
       }`}
     >
-      {/* Validate button — top right, visible on hover */}
+      {/* Validate button — top right, always visible */}
       {onValidate && (
         <button
           type="button"
           onClick={handleValidate}
           disabled={validating}
-          className="absolute top-[7px] right-[7px] flex items-center gap-[3px] px-1.5 py-[3px] bg-[rgba(82,107,94,.08)] border-[0.5px] border-[rgba(82,107,94,.3)] text-[var(--green)] rounded-sm [font-family:var(--font-mono)] text-[7px] uppercase tracking-[.06em] opacity-0 group-hover/card:opacity-100 transition-all hover:bg-[var(--green)] hover:text-white disabled:pointer-events-none"
+          className="absolute top-[7px] right-[7px] flex items-center gap-[3px] px-1.5 py-[3px] bg-[rgba(82,107,94,.08)] border-[0.5px] border-[rgba(82,107,94,.3)] text-[var(--green)] rounded-sm [font-family:var(--font-mono)] text-[7px] uppercase tracking-[.06em] transition-all hover:bg-[var(--green)] hover:text-white disabled:pointer-events-none"
         >
           {validating ? (
             <span className="inline-block animate-spin w-[9px] h-[9px] rounded-full border border-current border-t-transparent" />
@@ -104,7 +104,7 @@ export function StoryCard({
         {story.story_points !== null && (
           <StoryPointsBadge points={story.story_points} />
         )}
-        {score !== null && <QualityScoreBadge score={score} />}
+        <QualityScoreBadge score={score} />
         {story.dor_passed && <DoRBadge />}
         {story.is_split && (
           <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[10px] border-[0.5px] bg-[rgba(122,100,80,.08)] text-[var(--brown)] border-[rgba(122,100,80,.3)] [font-family:var(--font-mono)] text-[7px] uppercase tracking-[.06em]">

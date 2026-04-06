@@ -6,7 +6,7 @@ import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
 import type { Feature, FeatureStatus } from "@/types";
 import Link from "next/link";
-import { LayoutList, Columns, Plus, Layers, GitBranch } from "lucide-react";
+import { Plus } from "lucide-react";
 import { FeatureCard } from "@/components/stories/FeatureCard";
 
 const COLUMNS: { status: FeatureStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
@@ -73,10 +73,7 @@ export default function FeaturesBoardPage({ params }: { params: Promise<{ org: s
   return (
     <div className="flex flex-col h-full space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Features</h1>
-          {total > 0 && <p className="text-[var(--ink-faint)] mt-0.5 text-sm">{total} Features</p>}
-        </div>
+        <div />
         <button
           onClick={() => setShowNewForm(true)}
           className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors"
@@ -84,22 +81,6 @@ export default function FeaturesBoardPage({ params }: { params: Promise<{ org: s
           <Plus size={16} />
           Neues Feature
         </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-[var(--paper-rule)] shrink-0 overflow-x-auto">
-        <Link href={`/${resolvedParams.org}/stories/list`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap">
-          <LayoutList size={15} /> Liste
-        </Link>
-        <Link href={`/${resolvedParams.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap">
-          <Columns size={15} /> Board
-        </Link>
-        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[var(--accent-red)] text-[var(--accent-red)] whitespace-nowrap">
-          <Layers size={15} /> Features
-        </span>
-        <Link href={`/${resolvedParams.org}/stories/epics/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap">
-          <GitBranch size={15} /> Epics
-        </Link>
       </div>
 
       {/* New Feature Inline Form */}

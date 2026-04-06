@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth/context";
 import type { ApiError } from "@/types";
 
 export default function LoginPage() {
-  const { login, loginWithAtlassian, loginWithGitHub } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -31,89 +31,142 @@ export default function LoginPage() {
     }
   };
 
-  const inputCls = "w-full px-3 py-2 text-sm outline-none transition-colors rounded-sm bg-[var(--paper)] border border-[var(--ink-faintest)] focus:border-[var(--ink-faint)] focus:ring-1 focus:ring-[rgba(160,144,128,.2)]";
-
   return (
-    <div className="w-full max-w-sm">
-      <div className="mb-6 text-center">
-        <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "22px", color: "var(--ink)" }}>assist2</span>
-        <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--ink-faint)", marginTop: "4px" }}>Workspace Platform</p>
-      </div>
+    <div className="min-h-screen w-full flex bg-[#FDFBF7] relative overflow-hidden">
+      {/* Dot grid */}
+      <div
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        style={{ backgroundImage: "radial-gradient(#000 1px, transparent 1px)", backgroundSize: "28px 28px" }}
+      />
 
-      <div className="rounded-sm p-8 space-y-5" style={{ background: "var(--paper)", border: "0.5px solid var(--paper-rule)", boxShadow: "0 2px 12px rgba(28,24,16,.06)" }}>
-        <h1 style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "18px", color: "var(--ink)", fontWeight: 400 }}>Anmelden</h1>
+      {/* Corner marks */}
+      <div className="absolute top-6 left-6 w-8 h-8 border-l-2 border-t-2 border-slate-900/20" />
+      <div className="absolute top-6 right-6 w-8 h-8 border-r-2 border-t-2 border-slate-900/20" />
+      <div className="absolute bottom-6 left-6 w-8 h-8 border-l-2 border-b-2 border-slate-900/20" />
+      <div className="absolute bottom-6 right-6 w-8 h-8 border-r-2 border-b-2 border-slate-900/20" />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="text-sm rounded-sm px-3 py-2.5" style={{ background: "rgba(var(--accent-red-rgb),.07)", border: "0.5px solid var(--accent-red)", color: "var(--accent-red)" }}>
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="email" className="block mb-1.5" style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-mid)" }}>E-Mail</label>
-            <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="name@example.com" autoComplete="email" />
+      {/* Left branding panel — hidden on mobile, full on desktop */}
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center gap-10 p-16 relative">
+        {/* Big Karl avatar */}
+        <div className="relative">
+          <div className="w-52 h-52 bg-amber-50 border-2 border-slate-900 rounded-[3rem] shadow-[10px_10px_0_rgba(0,0,0,1)] overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/karl-9.png" alt="Karl" className="w-full h-full object-contain" />
           </div>
-
-          <div>
-            <label htmlFor="password" className="block mb-1.5" style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-mid)" }}>Passwort</label>
-            <input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} placeholder="••••••••" autoComplete="current-password" />
+          <div className="absolute -bottom-4 -right-4 bg-white border-2 border-slate-900 px-4 py-2 rounded-2xl shadow-[4px_4px_0_rgba(0,0,0,1)] rotate-2">
+            <span className="text-[13px] font-bold text-slate-800 font-['Architects_Daughter']">Hi, ich bin Karl! 👋</span>
           </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-2.5 rounded-sm transition-colors disabled:opacity-50"
-            style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".08em", textTransform: "uppercase", background: "var(--ink)", color: "var(--paper)", border: "0.5px solid var(--ink)" }}
-          >
-            {isSubmitting ? "Anmelden…" : "Anmelden"}
-          </button>
-        </form>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px" style={{ background: "var(--paper-rule)" }} />
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "8px", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-faint)" }}>oder</span>
-          <div className="flex-1 h-px" style={{ background: "var(--paper-rule)" }} />
+          <div className="absolute -top-3 -left-3 flex items-center gap-1.5 bg-emerald-500 text-white px-2.5 py-1 rounded-full border-2 border-slate-900 shadow-[2px_2px_0_rgba(0,0,0,1)] text-[9px] font-bold uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+            Live
+          </div>
         </div>
 
-        {/* Atlassian Login */}
-        <button
-          type="button"
-          onClick={loginWithAtlassian}
-          className="w-full py-2.5 rounded-sm transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".08em", textTransform: "uppercase", background: "transparent", color: "var(--ink)", border: "0.5px solid var(--ink-faintest)" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15.218 1.137a.932.932 0 00-1.476 0L.518 21.895a.931.931 0 00.738 1.476h8.448l5.514-9.54 5.514 9.54h8.448a.931.931 0 00.738-1.476L15.218 1.137z" fill="#2684FF"/>
-            <path d="M15.218 14.29l-5.514 9.08h11.028L15.218 14.29z" fill="url(#atlassian-gradient)"/>
-            <defs>
-              <linearGradient id="atlassian-gradient" x1="15.218" y1="14.29" x2="15.218" y2="23.37" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#0052CC"/>
-                <stop offset="1" stopColor="#2684FF"/>
-              </linearGradient>
-            </defs>
-          </svg>
-          Mit Atlassian anmelden
-        </button>
+        {/* Brand text */}
+        <div className="text-center space-y-3 max-w-sm">
+          <h1 className="text-6xl font-black text-slate-900 font-['Architects_Daughter'] leading-none">Karl</h1>
+          <p className="text-[11px] font-bold tracking-[0.3em] text-slate-400 uppercase font-['Architects_Daughter']">Workspace Platform</p>
+          <p className="text-[15px] font-['Architects_Daughter'] text-slate-600 leading-relaxed">
+            Dein KI-gestützter Assistent für agile Entwicklung — von der User Story bis zum Deployment.
+          </p>
+        </div>
 
-        {/* GitHub Login */}
-        <button
-          type="button"
-          onClick={loginWithGitHub}
-          className="w-full py-2.5 rounded-sm transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".08em", textTransform: "uppercase", background: "transparent", color: "var(--ink)", border: "0.5px solid var(--ink-faintest)" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-          </svg>
-          Mit GitHub anmelden
-        </button>
+        {/* Feature dots */}
+        <div className="flex flex-col gap-2.5 w-full max-w-xs">
+          {[
+            "KI-generierte User Stories",
+            "Agile Workflows & Epics",
+            "Jira & Atlassian Integration",
+            "Echtzeit-Collaboration",
+          ].map((feat) => (
+            <div key={feat} className="flex items-center gap-2.5">
+              <div className="w-2 h-2 bg-rose-500 rounded-full border-2 border-rose-700 shrink-0" />
+              <span className="text-[12px] font-bold text-slate-600 font-['Architects_Daughter']">{feat}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
-        <p className="text-center" style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--ink-faint)" }}>
-          Noch kein Konto?{" "}
-          <Link href="/register" style={{ color: "var(--ink-mid)", textDecoration: "underline", textUnderlineOffset: "2px" }}>Registrieren</Link>
-        </p>
+      {/* Vertical divider */}
+      <div className="hidden lg:block w-px bg-slate-900/10 shrink-0" />
+
+      {/* Right form panel */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-16 relative">
+        {/* Mobile brand (only on small screens) */}
+        <div className="lg:hidden flex flex-col items-center mb-8 gap-3">
+          <div className="w-20 h-20 bg-amber-50 border-2 border-slate-900 rounded-2xl shadow-[6px_6px_0_rgba(0,0,0,1)] overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/karl-9.png" alt="Karl" className="w-full h-full object-contain" />
+          </div>
+          <h1 className="text-4xl font-black text-slate-900 font-['Architects_Daughter']">Karl</h1>
+        </div>
+
+        <div className="w-full max-w-md space-y-6">
+          {/* Heading */}
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 font-['Architects_Daughter']">Anmelden</h2>
+            <p className="text-[12px] text-slate-400 font-['Architects_Daughter'] mt-1">Willkommen zurück!</p>
+          </div>
+
+          {/* Form card */}
+          <div className="bg-white border-2 border-slate-900 rounded-2xl shadow-[8px_8px_0_rgba(0,0,0,1)] p-8 space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="text-[11px] rounded-xl px-3 py-2.5 border-2 border-rose-500 bg-rose-50 text-rose-700 font-['Architects_Daughter']">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="block text-[10px] font-bold tracking-[0.15em] text-slate-500 uppercase font-['Architects_Daughter']">
+                  E-Mail
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  autoComplete="email"
+                  className="w-full px-4 py-3 text-[14px] font-['Architects_Daughter'] border-2 border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-colors bg-slate-50/50"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="block text-[10px] font-bold tracking-[0.15em] text-slate-500 uppercase font-['Architects_Daughter']">
+                  Passwort
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3 text-[14px] font-['Architects_Daughter'] border-2 border-slate-200 rounded-xl outline-none focus:border-slate-900 transition-colors bg-slate-50/50"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3.5 bg-slate-900 text-white font-['Architects_Daughter'] text-[14px] font-bold rounded-xl border-2 border-slate-900 shadow-[4px_4px_0_rgba(0,0,0,1)] hover:shadow-[2px_2px_0_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Anmelden…" : "Anmelden →"}
+              </button>
+            </form>
+
+          </div>
+
+          <p className="text-center text-[12px] text-slate-400 font-['Architects_Daughter']">
+            Noch kein Konto?{" "}
+            <Link href="/register" className="text-rose-500 font-bold hover:underline underline-offset-2">
+              Registrieren
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

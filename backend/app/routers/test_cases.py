@@ -12,6 +12,8 @@ from app.models.test_case import TestCase
 from app.models.user_story import UserStory, StoryStatus
 from app.schemas.test_case import TestCaseCreate, TestCaseRead, TestCaseUpdate
 from app.core.exceptions import NotFoundException
+from app.tasks.rag_tasks import index_story_knowledge
+from app.models.organization import Organization
 
 router = APIRouter()
 
@@ -121,6 +123,19 @@ async def update_test_case(
 
     await db.commit()
     await db.refresh(test_case)
+
+    # Re-index story knowledge when a test case is marked passed
+    from app.models.test_case import TestResult as _TestResult
+    if data.result == _TestResult.passed:
+        org_result = await db.execute(
+            select(Organization).where(Organization.id == test_case.organization_id)
+        )
+        org = org_result.scalar_one_or_none()
+        org_slug = org.slug if org else str(test_case.organization_id)
+        index_story_knowledge.delay(
+            str(test_case.story_id), str(test_case.organization_id), org_slug
+        )
+
     return TestCaseRead.model_validate(test_case)
 
 

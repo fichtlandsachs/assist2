@@ -20,12 +20,17 @@ router = APIRouter()
 async def list_features(
     org_id: uuid.UUID,
     story_id: uuid.UUID | None = None,
+    project_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[FeatureRead]:
     stmt = select(Feature).where(Feature.organization_id == org_id)
     if story_id:
         stmt = stmt.where(Feature.story_id == story_id)
+    if project_id:
+        stmt = stmt.join(UserStory, Feature.story_id == UserStory.id).where(
+            UserStory.project_id == project_id
+        )
     stmt = stmt.order_by(Feature.created_at.desc())
     result = await db.execute(stmt)
     features = result.scalars().all()

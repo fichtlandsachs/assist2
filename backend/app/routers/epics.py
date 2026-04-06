@@ -1,5 +1,5 @@
 import uuid
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
@@ -15,6 +15,35 @@ from app.core.exceptions import NotFoundException
 router = APIRouter()
 
 
+@router.get("/epics/{epic_id}", response_model=EpicRead)
+async def get_epic(
+    epic_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> EpicRead:
+    stmt = select(Epic).where(Epic.id == epic_id)
+    result = await db.execute(stmt)
+    epic = result.scalar_one_or_none()
+    if epic is None:
+        raise NotFoundException("Epic not found")
+    return EpicRead.model_validate(epic)
+
+
+@router.delete("/epics/{epic_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_epic(
+    epic_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    stmt = select(Epic).where(Epic.id == epic_id)
+    result = await db.execute(stmt)
+    epic = result.scalar_one_or_none()
+    if epic is None:
+        raise NotFoundException("Epic not found")
+    await db.delete(epic)
+    await db.commit()
+
+
 @router.patch("/epics/{epic_id}", response_model=EpicRead)
 async def update_epic(
     epic_id: uuid.UUID,
@@ -22,7 +51,6 @@ async def update_epic(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> EpicRead:
-    from sqlalchemy import select
     stmt = select(Epic).where(Epic.id == epic_id)
     result = await db.execute(stmt)
     epic = result.scalar_one_or_none()
@@ -38,10 +66,13 @@ async def update_epic(
 @router.get("/epics", response_model=List[EpicRead])
 async def list_epics(
     org_id: uuid.UUID,
+    project_id: Optional[uuid.UUID] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[EpicRead]:
     stmt = select(Epic).where(Epic.organization_id == org_id).order_by(Epic.created_at.desc())
+    if project_id is not None:
+        stmt = stmt.where(Epic.project_id == project_id)
     result = await db.execute(stmt)
     return [EpicRead.model_validate(e) for e in result.scalars().all()]
 
@@ -53,7 +84,13 @@ async def create_epic(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> EpicRead:
-    epic = Epic(organization_id=org_id, created_by_id=current_user.id, title=data.title, description=data.description)
+    epic = Epic(
+        organization_id=org_id,
+        created_by_id=current_user.id,
+        title=data.title,
+        description=data.description,
+        project_id=data.project_id,
+    )
     db.add(epic)
     await db.commit()
     await db.refresh(epic)

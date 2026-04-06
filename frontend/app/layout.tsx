@@ -5,25 +5,25 @@ import { ThemeProvider } from "@/lib/theme/context";
 
 export const metadata: Metadata = {
   title: {
-    default: "assist2 — Compliance-Dokumentation. Automatisiert. Auditierbar.",
-    template: "%s | assist2",
+    default: "Karl — KI-Workspace für agile Teams",
+    template: "%s | Karl",
   },
   description:
-    "assist2 ist die Compliance-Dokumentationsplattform für NIS2, KRITIS und ISO27001. Automatisierte Prozessdokumentation, BCM-Management und auditierbare Nachweise — ohne Halluzinationen.",
-  keywords: ["NIS2", "KRITIS", "BCM", "Business Continuity Management", "Compliance", "Dokumentation", "ISO27001", "IT-Sicherheit", "ISMS", "Auditierung"],
-  authors: [{ name: "assist2 GmbH" }],
-  creator: "assist2 GmbH",
-  metadataBase: new URL("https://assist2.io"),
+    "Karl ist der KI-native Workspace für agile Teams. User Stories, Sprints und Projektmanagement — unterstützt durch KI.",
+  keywords: ["KI", "Projektmanagement", "User Stories", "Agile", "Scrum", "Sprint", "AI Workspace"],
+  authors: [{ name: "Karl" }],
+  creator: "Karl",
+  metadataBase: new URL("https://heykarl.app"),
   openGraph: {
-    type: "website", locale: "de_DE", url: "https://assist2.io", siteName: "assist2",
-    title: "assist2 — Compliance-Dokumentation. Automatisiert. Auditierbar.",
-    description: "Die Compliance-Plattform für NIS2 & KRITIS. Prozessdokumentation, BCM und Audit-Trail ohne Aufwand.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "assist2 — Compliance Platform" }],
+    type: "website", locale: "de_DE", url: "https://heykarl.app", siteName: "Karl",
+    title: "Karl — KI-Workspace für agile Teams",
+    description: "User Stories, Sprints und Projektmanagement — unterstützt durch KI.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Karl — KI-Workspace" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "assist2 — Compliance. Automatisiert.",
-    description: "NIS2, KRITIS und ISO27001 Compliance-Dokumentation. Automatisiert und auditierbar.",
+    title: "Karl — KI-Workspace für agile Teams",
+    description: "User Stories, Sprints und Projektmanagement — unterstützt durch KI.",
     images: ["/og-image.png"],
   },
   robots: {

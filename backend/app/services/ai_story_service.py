@@ -33,6 +33,40 @@ logger = logging.getLogger(__name__)
 # Learning config helper (reads admin config at call-time)
 # ---------------------------------------------------------------------------
 
+async def _get_rejected_suggestions(
+    org_id: "uuid.UUID", suggestion_type: str, db: "AsyncSession"
+) -> list[str]:
+    """Return up to 20 recently rejected suggestion texts for this org+type."""
+    try:
+        from sqlalchemy import select as _select
+        from app.models.suggestion_feedback import SuggestionFeedback
+        result = await db.execute(
+            _select(SuggestionFeedback.suggestion_text)
+            .where(
+                SuggestionFeedback.organization_id == org_id,
+                SuggestionFeedback.suggestion_type == suggestion_type,
+                SuggestionFeedback.feedback == "rejected",
+            )
+            .order_by(SuggestionFeedback.created_at.desc())
+            .limit(20)
+        )
+        return [row[0] for row in result.fetchall()]
+    except Exception as e:
+        logger.warning("Failed to load rejected suggestions: %s", e)
+        return []
+
+
+def _build_rejection_block(rejected: list[str]) -> str:
+    if not rejected:
+        return ""
+    lines = "\n".join(f"- {t}" for t in rejected)
+    return f"""--- Von der Organisation abgelehnte Vorschläge (nicht wiederholen) ---
+{lines}
+----------------------------------------------------------------------
+
+"""
+
+
 async def _get_learning_flags(org_id, db) -> dict:
     """Return key learning flags for the given org. Falls back to safe defaults."""
     try:
@@ -73,31 +107,36 @@ class DocsGenerateResponse(BaseModel):
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _make_client(task_category: str, ai_settings: dict | None = None) -> tuple[ProviderClient, str]:
-    """Create a provider-aware LLM client based on task category.
+def _make_client(task_category: str, ai_settings: dict | None = None, complexity: str = "medium") -> tuple[ProviderClient, str]:
+    """All AI calls route through LiteLLM (OpenAI-compatible gateway).
 
-    task_category:
-      "story" → OpenAI  (story writing, DoD, test cases, splitting)
-      "dev"   → Anthropic (features, technical docs)
+    Returns (ProviderClient → LiteLLM, provider_name_for_route_request).
 
-    ai_settings: dict with org-level keys returned by get_ai_client_settings().
-    Falls back to global env vars when None.
-
-    Returns (ProviderClient, provider_name).
+    provider_name controls which model map route_request() uses:
+      "ionos"     → ionos-fast / ionos-quality / ionos-reasoning  (default)
+      "anthropic" → claude-haiku / claude-sonnet  (org override with claude-* model)
     """
+    import openai as openai_sdk
+
     settings = get_settings()
 
-    if task_category == "dev":
-        provider = "anthropic"
-        api_key = (ai_settings or {}).get("anthropic_api_key") or settings.ANTHROPIC_API_KEY
-        raw = anthropic.Anthropic(api_key=api_key)
-    else:  # "story" and default
-        provider = "openai"
-        api_key = (ai_settings or {}).get("openai_api_key") or settings.OPENAI_API_KEY
-        import openai as openai_sdk
-        raw = openai_sdk.OpenAI(api_key=api_key)
+    litellm = openai_sdk.OpenAI(
+        base_url=f"{settings.LITELLM_URL}/v1",
+        api_key=settings.LITELLM_API_KEY or "sk-assist2",
+        timeout=90,
+        max_retries=0,
+    )
+    client = ProviderClient("openai", litellm)
 
-    return ProviderClient(provider, raw), provider
+    # Respect org-level model override — detect provider from model name prefix
+    model_override = (ai_settings or {}).get("model_override", "")
+    if model_override.startswith("claude"):
+        return client, "anthropic"
+    if model_override.startswith("gpt") or model_override.startswith("openai"):
+        return client, "openai"
+
+    # Default: workspace uses IONOS exclusively
+    return client, "ionos"
 
 
 def _log_decision(fn: str, decision: RouteDecision, usage: dict, elapsed_ms: int) -> None:
@@ -201,19 +240,19 @@ async def get_story_suggestions(
         try:
             from app.services.rag_service import retrieve
             rag = await retrieve(f"{data.title} {data.description}", org_id, db)
-            if rag.mode == "direct" and rag.direct_answer:
+            if rag.mode == "direct" and rag.context:
                 return AISuggestion(
                     title=None,
                     description=None,
                     acceptance_criteria=None,
-                    explanation=rag.direct_answer,
+                    explanation=rag.context,
                     dor_issues=[],
                     quality_score=None,
                     source="rag_direct",
                 )
             if rag.mode == "context" and rag.chunks:
                 rag_context_block = "\n".join(
-                    [f"[Kontext]\n{c}" for c in rag.chunks]
+                    [f"[Kontext]\n{c.text}" for c in rag.chunks]
                 )
                 rag_source = "rag_context"
         except Exception as e:
@@ -308,7 +347,11 @@ async def generate_story_docs(
 # ---------------------------------------------------------------------------
 
 async def generate_test_case_suggestions(
-    title: str, acceptance_criteria: str | None, ai_settings: dict | None = None
+    title: str,
+    acceptance_criteria: str | None,
+    ai_settings: dict | None = None,
+    org_id: "uuid.UUID | None" = None,
+    db: "AsyncSession | None" = None,
 ) -> list[AITestCaseSuggestion]:
     """
     Derive concrete test cases from a story's acceptance criteria.
@@ -325,7 +368,25 @@ async def generate_test_case_suggestions(
     client, provider = _make_client("story", ai_settings)
     decision = route_request(complexity, "suggest", provider=provider, model_override=model_override)
 
-    prompt = _build_test_cases_prompt(title, acceptance_criteria)
+    # RAG retrieval
+    rag_chunks: list = []
+    rag_context_block: str | None = None
+    if org_id is not None and db is not None:
+        try:
+            from app.services.rag_service import retrieve
+            rag = await retrieve(f"{title} {acceptance_criteria or ''}", org_id, db)
+            if rag.mode in ("direct", "context") and rag.chunks:
+                rag_context_block = "\n".join([f"[Kontext]\n{c.text}" for c in rag.chunks])
+                rag_chunks = rag.chunks
+        except Exception as e:
+            logger.warning("RAG retrieval error in generate_test_case_suggestions (skipping): %s", e)
+
+    rejection_block = ""
+    if org_id is not None and db is not None:
+        rejected = await _get_rejected_suggestions(org_id, "test_case", db)
+        rejection_block = _build_rejection_block(rejected)
+
+    prompt = _build_test_cases_prompt(title, acceptance_criteria, rag_context=rag_context_block, rejection_block=rejection_block)
 
     t0 = time.monotonic()
     raw, usage = execute_pipeline(client, prompt, decision)
@@ -334,15 +395,31 @@ async def generate_test_case_suggestions(
     _log_decision("generate_test_case_suggestions", decision, usage, elapsed_ms)
 
     parsed = _parse_json(raw)
+    sources_payload = [
+        {"title": c.source_title or "", "url": c.source_url or "", "type": c.source_type}
+        for c in rag_chunks if c.source_url
+    ]
     if isinstance(parsed, list):
-        return [AITestCaseSuggestion(**item) for item in parsed]
+        return [AITestCaseSuggestion(**item, sources=sources_payload) for item in parsed]
     items = parsed.get("suggestions", [])
-    return [AITestCaseSuggestion(**item) for item in items]
+    return [AITestCaseSuggestion(**item, sources=sources_payload) for item in items]
 
 
-def _build_test_cases_prompt(title: str, acceptance_criteria: str | None) -> str:
+def _build_test_cases_prompt(
+    title: str,
+    acceptance_criteria: str | None,
+    rag_context: str | None = None,
+    rejection_block: str = "",
+) -> str:
     ac_text = acceptance_criteria or "(keine Akzeptanzkriterien angegeben)"
-    return f"""Du bist ein erfahrener QA-Ingenieur. Leite aus den folgenden Akzeptanzkriterien konkrete Testfälle ab.
+    context_section = ""
+    if rag_context:
+        context_section = f"""--- Org-Wissen (aus Karl / Nextcloud) ---
+{rag_context}
+-----------------------------------------
+
+"""
+    return f"""{rejection_block}{context_section}Du bist ein erfahrener QA-Ingenieur. Leite aus den folgenden Akzeptanzkriterien konkrete Testfälle ab.
 
 User Story: {title}
 Akzeptanzkriterien:
@@ -458,6 +535,8 @@ async def generate_dod_suggestions(
     description: str | None,
     acceptance_criteria: str | None,
     ai_settings: dict | None = None,
+    org_id: "uuid.UUID | None" = None,
+    db: "AsyncSession | None" = None,
 ) -> list[AIDoDSuggestion]:
     """
     Suggest Definition of Done criteria and relevant KPIs for a User Story.
@@ -470,7 +549,26 @@ async def generate_dod_suggestions(
     client, provider = _make_client("story", ai_settings)
     decision = route_request(complexity, "suggest", provider=provider, model_override=model_override)
 
-    prompt = _build_dod_prompt(title, description, acceptance_criteria)
+    # RAG retrieval
+    rag_chunks: list = []
+    rag_context_block: str | None = None
+    if org_id is not None and db is not None:
+        try:
+            from app.services.rag_service import retrieve
+            rag = await retrieve(f"{title} {description or ''}", org_id, db)
+            if rag.mode in ("direct", "context") and rag.chunks:
+                rag_context_block = "\n".join([f"[Kontext]\n{c.text}" for c in rag.chunks])
+                rag_chunks = rag.chunks
+        except Exception as e:
+            logger.warning("RAG retrieval error in generate_dod_suggestions (skipping): %s", e)
+
+    # Load rejected DoD suggestions for this org
+    rejection_block = ""
+    if org_id is not None and db is not None:
+        rejected = await _get_rejected_suggestions(org_id, "dod", db)
+        rejection_block = _build_rejection_block(rejected)
+
+    prompt = _build_dod_prompt(title, description, acceptance_criteria, rag_context=rag_context_block, rejection_block=rejection_block)
 
     t0 = time.monotonic()
     raw, usage = execute_pipeline(client, prompt, decision)
@@ -479,20 +577,34 @@ async def generate_dod_suggestions(
     _log_decision("generate_dod_suggestions", decision, usage, elapsed_ms)
 
     parsed = _parse_json(raw)
+    sources_payload = [
+        {"title": c.source_title or "", "url": c.source_url or "", "type": c.source_type}
+        for c in rag_chunks if c.source_url
+    ]
     if isinstance(parsed, list):
-        return [AIDoDSuggestion(**item) for item in parsed]
-    items = parsed.get("suggestions", [])
-    return [AIDoDSuggestion(**item) for item in items]
+        items = parsed
+    else:
+        items = parsed.get("suggestions", [])
+    return [AIDoDSuggestion(**item, sources=sources_payload) for item in items]
 
 
 def _build_dod_prompt(
     title: str,
     description: str | None,
     acceptance_criteria: str | None,
+    rag_context: str | None = None,
+    rejection_block: str = "",
 ) -> str:
     desc = description or "(keine)"
     ac = acceptance_criteria or "(keine)"
-    return f"""Du bist ein erfahrener Scrum Master. Schlage konkrete Definition-of-Done-Kriterien und messbare KPIs für diese User Story vor.
+    context_section = ""
+    if rag_context:
+        context_section = f"""--- Org-Wissen (aus Karl / Nextcloud) ---
+{rag_context}
+-----------------------------------------
+
+"""
+    return f"""{rejection_block}{context_section}Du bist ein erfahrener Scrum Master. Schlage konkrete Definition-of-Done-Kriterien und messbare KPIs für diese User Story vor.
 
 User Story:
 Titel: {title}
@@ -528,6 +640,8 @@ async def generate_feature_suggestions(
     description: str | None,
     acceptance_criteria: str | None,
     ai_settings: dict | None = None,
+    org_id: "uuid.UUID | None" = None,
+    db: "AsyncSession | None" = None,
 ) -> list[AIFeatureSuggestion]:
     """
     Suggest concrete, implementable features (sub-functions) for a User Story.
@@ -540,7 +654,27 @@ async def generate_feature_suggestions(
     client, provider = _make_client("dev", ai_settings)
     decision = route_request(complexity, "suggest", provider=provider, model_override=model_override)
 
-    prompt = _build_feature_suggestions_prompt(title, description, acceptance_criteria)
+    # RAG retrieval
+    rag_chunks: list = []
+    rag_context_block: str | None = None
+    if org_id is not None and db is not None:
+        try:
+            from app.services.rag_service import retrieve
+            rag = await retrieve(
+                f"{title} {description or ''} {acceptance_criteria or ''}", org_id, db
+            )
+            if rag.mode in ("direct", "context") and rag.chunks:
+                rag_context_block = "\n".join([f"[Kontext]\n{c.text}" for c in rag.chunks])
+                rag_chunks = rag.chunks
+        except Exception as e:
+            logger.warning("RAG retrieval error in generate_feature_suggestions (skipping): %s", e)
+
+    rejection_block = ""
+    if org_id is not None and db is not None:
+        rejected = await _get_rejected_suggestions(org_id, "feature", db)
+        rejection_block = _build_rejection_block(rejected)
+
+    prompt = _build_feature_suggestions_prompt(title, description, acceptance_criteria, rag_context=rag_context_block, rejection_block=rejection_block)
 
     t0 = time.monotonic()
     raw, usage = execute_pipeline(client, prompt, decision)
@@ -548,21 +682,34 @@ async def generate_feature_suggestions(
 
     _log_decision("generate_feature_suggestions", decision, usage, elapsed_ms)
 
+    sources_payload = [
+        {"title": c.source_title or "", "url": c.source_url or "", "type": c.source_type}
+        for c in rag_chunks if c.source_url
+    ]
     parsed = _parse_json(raw)
     if isinstance(parsed, list):
-        return [AIFeatureSuggestion(**item) for item in parsed]
+        return [AIFeatureSuggestion(**item, sources=sources_payload) for item in parsed]
     items = parsed.get("features", parsed.get("suggestions", []))
-    return [AIFeatureSuggestion(**item) for item in items]
+    return [AIFeatureSuggestion(**item, sources=sources_payload) for item in items]
 
 
 def _build_feature_suggestions_prompt(
     title: str,
     description: str | None,
     acceptance_criteria: str | None,
+    rag_context: str | None = None,
+    rejection_block: str = "",
 ) -> str:
     desc = description or "(keine)"
     ac = acceptance_criteria or "(keine)"
-    return f"""Du bist ein erfahrener Senior Developer und Product Owner. Analysiere diese User Story und schlage konkrete, implementierbare Features (Teilfunktionen) vor.
+    context_section = ""
+    if rag_context:
+        context_section = f"""--- Org-Wissen (aus Karl / Nextcloud) ---
+{rag_context}
+-----------------------------------------
+
+"""
+    return f"""{rejection_block}{context_section}Du bist ein erfahrener Senior Developer und Product Owner. Analysiere diese User Story und schlage konkrete, implementierbare Features (Teilfunktionen) vor.
 
 User Story:
 Titel: {title}

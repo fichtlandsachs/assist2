@@ -47,6 +47,12 @@ class UserService:
         await db.refresh(user)
         return user
 
+    async def update_password(self, db: AsyncSession, user_id: uuid.UUID, new_hash: str) -> None:
+        """Set a new bcrypt password hash for a user."""
+        user = await self.get_by_id(db, user_id)
+        user.password_hash = new_hash
+        await db.commit()
+
     async def list_org_members(
         self,
         db: AsyncSession,

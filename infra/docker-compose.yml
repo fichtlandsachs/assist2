@@ -193,11 +193,27 @@ services:
       AUTHENTIK_ADMIN_CLIENT_ID: ${AUTHENTIK_ADMIN_CLIENT_ID}
       STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
       WHISPER_URL: ${WHISPER_URL:-http://assist2-whisper:9000}
-      LITELLM_URL: ${LITELLM_URL:-http://litellm:4000}
+      LITELLM_URL: ${LITELLM_URL:-http://assist2-litellm:4000}
       LITELLM_API_KEY: ${LITELLM_API_KEY}
+      IONOS_API_KEY: ${IONOS_API_KEY:-}
+      IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.ionos.com/openai}
+      IONOS_MODEL_CACHE_TTL: ${IONOS_MODEL_CACHE_TTL:-300}
+      PROVIDER_ROUTING_SUGGEST: ${PROVIDER_ROUTING_SUGGEST:-auto}
+      PROVIDER_ROUTING_DOCS: ${PROVIDER_ROUTING_DOCS:-claude-sonnet-4-6}
+      PROVIDER_ROUTING_FALLBACK: ${PROVIDER_ROUTING_FALLBACK:-ionos-fast}
+      AI_FEATURE_FLAGS: ${AI_FEATURE_FLAGS:-streaming,embeddings}
       NEXTCLOUD_URL: ${NEXTCLOUD_URL:-https://nextcloud.fichtlworks.com}
       NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
       NEXTCLOUD_ADMIN_APP_PASSWORD: ${NEXTCLOUD_ADMIN_APP_PASSWORD}
+      APP_BASE_URL: ${APP_BASE_URL:-https://heykarl.app}
+      GITHUB_REDIRECT_URI: ${GITHUB_REDIRECT_URI:-https://heykarl.app/api/v1/auth/github/callback}
+      ATLASSIAN_REDIRECT_URI: ${ATLASSIAN_REDIRECT_URI:-https://heykarl.app/api/v1/auth/atlassian/callback}
+      SMTP_HOST: ${SMTP_HOST:-smtp.hostinger.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-info@heykarl.app}
+      CONTACT_EMAIL_TO: ${CONTACT_EMAIL_TO:-info@heykarl.app}
     networks:
       - proxy
       - internal
@@ -237,8 +253,15 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://assist2-stirling-pdf:8080}
       WHISPER_URL: ${WHISPER_URL:-http://assist2-whisper:9000}
-      LITELLM_URL: ${LITELLM_URL:-http://litellm:4000}
+      LITELLM_URL: ${LITELLM_URL:-http://assist2-litellm:4000}
       LITELLM_API_KEY: ${LITELLM_API_KEY}
+      IONOS_API_KEY: ${IONOS_API_KEY:-}
+      IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.ionos.com/openai}
+      IONOS_MODEL_CACHE_TTL: ${IONOS_MODEL_CACHE_TTL:-300}
+      PROVIDER_ROUTING_SUGGEST: ${PROVIDER_ROUTING_SUGGEST:-auto}
+      PROVIDER_ROUTING_DOCS: ${PROVIDER_ROUTING_DOCS:-claude-sonnet-4-6}
+      PROVIDER_ROUTING_FALLBACK: ${PROVIDER_ROUTING_FALLBACK:-ionos-fast}
+      AI_FEATURE_FLAGS: ${AI_FEATURE_FLAGS:-streaming,embeddings}
     networks:
       - internal
     healthcheck:
@@ -258,13 +281,13 @@ services:
       context: ../frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://assist2.${DOMAIN}
-        NEXT_PUBLIC_APP_URL: https://assist2.${DOMAIN}
+        NEXT_PUBLIC_API_URL: https://heykarl.app
+        NEXT_PUBLIC_APP_URL: https://heykarl.app
     container_name: assist2-frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: https://assist2.${DOMAIN}
-      NEXT_PUBLIC_APP_URL: https://assist2.${DOMAIN}
+      NEXT_PUBLIC_API_URL: https://heykarl.app
+      NEXT_PUBLIC_APP_URL: https://heykarl.app
     networks:
       - proxy
     depends_on:
@@ -281,10 +304,10 @@ services:
       context: ../admin-frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://assist2.${DOMAIN}
-        NEXT_PUBLIC_AUTHENTIK_URL: https://authentik.${DOMAIN}
+        NEXT_PUBLIC_API_URL: https://heykarl.app
+        NEXT_PUBLIC_AUTHENTIK_URL: https://authentik.fichtlworks.com
         NEXT_PUBLIC_ADMIN_CLIENT_ID: ${AUTHENTIK_ADMIN_CLIENT_ID}
-        NEXT_PUBLIC_ADMIN_REDIRECT_URI: https://admin.${DOMAIN}/callback
+        NEXT_PUBLIC_ADMIN_REDIRECT_URI: https://admin.heykarl.app/callback
     container_name: assist2-admin
     restart: unless-stopped
     networks:
@@ -293,7 +316,7 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.admin.rule=Host(`admin.${DOMAIN}`)"
+      - "traefik.http.routers.admin.rule=Host(`admin.heykarl.app`)"
       - "traefik.http.routers.admin.entrypoints=websecure"
       - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
       - "traefik.http.services.admin.loadbalancer.server.port=3001"
@@ -310,9 +333,13 @@ services:
     restart: unless-stopped
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      IONOS_API_KEY: ${IONOS_API_KEY:-}
+      IONOS_API_BASE: ${IONOS_API_BASE:-https://inference.de-txl.ionos.com}
       LITELLM_MASTER_KEY: ${LITELLM_API_KEY:-sk-assist2}
       DATABASE_URL: postgresql://litellm:${LITELLM_DB_PASSWORD}@assist2-litellm-postgres:5432/litellm_db
       SERVER_ROOT_PATH: /litellm
+      UI_USERNAME: ${LITELLM_UI_USERNAME:-admin}
+      UI_PASSWORD: ${LITELLM_UI_PASSWORD}
     command:
       - "--config"
       - "/app/config.yaml"
@@ -334,12 +361,18 @@ services:
       start_period: 60s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.litellm.rule=Host(`litellm.fichtlworks.com`)"
+      # Main route: /litellm prefix
+      - "traefik.http.routers.litellm.rule=Host(`admin.heykarl.app`) && PathPrefix(`/litellm`)"
       - "traefik.http.routers.litellm.entrypoints=websecure"
       - "traefik.http.routers.litellm.tls.certresolver=letsencrypt"
       - "traefik.http.services.litellm.loadbalancer.server.port=4000"
-      - "traefik.http.routers.litellm.middlewares=litellm-auth@docker"
-      - "traefik.http.middlewares.litellm-auth.basicauth.users=${LITELLM_UI_AUTH}"
+      # Redirect /ui and /sso (LiteLLM ignores SERVER_ROOT_PATH on some redirects)
+      - "traefik.http.routers.litellm-fix.rule=Host(`admin.heykarl.app`) && (PathPrefix(`/ui`) || PathPrefix(`/sso`))"
+      - "traefik.http.routers.litellm-fix.entrypoints=websecure"
+      - "traefik.http.routers.litellm-fix.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.litellm-fix.middlewares=litellm-prefix@docker"
+      - "traefik.http.routers.litellm-fix.service=litellm@docker"
+      - "traefik.http.middlewares.litellm-prefix.addprefix.prefix=/litellm"
       - "traefik.docker.network=assist-proxy"
 
   litellm-postgres:
@@ -496,6 +529,13 @@ services:
     networks:
       - internal
       - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whisper.rule=Host(`admin.heykarl.app`) && PathPrefix(`/whisper`)"
+      - "traefik.http.routers.whisper.entrypoints=websecure"
+      - "traefik.http.routers.whisper.tls.certresolver=letsencrypt"
+      - "traefik.http.services.whisper.loadbalancer.server.port=9000"
+      - "traefik.docker.network=assist-proxy"
 
   pgadmin:
     image: dpage/pgadmin4:latest

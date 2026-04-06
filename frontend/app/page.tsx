@@ -75,7 +75,7 @@ function HeroMockUI() {
           <span className="w-3 h-3 rounded-full bg-[#FFD700] border border-[#cc9900]" />
           <span className="w-3 h-3 rounded-full bg-[#22C55E] border border-[#16a34a]" />
           <span className="ml-3 font-mono text-xs text-[#666]">
-            assist2 — BIA_Kritische_Dienste_v3.md
+            Karl — BIA_Kritische_Dienste_v3.md
           </span>
         </div>
 
@@ -241,7 +241,7 @@ function HeroSection() {
 
             {/* Sub */}
             <p className="text-lg text-[#6B6B6B] leading-relaxed mb-8 max-w-lg">
-              assist2 verwandelt Ihre Jira-Tickets und Prozesse in
+              Karl verwandelt Ihre Jira-Tickets und Prozesse in
               vollständige NIS2- und KRITIS-konforme Dokumentation —
               ohne Halluzinationen, mit vollständigem Audit-Trail.
             </p>
@@ -387,7 +387,7 @@ function HowItWorksSection() {
     {
       num: "01",
       title: "Daten verbinden",
-      desc: "Verbinden Sie Jira, Confluence oder laden Sie bestehende Dokumente hoch. assist2 liest Ihre vorhandenen Prozesse und Tickets.",
+      desc: "Verbinden Sie Jira, Confluence oder laden Sie bestehende Dokumente hoch. Karl liest Ihre vorhandenen Prozesse und Tickets.",
       accent: "bg-[#FF5C00]",
     },
     {
@@ -592,7 +592,7 @@ function CTASection() {
         {/* Social proof */}
         <div className="mt-12 flex flex-wrap justify-center gap-8">
           {[
-            { value: "120+", label: "Teams vertrauen assist2" },
+            { value: "120+", label: "Teams vertrauen Karl" },
             { value: "94%", label: "NIS2-Abdeckung ab Tag 1" },
             { value: "8h", label: "Ø Zeit bis zur ersten Prüfung" },
           ].map(({ value, label }) => (
@@ -671,7 +671,7 @@ function Footer() {
         {/* Bottom */}
         <div className="border-t border-[#222] pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-[#555] text-sm">
-            &copy; 2026 assist2 GmbH. Alle Rechte vorbehalten.
+            &copy; 2026 Karl. Alle Rechte vorbehalten.
           </div>
           <div className="flex items-center gap-2 text-[#555] text-sm">
             <Terminal size={14} className="text-[#FF5C00]" />

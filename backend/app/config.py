@@ -31,6 +31,26 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     AI_MODEL_OVERRIDE: str = ""   # if set, bypasses routing (e.g. "claude-sonnet-4-6")
 
+    # ── IONOS AI ──────────────────────────────────────────────────────────────
+    # OpenAI-compatible base URL. Swap for a different region without code change.
+    IONOS_API_BASE: str = "https://openai.ionos.com/openai"
+    IONOS_API_KEY: str = ""
+    # How long (seconds) to cache the /v1/models response. 0 = no cache.
+    IONOS_MODEL_CACHE_TTL: int = 300
+
+    # ── Provider Routing Policy ───────────────────────────────────────────────
+    # Maps task category to the LiteLLM model alias that should handle it.
+    # Allowed values: ionos-fast | ionos-quality | ionos-reasoning |
+    #                 claude-sonnet-4-6 | claude-haiku-4-5 | auto
+    PROVIDER_ROUTING_SUGGEST: str = "auto"
+    PROVIDER_ROUTING_DOCS: str = "claude-sonnet-4-6"
+    PROVIDER_ROUTING_FALLBACK: str = "ionos-fast"
+
+    # ── Feature Flags ─────────────────────────────────────────────────────────
+    # Comma-separated list of enabled optional features.
+    # Known flags: embeddings, images, rag_ionos, streaming
+    AI_FEATURE_FLAGS: str = "streaming,embeddings"
+
     # Confluence
     CONFLUENCE_BASE_URL: str = ""   # e.g. https://your-org.atlassian.net/wiki
     CONFLUENCE_USER: str = ""       # Atlassian account email
@@ -80,12 +100,25 @@ class Settings(BaseSettings):
     WHISPER_URL: str = "http://assist2-whisper:9000"
 
     # LiteLLM (internal AI gateway)
-    LITELLM_URL: str = "http://litellm:4000"
+    LITELLM_URL: str = "http://assist2-litellm:4000"
     LITELLM_API_KEY: str = ""
+
+    # Contact form / outbound SMTP
+    SMTP_HOST: str = "smtp.hostinger.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""   # leave empty for direct MX delivery
+    SMTP_PASS: str = ""
+    SMTP_FROM: str = "noreply@heykarl.app"
+    CONTACT_EMAIL_TO: str = "info@heykarl.app"
 
     # Sync defaults (used as initial value when creating connections)
     MAIL_SYNC_INTERVAL_MINUTES: int = 15
     CALENDAR_SYNC_INTERVAL_MINUTES: int = 30
+
+    def ai_feature_enabled(self, flag: str) -> bool:
+        """Check whether an optional AI feature flag is active."""
+        flags = {f.strip() for f in self.AI_FEATURE_FLAGS.split(",") if f.strip()}
+        return flag in flags
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,8 +1,10 @@
 "use client";
 
-import { BookOpen } from "lucide-react";
+import { BookOpen, ExternalLink } from "lucide-react";
 import { PriorityBadge, StoryPointsBadge } from "@/components/ui/badge";
 import type { Feature } from "@/types";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 
 export interface FeatureCardProps {
   feature: Feature;
@@ -24,6 +26,9 @@ export function FeatureCard({
   onDragStart,
   onDragEnd,
 }: FeatureCardProps) {
+  const params = useParams<{ org: string }>();
+  const detailHref = `/${params.org}/stories/${feature.story_id}?tab=features`;
+
   return (
     <div
       draggable
@@ -33,13 +38,27 @@ export function FeatureCard({
         onDragStart?.(feature.id);
       }}
       onDragEnd={onDragEnd}
-      className={`bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-3.5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all cursor-grab active:cursor-grabbing select-none ${
+      className={`group relative bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-3.5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all cursor-grab active:cursor-grabbing select-none ${
         dragging ? "opacity-40 scale-95" : ""
       }`}
     >
-      <p className="text-sm font-semibold text-[var(--ink)] line-clamp-2 mb-2.5 leading-snug">
+      <Link
+        href={detailHref}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-2 right-2 p-1 text-[var(--ink-faintest)] hover:text-[var(--accent-red)] opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Story mit Features öffnen"
+        draggable={false}
+      >
+        <ExternalLink size={11} />
+      </Link>
+      <Link
+        href={detailHref}
+        draggable={false}
+        onClick={(e) => e.stopPropagation()}
+        className="block text-sm font-semibold text-[var(--ink)] line-clamp-2 mb-2.5 leading-snug hover:text-[var(--accent-red)] transition-colors"
+      >
         {feature.title}
-      </p>
+      </Link>
 
       {feature.description && (
         <p className="text-xs text-[var(--ink-faint)] line-clamp-2 mb-2.5 leading-relaxed">

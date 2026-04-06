@@ -6,7 +6,8 @@ import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
 import type { Epic, EpicStatus } from "@/types";
 import Link from "next/link";
-import { LayoutList, Columns, Plus, Layers, GitBranch } from "lucide-react";
+import { Plus, ExternalLink } from "lucide-react";
+import { ProjectSelector } from "@/components/stories/ProjectSelector";
 
 const COLUMNS: { status: EpicStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
   { status: "planning",    label: "Planung",    color: "bg-[var(--paper-warm)] text-[var(--ink-mid)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",  dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
@@ -15,17 +16,36 @@ const COLUMNS: { status: EpicStatus; label: string; color: string; dot: string; 
   { status: "archived",    label: "Archiviert", color: "bg-[var(--paper-warm)] text-[var(--ink-faint)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",  dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
 ];
 
-function EpicCard({ epic, dragging, onDragStart, onDragEnd }: {
-  epic: Epic; dragging: boolean; onDragStart: (id: string) => void; onDragEnd: () => void;
+function EpicCard({ epic, org, dragging, onDragStart, onDragEnd }: {
+  epic: Epic; org: string; dragging: boolean; onDragStart: (id: string) => void; onDragEnd: () => void;
 }) {
+  const href = `/${org}/stories/epics/${epic.id}`;
   return (
     <div
       draggable
       onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", epic.id); onDragStart(epic.id); }}
       onDragEnd={onDragEnd}
-      className={`bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-3.5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all cursor-grab active:cursor-grabbing select-none ${dragging ? "opacity-40 scale-95" : ""}`}
+      className={`bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-3.5 hover:border-[rgba(var(--accent-red-rgb),.3)] transition-all cursor-grab active:cursor-grabbing select-none group ${dragging ? "opacity-40 scale-95" : ""}`}
     >
-      <p className="text-sm font-semibold text-[var(--ink)] line-clamp-2 mb-1.5 leading-snug">{epic.title}</p>
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <Link
+          href={href}
+          draggable={false}
+          onClick={(e) => e.stopPropagation()}
+          className="text-sm font-semibold text-[var(--ink)] line-clamp-2 leading-snug flex-1 hover:text-[var(--accent-red)] transition-colors"
+        >
+          {epic.title}
+        </Link>
+        <Link
+          href={href}
+          onClick={(e) => e.stopPropagation()}
+          className="shrink-0 p-0.5 text-[var(--ink-faintest)] hover:text-[var(--accent-red)] opacity-0 group-hover:opacity-100 transition-all"
+          title="Detail öffnen"
+          draggable={false}
+        >
+          <ExternalLink size={13} />
+        </Link>
+      </div>
       {epic.description && <p className="text-xs text-[var(--ink-faint)] line-clamp-2 leading-relaxed">{epic.description}</p>}
     </div>
   );
@@ -40,9 +60,10 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
   const [showNewForm, setShowNewForm] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [saving, setSaving] = useState(false);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
 
   const { data: epics, isLoading, error, mutate } = useSWR<Epic[]>(
-    org ? `/api/v1/epics?org_id=${org.id}` : null,
+    org ? `/api/v1/epics?org_id=${org.id}${projectFilter ? `&project_id=${projectFilter}` : ""}` : null,
     fetcher
   );
 
@@ -79,8 +100,9 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
     await handleStatusChange(id, s);
   }
 
-  const byStatus = (s: EpicStatus) => (epics ?? []).filter((ep) => ep.status === s);
-  const total = epics?.length ?? 0;
+  const visibleEpics = epics ?? [];
+  const byStatus = (s: EpicStatus) => visibleEpics.filter((ep) => ep.status === s);
+  const total = visibleEpics.length;
 
   return (
     <div className="flex flex-col h-full space-y-4">
@@ -89,17 +111,16 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
           <h1 className="text-2xl font-bold text-[var(--ink)]">Epics</h1>
           {total > 0 && <p className="text-[var(--ink-faint)] mt-0.5 text-sm">{total} Epics</p>}
         </div>
-        <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors">
-          <Plus size={16} /> Neues Epic
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-[var(--paper-rule)] shrink-0 overflow-x-auto">
-        <Link href={`/${resolvedParams.org}/stories/list`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap"><LayoutList size={15} /> Liste</Link>
-        <Link href={`/${resolvedParams.org}/stories/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap"><Columns size={15} /> Board</Link>
-        <Link href={`/${resolvedParams.org}/stories/features/board`} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors whitespace-nowrap"><Layers size={15} /> Features</Link>
-        <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-[var(--accent-red)] text-[var(--accent-red)] whitespace-nowrap"><GitBranch size={15} /> Epics</span>
+        <div className="flex items-center gap-3">
+          {org && (
+            <div className="w-44">
+              <ProjectSelector orgId={org.id} value={projectFilter} onChange={setProjectFilter} label="" />
+            </div>
+          )}
+          <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors">
+            <Plus size={16} /> Neues Epic
+          </button>
+        </div>
       </div>
 
       {showNewForm && (
@@ -115,12 +136,21 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
 
       {!isLoading && !error && epics && epics.length === 0 && !showNewForm && (
         <div className="text-center py-16 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
-          <div className="text-4xl mb-4">🗺️</div>
-          <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Noch keine Epics</h3>
-          <p className="text-[var(--ink-faint)] mb-6 text-sm">Epics bündeln verwandte User Stories.</p>
-          <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors">
-            <Plus size={16} /> Erstes Epic erstellen
-          </button>
+          {projectFilter ? (
+            <>
+              <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Keine Epics für dieses Projekt</h3>
+              <p className="text-[var(--ink-faint)] text-sm">Dem ausgewählten Projekt sind noch keine Epics zugeordnet.</p>
+            </>
+          ) : (
+            <>
+              <div className="text-4xl mb-4">🗺️</div>
+              <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Noch keine Epics</h3>
+              <p className="text-[var(--ink-faint)] mb-6 text-sm">Epics bündeln verwandte User Stories.</p>
+              <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors">
+                <Plus size={16} /> Erstes Epic erstellen
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -148,7 +178,7 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
                   {isOver && dragId && <div className="border-2 border-dashed border-current rounded-sm h-12 opacity-40" />}
                   {colItems.length === 0 && !isOver && <p className="text-xs text-[var(--ink-faint)] text-center py-8">Keine Epics</p>}
                   {colItems.map((ep) => (
-                    <EpicCard key={ep.id} epic={ep} dragging={dragId === ep.id}
+                    <EpicCard key={ep.id} epic={ep} org={resolvedParams.org} dragging={dragId === ep.id}
                       onDragStart={(id) => { setDragId(id); dragCounters.current = {}; }}
                       onDragEnd={() => { setDragId(null); setDragOverStatus(null); dragCounters.current = {}; }}
                     />

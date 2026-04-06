@@ -5,6 +5,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     display_name: str
+    organization_name: str
 
     @field_validator("password")
     @classmethod
@@ -18,6 +19,13 @@ class RegisterRequest(BaseModel):
     def validate_display_name(cls, v: str) -> str:
         if len(v.strip()) < 1:
             raise ValueError("Display name cannot be empty")
+        return v.strip()
+
+    @field_validator("organization_name")
+    @classmethod
+    def validate_organization_name(cls, v: str) -> str:
+        if len(v.strip()) < 2:
+            raise ValueError("Organization name must be at least 2 characters")
         return v.strip()
 
 

@@ -37,6 +37,27 @@ class ProviderClient:
     def call(
         self, model: str, max_tokens: int, temperature: float, messages: list
     ) -> tuple[str, dict]:
+        if self.provider == "ionos":
+            from app.core.observability import timed_call
+            from app.services.providers.ionos_adapter import _IONOS_ALIAS_MAP
+            resolved_model = _IONOS_ALIAS_MAP.get(model, model)
+            with timed_call("ionos", resolved_model, "pipeline") as meta:
+                resp = self._client.chat.completions.create(
+                    model=resolved_model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    messages=messages,
+                )
+                content = resp.choices[0].message.content
+                text = (content or "").strip()
+                usage = {
+                    "input_tokens": resp.usage.prompt_tokens,
+                    "output_tokens": resp.usage.completion_tokens,
+                }
+                meta["input_tokens"] = usage["input_tokens"]
+                meta["output_tokens"] = usage["output_tokens"]
+            return text, usage
+
         if self.provider == "openai":
             try:
                 resp = self._client.chat.completions.create(

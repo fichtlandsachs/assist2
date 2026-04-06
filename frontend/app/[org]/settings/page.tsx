@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { useAuth } from "@/lib/auth/context";
 import { useTheme, type ThemeId } from "@/lib/theme/context";
@@ -9,7 +10,7 @@ import useSWR from "swr";
 import type { User, UserStory } from "@/types";
 import {
   Building2, Mail, CalendarDays, AlertCircle,
-  Layers, Cloud, CheckCircle, Trash2, Plus, Eye, EyeOff, RefreshCw,
+  Layers, Cloud, CheckCircle, Trash2, Plus, Eye, EyeOff, RefreshCw, Users2, UserCircle2,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -111,6 +112,7 @@ function SectionMessage({ msg }: { msg: { type: "success" | "error"; text: strin
 
 const TABS = [
   { id: "general",    label: "Allgemein",  Icon: Building2 },
+  { id: "user",       label: "Benutzer",   Icon: Users2 },
   { id: "email",      label: "E-Mail",     Icon: Mail },
   { id: "calendar",   label: "Kalender",   Icon: CalendarDays },
   { id: "jira",       label: "Jira",       Icon: Layers },
@@ -499,6 +501,7 @@ function ConfluenceSection({ orgId, settings }: { orgId: string; settings: Integ
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [confluenceIndexing, setConfluenceIndexing] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setMsg(null); setTestResult(null);
@@ -555,6 +558,31 @@ function ConfluenceSection({ orgId, settings }: { orgId: string; settings: Integ
           {testLoading ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-[var(--ink-faint)] border-t-transparent" /> : <RefreshCw size={14} />}
           Verbindung testen
         </button>
+      </div>
+      <div className="mt-4 pt-4 border-t border-[var(--paper-rule)]">
+        <button
+          type="button"
+          disabled={confluenceIndexing}
+          onClick={async () => {
+            setConfluenceIndexing(true);
+            try {
+              await apiRequest(`/api/v1/confluence/index`, {
+                method: "POST",
+                body: JSON.stringify({ org_id: orgId }),
+              });
+            } catch {
+              // Ignore
+            } finally {
+              setConfluenceIndexing(false);
+            }
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium disabled:opacity-50 transition-colors"
+        >
+          {confluenceIndexing ? "Indexierung läuft..." : "Jetzt indexieren"}
+        </button>
+        <p className="text-xs text-[var(--ink-faint)] mt-1">
+          Alle Confluence-Seiten aus konfigurierten Spaces werden in den Wissens-Index aufgenommen.
+        </p>
       </div>
     </form>
   );
@@ -814,6 +842,145 @@ function GitHubConnectionSection({ user }: { user: User }) {
   );
 }
 
+// ── Section: Members ─────────────────────────────────────────────────────
+
+function MembersSection({ orgId }: { orgId: string }) {
+  const { data } = useSWR<{ items: MembershipRead[]; total: number }>(
+    `/api/v1/organizations/${orgId}/members?page_size=100`,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-[var(--ink)]">Mitglieder</h3>
+      {!data ? (
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[var(--accent-red)]" />
+      ) : data.items.length === 0 ? (
+        <p className="text-sm text-[var(--ink-faint)]">Keine Mitglieder.</p>
+      ) : (
+        <div className="divide-y divide-[var(--paper-rule)] border border-[var(--paper-rule)] rounded-sm">
+          {data.items.map(m => (
+            <div key={m.id} className="flex items-center gap-3 px-4 py-2.5">
+              <div className="w-7 h-7 rounded-full bg-[var(--paper-warm)] border border-[var(--paper-rule)] flex items-center justify-center flex-shrink-0">
+                <UserCircle2 size={14} className="text-[var(--ink-faint)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[var(--ink)] truncate">{m.user.display_name}</p>
+                <p className="text-xs text-[var(--ink-faint)] truncate">{m.user.email}</p>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {m.roles.length > 0 ? m.roles.map(r => (
+                  <span key={r.id} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--paper-warm)] border border-[var(--paper-rule)] text-[var(--ink-mid)]">
+                    {r.name}
+                  </span>
+                )) : null}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded ${m.status === "active" ? "text-[var(--green)]" : "text-[var(--ink-faint)]"}`}>
+                  {m.status === "active" ? "Aktiv" : m.status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Section: User Profile ─────────────────────────────────────────────────
+
+interface MembershipRead {
+  id: string;
+  user: { id: string; display_name: string; email: string };
+  status: string;
+  roles: { id: string; name: string }[];
+  joined_at: string | null;
+}
+
+function UserSection({ user }: { user: User }) {
+  const parts = (user.display_name ?? "").split(" ");
+  const [firstName, setFirstName] = useState(parts[0] ?? "");
+  const [lastName, setLastName] = useState(parts.slice(1).join(" "));
+  const [organisation, setOrganisation] = useState(user.display_name ?? "");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true); setMsg(null);
+    const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ") || organisation.trim();
+    try {
+      await apiRequest("/api/v1/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({ display_name: displayName }),
+      });
+      setOrganisation(displayName);
+      setMsg({ type: "success", text: "Profil gespeichert." });
+      setTimeout(() => setMsg(null), 3000);
+    } catch { setMsg({ type: "error", text: "Fehler beim Speichern." }); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <form onSubmit={e => void handleSubmit(e)} className="space-y-5 max-w-lg">
+      <SectionMessage msg={msg} />
+      <div className="grid grid-cols-2 gap-4">
+        <FormField id="firstName" label="Vorname" value={firstName} onChange={setFirstName} />
+        <FormField id="lastName" label="Nachname" value={lastName} onChange={setLastName} />
+      </div>
+      <FormField id="organisation" label="Organisation" value={organisation} onChange={setOrganisation} />
+      <div>
+        <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1">E-Mail-Adresse</label>
+        <input
+          value={user.email ?? "—"}
+          disabled
+          className="w-full px-3 py-2 text-sm border border-[var(--paper-rule)] rounded-sm bg-[var(--paper-warm)] text-[var(--ink-faint)] cursor-not-allowed"
+        />
+      </div>
+      <SaveButton saving={saving} />
+    </form>
+  );
+}
+
+// ── Section: Password Change ───────────────────────────────────────────────
+
+function PasswordChangeSection() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (next !== confirm) { setMsg({ type: "error", text: "Die neuen Passwörter stimmen nicht überein." }); return; }
+    if (next.length < 8) { setMsg({ type: "error", text: "Das neue Passwort muss mindestens 8 Zeichen lang sein." }); return; }
+    setSaving(true); setMsg(null);
+    try {
+      await apiRequest("/api/v1/users/me/password", {
+        method: "POST",
+        body: JSON.stringify({ current_password: current, new_password: next }),
+      });
+      setCurrent(""); setNext(""); setConfirm("");
+      setMsg({ type: "success", text: "Passwort erfolgreich geändert." });
+      setTimeout(() => setMsg(null), 4000);
+    } catch (err: any) {
+      const detail = err?.detail ?? "Fehler beim Ändern des Passworts.";
+      setMsg({ type: "error", text: detail });
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <form onSubmit={e => void handleSubmit(e)} className="space-y-4 max-w-lg">
+      <SectionMessage msg={msg} />
+      <TokenField id="pw-current" label="Aktuelles Passwort" placeholder="Aktuelles Passwort" value={current} onChange={setCurrent} isSet={false} />
+      <TokenField id="pw-new" label="Neues Passwort" placeholder="Mindestens 8 Zeichen" value={next} onChange={setNext} isSet={false} />
+      <TokenField id="pw-confirm" label="Neues Passwort bestätigen" placeholder="Wiederholen" value={confirm} onChange={setConfirm} isSet={false} />
+      <SaveButton saving={saving} label="Passwort ändern" />
+    </form>
+  );
+}
+
 // ── Theme Selector ────────────────────────────────────────────────────────
 
 const THEMES: { id: ThemeId; name: string; desc: string; preview: { bg: string; sidebar: string; text: string; accent: string; font: string } }[] = [
@@ -900,7 +1067,24 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
   const resolvedParams = use(params);
   const { org, mutate: mutateOrg } = useOrg(resolvedParams.org);
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabId>("general");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const tabFromUrl = searchParams.get("tab") as TabId | null;
+  const validTab = TABS.some(t => t.id === tabFromUrl) ? tabFromUrl! : "general";
+  const [activeTab, setActiveTab] = useState<TabId>(validTab);
+
+  // Sync tab from URL when navigating via sidebar links
+  useEffect(() => {
+    const t = searchParams.get("tab") as TabId | null;
+    if (t && TABS.some(tab => tab.id === t)) setActiveTab(t);
+  }, [searchParams]);
+
+  const handleTabChange = useCallback((id: TabId) => {
+    setActiveTab(id);
+    router.replace(`${pathname}?tab=${id}`, { scroll: false });
+  }, [pathname, router]);
 
   const { data: integrationSettings, mutate: mutateIntegrations } = useSWR<IntegrationSettings>(
     org ? `/api/v1/organizations/${org.id}/integrations` : null,
@@ -917,48 +1101,37 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Einstellungen</h1>
-        <p className="text-[var(--ink-faint)] mt-1 text-sm">Organisation und Integrationen konfigurieren</p>
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-        {/* Tab nav — horizontal scroll on mobile, vertical sidebar on md+ */}
-        <nav className="flex md:flex-col md:w-48 md:shrink-0 gap-1 overflow-x-auto pb-1 md:pb-0">
-          {TABS.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm font-medium transition-colors whitespace-nowrap md:w-full md:text-left ${
-                activeTab === id
-                  ? "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] font-semibold"
-                  : "text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] hover:text-[var(--ink)]"
-              }`}
-            >
-              <Icon size={16} className={activeTab === id ? "text-[var(--accent-red)]" : "text-[var(--ink-faint)]"} />
-              {label}
-            </button>
-          ))}
-        </nav>
-
-        {/* Tab content */}
-        <div className="flex-1 rounded-sm p-4 md:p-6 min-w-0" style={{ background: "var(--paper)", border: "1px solid var(--paper-rule)" }}>
+    <div>
+      {/* Tab content — full width, sidebar navigation drives tabs via ?tab= param */}
+      <div className="rounded-sm p-4 md:p-6" style={{ background: "var(--paper)", border: "1px solid var(--paper-rule)" }}>
           {activeTab === "general" && (
             <>
-              <h2 className="text-base font-semibold text-[var(--ink)] mb-5">Allgemeine Einstellungen</h2>
+              <h2 className="text-base font-semibold text-[var(--ink)] mb-5">Organisation</h2>
               <GeneralSection org={org} mutateOrg={mutateOrg} />
-              <div className="mt-6 max-w-lg space-y-2">
-                <h3 className="text-sm font-semibold text-[var(--ink)]">Erscheinungsbild</h3>
-                <ThemeSelector />
+              <div className="mt-8 max-w-xl">
+                <MembersSection orgId={org.id} />
               </div>
-              {user && (
-                <div className="mt-6 max-w-lg space-y-2">
+            </>
+          )}
+          {activeTab === "user" && user && (
+            <>
+              <h2 className="text-base font-semibold text-[var(--ink)] mb-5">Benutzer</h2>
+              <div className="max-w-lg space-y-6">
+                <UserSection user={user} />
+                <div className="pt-4 border-t border-[var(--paper-rule)] space-y-2">
+                  <h3 className="text-sm font-semibold text-[var(--ink)]">Passwort ändern</h3>
+                  <PasswordChangeSection />
+                </div>
+                <div className="pt-4 border-t border-[var(--paper-rule)] space-y-2">
+                  <h3 className="text-sm font-semibold text-[var(--ink)]">Erscheinungsbild</h3>
+                  <ThemeSelector />
+                </div>
+                <div className="pt-4 border-t border-[var(--paper-rule)] space-y-2">
                   <h3 className="text-sm font-semibold text-[var(--ink)]">Verknüpfte Konten</h3>
                   <AtlassianConnectionSection user={user} />
                   <GitHubConnectionSection user={user} />
                 </div>
-              )}
+              </div>
             </>
           )}
           {activeTab === "email" && (
@@ -993,7 +1166,6 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
               )}
             </>
           )}
-        </div>
       </div>
     </div>
   );

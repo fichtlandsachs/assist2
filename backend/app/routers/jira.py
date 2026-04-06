@@ -12,6 +12,7 @@ from app.deps import get_atlassian_token, get_current_user
 from app.models.jira_story import JiraStory
 from app.models.user import User
 from app.services.jira_service import jira_service
+from app.tasks.rag_tasks import index_jira_ticket
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +164,7 @@ async def create_story(
     db.add(story)
     await db.commit()
     await db.refresh(story)
+    index_jira_ticket.delay(story.ticket_key, str(story.organization_id))
     return story
 
 
