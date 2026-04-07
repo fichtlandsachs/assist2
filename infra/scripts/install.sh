@@ -560,12 +560,14 @@ docker volume create assist_traefik-certs 2>/dev/null && ok "Created volume: ass
 section "Step 6 — Build Docker images"
 # ─────────────────────────────────────────────────────────────────────────────
 if [[ "$SKIP_BUILD" == false ]]; then
+  info "Clearing BuildKit cache to avoid stale layer errors…"
+  docker builder prune -f --filter type=exec.cachemount 2>/dev/null || docker builder prune -f 2>/dev/null || true
   info "Building backend image…"
-  docker compose -f /opt/assist2/infra/docker-compose.yml build backend 2>&1 | tail -5
+  docker compose -f /opt/assist2/infra/docker-compose.yml --env-file /opt/assist2/infra/.env build --no-cache backend 2>&1 | tail -5
   info "Building frontend image…"
-  docker compose -f /opt/assist2/infra/docker-compose.yml build frontend 2>&1 | tail -5
+  docker compose -f /opt/assist2/infra/docker-compose.yml --env-file /opt/assist2/infra/.env build --no-cache frontend 2>&1 | tail -5
   info "Building admin-frontend image…"
-  docker compose -f /opt/assist2/infra/docker-compose.yml build admin-frontend 2>&1 | tail -5
+  docker compose -f /opt/assist2/infra/docker-compose.yml --env-file /opt/assist2/infra/.env build --no-cache admin-frontend 2>&1 | tail -5
   ok "All images built."
 else
   info "Skipping build (--skip-build)."
