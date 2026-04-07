@@ -86,12 +86,12 @@ prompt() {
     # Optional or has default — never loop
     local hint=""
     [[ -n "$default" ]] && hint=" [${default}]"
-    read -rp "$(echo -e "${BOLD}${prompt_text}${NC}${hint}: ")" value
+    read -rp "$(echo -e "${BOLD}${prompt_text}${NC}${hint}: ")" value </dev/tty
     echo "${value:-$default}"
   else
     # Required — loop until non-empty
     while true; do
-      read -rp "$(echo -e "${BOLD}${prompt_text}${NC}: ")" value
+      read -rp "$(echo -e "${BOLD}${prompt_text}${NC}: ")" value </dev/tty
       [[ -n "$value" ]] && break
       warn "This field is required."
     done
@@ -102,7 +102,7 @@ prompt() {
 prompt_optional() {
   local prompt_text="$1"
   local value
-  read -rp "$(echo -e "${BOLD}${prompt_text}${NC} [Enter to skip]: ")" value
+  read -rp "$(echo -e "${BOLD}${prompt_text}${NC} [Enter to skip]: ")" value </dev/tty
   echo "$value"
 }
 
@@ -110,11 +110,11 @@ prompt_secret() {
   local prompt_text="$1" default="${2:-}"
   local value
   if [[ -n "$default" ]]; then
-    read -rsp "$(echo -e "${BOLD}${prompt_text}${NC} [leave empty to auto-generate]: ")" value
+    read -rsp "$(echo -e "${BOLD}${prompt_text}${NC} [leave empty to auto-generate]: ")" value </dev/tty
     echo ""
     echo "${value:-$default}"
   else
-    read -rsp "$(echo -e "${BOLD}${prompt_text}${NC} [leave empty to auto-generate]: ")" value
+    read -rsp "$(echo -e "${BOLD}${prompt_text}${NC} [leave empty to auto-generate]: ")" value </dev/tty
     echo ""
     if [[ -z "$value" ]]; then
       value="$(gen_secret 32)"
@@ -636,7 +636,7 @@ ok "Ghost started."
 section "Step 11 — Optional: Nextcloud post-install"
 # ─────────────────────────────────────────────────────────────────────────────
 echo ""
-read -rp "$(echo -e "${BOLD}Run Nextcloud post-install wizard now? [y/N]:${NC} ")" run_nc
+read -rp "$(echo -e "${BOLD}Run Nextcloud post-install wizard now? [y/N]:${NC} ")" run_nc </dev/tty
 if [[ "${run_nc,,}" == "y" ]]; then
   wait_healthy assist2-nextcloud 180
   info "Running Nextcloud init script…"
