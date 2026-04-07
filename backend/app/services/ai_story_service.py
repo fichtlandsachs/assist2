@@ -128,14 +128,7 @@ def _make_client(task_category: str, ai_settings: dict | None = None, complexity
     )
     client = ProviderClient("openai", litellm)
 
-    # Respect org-level model override — detect provider from model name prefix
-    model_override = (ai_settings or {}).get("model_override", "")
-    if model_override.startswith("claude"):
-        return client, "anthropic"
-    if model_override.startswith("gpt") or model_override.startswith("openai"):
-        return client, "openai"
-
-    # Default: workspace uses IONOS exclusively
+    # All calls go through LiteLLM — always route as ionos
     return client, "ionos"
 
 
@@ -223,13 +216,12 @@ async def get_story_suggestions(
       medium  → sonnet/gpt-4o,     single stage  (typical case)
       high    → sonnet/gpt-4o,     multi-stage   (missing fields, risk keywords, complex AC)
     """
-    model_override = (ai_settings or {}).get("model_override", "")
 
     # 0. Context analysis (heuristic, no LLM)
     ctx = analyze_context(data.title, data.description, data.acceptance_criteria)
     complexity = score_complexity(ctx)
     client, provider = _make_client("story", ai_settings)
-    decision = route_request(complexity, "suggest", provider=provider, model_override=model_override)
+    decision = route_request(complexity, "suggest", provider=provider)
 
     logger.debug("get_story_suggestions context=%s score=%s", ctx, complexity)
 
@@ -355,12 +347,11 @@ async def generate_story_docs(
       medium → sonnet/gpt-4o,     single stage
       high   → sonnet/gpt-4o,     multi-stage
     """
-    model_override = (ai_settings or {}).get("model_override", "")
 
     ctx = analyze_context(data.title, data.description, data.acceptance_criteria)
     complexity = score_complexity(ctx)
     client, provider = _make_client("dev", ai_settings)
-    decision = route_request(complexity, "docs", provider=provider, model_override=model_override)
+    decision = route_request(complexity, "docs", provider=provider)
 
     logger.debug("generate_story_docs context=%s score=%s", ctx, complexity)
 
@@ -395,12 +386,11 @@ async def generate_test_case_suggestions(
       medium → sonnet/gpt-4o,     single stage
       high   → sonnet/gpt-4o,     multi-stage   (many/complex AC)
     """
-    model_override = (ai_settings or {}).get("model_override", "")
 
     ctx = analyze_context(title, "", acceptance_criteria)
     complexity = score_complexity(ctx)
     client, provider = _make_client("story", ai_settings)
-    decision = route_request(complexity, "suggest", provider=provider, model_override=model_override)
+    decision = route_request(complexity, "suggest", provider=provider)
 
     # RAG retrieval
     rag_chunks: list = []
@@ -485,12 +475,11 @@ async def split_story(
     Suggest how to split a User Story into 2–5 smaller, independent stories.
     Always uses high-complexity routing for best quality.
     """
-    model_override = (ai_settings or {}).get("model_override", "")
 
     ctx = analyze_context(title, description or "", acceptance_criteria)
     complexity = score_complexity(ctx)
     client, provider = _make_client("story", ai_settings)
-    base = route_request(complexity, "suggest", provider=provider, model_override=model_override)
+    base = route_request(complexity, "suggest", provider=provider)
     # Force high quality for splits regardless of input complexity
     decision = RouteDecision(
         model=base.model,
@@ -576,12 +565,11 @@ async def generate_dod_suggestions(
     Suggest Definition of Done criteria and relevant KPIs for a User Story.
     Uses low/medium complexity routing — fast response.
     """
-    model_override = (ai_settings or {}).get("model_override", "")
 
     ctx = analyze_context(title, description or "", acceptance_criteria)
     complexity = score_complexity(ctx)
     client, provider = _make_client("story", ai_settings)
-    decision = route_request(complexity, "suggest", provider=provider, model_override=model_override)
+    decision = route_request(complexity, "suggest", provider=provider)
 
     # RAG retrieval
     rag_chunks: list = []
@@ -681,12 +669,11 @@ async def generate_feature_suggestions(
     Suggest concrete, implementable features (sub-functions) for a User Story.
     Features are the technical building blocks that together fulfil the story.
     """
-    model_override = (ai_settings or {}).get("model_override", "")
 
     ctx = analyze_context(title, description or "", acceptance_criteria)
     complexity = score_complexity(ctx)
     client, provider = _make_client("dev", ai_settings)
-    decision = route_request(complexity, "suggest", provider=provider, model_override=model_override)
+    decision = route_request(complexity, "suggest", provider=provider)
 
     # RAG retrieval
     rag_chunks: list = []

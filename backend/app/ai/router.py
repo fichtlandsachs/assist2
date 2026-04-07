@@ -23,7 +23,6 @@ from dataclasses import dataclass
 from typing import Literal
 
 from app.ai.complexity_scorer import ComplexityScore
-from app.config import get_settings
 
 TaskType = Literal["suggest", "docs"]
 PipelineMode = Literal["single", "multi"]
@@ -74,30 +73,24 @@ _MODEL_MAP_IONOS: dict[str, str] = {
 def route_request(
     complexity: ComplexityScore,
     task_type: TaskType,
-    provider: str = "anthropic",
-    model_override: str = "",
+    provider: str = "ionos",
 ) -> RouteDecision:
     """
     Produce a RouteDecision from complexity classification and task type.
     Falls back to medium if an unknown combination is passed.
 
-    model_override: org-level override takes priority over env override.
-    provider: "anthropic" (default), "openai", or "ionos".
+    All calls go through LiteLLM; provider selects the model map.
     """
-    settings = get_settings()
     level = complexity.level
     entry = _TABLE.get((task_type, level), _TABLE[("suggest", "medium")])
 
-    # Priority: org-level override → env-level override → default for provider
     if provider == "openai":
         model_map = _MODEL_MAP_OPENAI
     elif provider == "ionos":
         model_map = _MODEL_MAP_IONOS
     else:
         model_map = _MODEL_MAP
-    env_override = getattr(settings, "AI_MODEL_OVERRIDE", "")
-    effective_override = model_override or env_override
-    model = effective_override if effective_override else model_map[level]
+    model = model_map[level]
 
     return RouteDecision(
         model=model,

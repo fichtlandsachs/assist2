@@ -37,10 +37,6 @@ class ConfluenceSettingsUpdate(BaseModel):
 
 
 class AISettingsUpdate(BaseModel):
-    model_override: str = ""
-    ai_provider: str = "anthropic"
-    anthropic_api_key: Optional[str] = None
-    openai_api_key: Optional[str] = None
     dor_rules: Optional[list[str]] = None      # None = keep existing
     min_quality_score: Optional[int] = None    # None = keep existing
 
@@ -118,10 +114,6 @@ async def update_ai(
     org = await _get_org(org_id, db)
     svc.set_ai_settings(
         org,
-        model_override=data.model_override,
-        anthropic_api_key=data.anthropic_api_key,
-        ai_provider=data.ai_provider,
-        openai_api_key=data.openai_api_key,
         dor_rules=data.dor_rules,
         min_quality_score=data.min_quality_score,
     )

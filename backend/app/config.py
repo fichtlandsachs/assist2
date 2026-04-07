@@ -26,10 +26,7 @@ class Settings(BaseSettings):
     N8N_WEBHOOK_URL: str = "http://n8n:5678"
     N8N_API_KEY: str = ""
 
-    # AI
-    ANTHROPIC_API_KEY: str = ""
-    OPENAI_API_KEY: str = ""
-    AI_MODEL_OVERRIDE: str = ""   # if set, bypasses routing (e.g. "claude-sonnet-4-6")
+    # AI (all model calls go through LiteLLM — no direct API keys needed here)
 
     # ── IONOS AI ──────────────────────────────────────────────────────────────
     # OpenAI-compatible base URL. Swap for a different region without code change.

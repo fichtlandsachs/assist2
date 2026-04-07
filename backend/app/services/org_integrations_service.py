@@ -10,7 +10,6 @@ from typing import Any
 
 from app.core.security import encrypt_value, decrypt_value
 from app.models.organization import Organization
-from app.config import get_settings
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -116,10 +115,6 @@ DEFAULT_MIN_QUALITY_SCORE: int = 50
 def get_ai_settings(org: Organization) -> dict:
     cfg = _get_section(org, "ai")
     return {
-        "ai_provider": cfg.get("ai_provider", "anthropic"),
-        "anthropic_api_key_set": bool(cfg.get("anthropic_api_key_enc")),
-        "openai_api_key_set": bool(cfg.get("openai_api_key_enc")),
-        "model_override": cfg.get("model_override", ""),
         "dor_rules": cfg.get("dor_rules", DEFAULT_DOR_RULES),
         "min_quality_score": cfg.get("min_quality_score", DEFAULT_MIN_QUALITY_SCORE),
     }
@@ -127,18 +122,10 @@ def get_ai_settings(org: Organization) -> dict:
 
 def set_ai_settings(
     org: Organization,
-    model_override: str = "",
-    anthropic_api_key: str | None = None,
-    ai_provider: str = "anthropic",
-    openai_api_key: str | None = None,
     dor_rules: list[str] | None = None,
     min_quality_score: int | None = None,
 ) -> None:
     cfg = _get_section(org, "ai")
-    cfg["model_override"] = model_override
-    cfg["ai_provider"] = ai_provider
-    cfg["anthropic_api_key_enc"] = _maybe_encrypt(cfg.get("anthropic_api_key_enc"), anthropic_api_key)
-    cfg["openai_api_key_enc"] = _maybe_encrypt(cfg.get("openai_api_key_enc"), openai_api_key)
     if dor_rules is not None:
         cfg["dor_rules"] = [r.strip() for r in dor_rules if r.strip()]
     if min_quality_score is not None:
@@ -147,24 +134,9 @@ def set_ai_settings(
 
 
 def get_ai_client_settings(org: Organization) -> dict:
-    """Return decrypted AI credentials + ruleset for the service layer.
-
-    Falls back to global env vars if no org-level key is stored.
-    """
+    """Return AI ruleset for the service layer (all model calls go through LiteLLM)."""
     cfg = _get_section(org, "ai")
-    settings = get_settings()
-    model_override = cfg.get("model_override", "")
-
-    enc_anthropic = cfg.get("anthropic_api_key_enc")
-    anthropic_api_key = decrypt_value(enc_anthropic) if enc_anthropic else settings.ANTHROPIC_API_KEY
-
-    enc_openai = cfg.get("openai_api_key_enc")
-    openai_api_key = decrypt_value(enc_openai) if enc_openai else settings.OPENAI_API_KEY
-
     return {
-        "anthropic_api_key": anthropic_api_key,
-        "openai_api_key": openai_api_key,
-        "model_override": model_override,
         "dor_rules": cfg.get("dor_rules", DEFAULT_DOR_RULES),
         "min_quality_score": cfg.get("min_quality_score", DEFAULT_MIN_QUALITY_SCORE),
     }

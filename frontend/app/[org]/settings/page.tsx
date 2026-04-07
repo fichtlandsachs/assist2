@@ -21,10 +21,6 @@ interface IntegrationSettings {
   jira: { base_url: string; user: string; api_token_set: boolean };
   confluence: { base_url: string; user: string; api_token_set: boolean };
   ai: {
-    ai_provider: string;
-    anthropic_api_key_set: boolean;
-    openai_api_key_set: boolean;
-    model_override: string;
     dor_rules: string[];
     min_quality_score: number;
   };
@@ -593,20 +589,6 @@ function ConfluenceSection({ orgId, settings }: { orgId: string; settings: Integ
 
 // ── Section: AI ────────────────────────────────────────────────────────────
 
-const ANTHROPIC_MODELS = [
-  { value: "", label: "Automatisch (empfohlen)" },
-  { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-  { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-  { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
-];
-
-const OPENAI_MODELS = [
-  { value: "", label: "Automatisch (empfohlen)" },
-  { value: "gpt-4o", label: "GPT-4o" },
-  { value: "gpt-4o-mini", label: "GPT-4o mini" },
-  { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-];
-
 const DEFAULT_DOR_RULES = [
   "Hat die Story einen klaren Titel?",
   'Ist die Beschreibung im Format "Als [Rolle] möchte ich [Funktion], damit [Nutzen]"?',
@@ -616,22 +598,11 @@ const DEFAULT_DOR_RULES = [
 ];
 
 function AISection({ orgId, settings }: { orgId: string; settings: IntegrationSettings["ai"] }) {
-  const [provider, setProvider] = useState(settings.ai_provider || "anthropic");
-  const [anthropicKey, setAnthropicKey] = useState("");
-  const [openaiKey, setOpenaiKey] = useState("");
-  const [modelOverride, setModelOverride] = useState(settings.model_override);
   const [dorRules, setDorRules] = useState<string[]>(settings.dor_rules?.length ? settings.dor_rules : DEFAULT_DOR_RULES);
   const [newRule, setNewRule] = useState("");
   const [minQualityScore, setMinQualityScore] = useState(settings.min_quality_score ?? 50);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  const modelOptions = provider === "openai" ? OPENAI_MODELS : ANTHROPIC_MODELS;
-
-  function handleProviderChange(p: string) {
-    setProvider(p);
-    setModelOverride("");
-  }
 
   function addRule() {
     const r = newRule.trim();
@@ -655,74 +626,23 @@ function AISection({ orgId, settings }: { orgId: string; settings: IntegrationSe
       await apiRequest(`/api/v1/organizations/${orgId}/integrations/ai`, {
         method: "PATCH",
         body: JSON.stringify({
-          model_override: modelOverride,
-          ai_provider: provider,
-          anthropic_api_key: provider === "anthropic" ? (anthropicKey || null) : null,
-          openai_api_key: provider === "openai" ? (openaiKey || null) : null,
           dor_rules: dorRules.filter(Boolean),
           min_quality_score: minQualityScore,
         }),
       });
-      setAnthropicKey("");
-      setOpenaiKey("");
       setMsg({ type: "success", text: "Einstellungen gespeichert." });
     } catch { setMsg({ type: "error", text: "Fehler beim Speichern." }); }
     finally { setSaving(false); }
   };
 
-  const selectCls = "w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]";
   const inputCls = "w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]";
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6 max-w-lg">
       <p className="text-sm text-[var(--ink-mid)]">
-        KI-Anbieter, Regelwerk und Modell-Einstellungen konfigurieren.
+        Regelwerk für die KI-Bewertung von User Stories konfigurieren.
       </p>
       <SectionMessage msg={msg} />
-
-      {/* Provider selector */}
-      <div>
-        <label className="block text-sm font-medium text-[var(--ink-mid)] mb-2">KI-Anbieter</label>
-        <div className="flex gap-3">
-          {[
-            { value: "anthropic", label: "Anthropic (Claude)" },
-            { value: "openai", label: "OpenAI (ChatGPT)" },
-          ].map(({ value, label }) => (
-            <label key={value} className={`flex items-center gap-2 px-4 py-2.5 rounded-sm border cursor-pointer text-sm font-medium transition-colors ${
-              provider === value
-                ? "border-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]"
-                : "border-[var(--paper-rule)] bg-[var(--card)] text-[var(--ink-mid)] hover:border-[var(--ink-faintest)]"
-            }`}>
-              <input type="radio" name="ai-provider" value={value} checked={provider === value}
-                onChange={() => handleProviderChange(value)} className="sr-only" />
-              {label}
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* API Key */}
-      {provider === "anthropic" ? (
-        <TokenField id="ai-anthropic-key" label="Anthropic API-Key" placeholder="sk-ant-api03-…"
-          value={anthropicKey} onChange={setAnthropicKey} isSet={settings.anthropic_api_key_set}
-          hint="Erhältlich unter console.anthropic.com → API Keys" />
-      ) : (
-        <TokenField id="ai-openai-key" label="OpenAI API-Key" placeholder="sk-proj-…"
-          value={openaiKey} onChange={setOpenaiKey} isSet={settings.openai_api_key_set}
-          hint="Erhältlich unter platform.openai.com → API Keys" />
-      )}
-
-      {/* Model override */}
-      <div>
-        <label htmlFor="model-override" className="block text-sm font-medium text-[var(--ink-mid)] mb-1">
-          Modell-Override <span className="font-normal text-[var(--ink-faint)] text-xs ml-1">(leer = automatisches Routing)</span>
-        </label>
-        <select id="model-override" value={modelOverride} onChange={(e) => setModelOverride(e.target.value)} className={selectCls}>
-          {modelOptions.map(({ value, label }) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-      </div>
 
       {/* DoR Rules */}
       <div>
