@@ -1002,6 +1002,12 @@ const THEMES: { id: ThemeId; name: string; desc: string; preview: { bg: string; 
     desc: "Cleanes, modernes Interface mit kräftigen Kontrasten",
     preview: { bg: "#FDFBF7", sidebar: "#231F1F", text: "#231F1F", accent: "#534D5F", font: "Inter, sans-serif" },
   },
+  {
+    id: "karl",
+    name: "Karl",
+    desc: "Landing-Page-Design: Orange, Cream und harte Schatten",
+    preview: { bg: "#F5F0E8", sidebar: "#FFFFFF", text: "#0A0A0A", accent: "#FF5C00", font: "-apple-system, sans-serif" },
+  },
 ];
 
 function ThemeSelector() {
@@ -1029,9 +1035,9 @@ function ThemeSelector() {
                 style={{ height: "72px", background: t.preview.bg, display: "flex", borderBottom: "1px solid var(--paper-rule)" }}
               >
                 {/* Fake-Sidebar */}
-                <div style={{ width: "28px", background: t.preview.sidebar, flexShrink: 0, display: "flex", flexDirection: "column", gap: "4px", padding: "6px 4px" }}>
+                <div style={{ width: "28px", background: t.preview.sidebar, flexShrink: 0, display: "flex", flexDirection: "column", gap: "4px", padding: "6px 4px", borderRight: t.preview.sidebar === "#FFFFFF" ? "2px solid #0A0A0A" : "none" }}>
                   {[1, 2, 3].map(i => (
-                    <div key={i} style={{ height: "3px", borderRadius: "1px", background: "rgba(255,255,255,.25)" }} />
+                    <div key={i} style={{ height: "3px", borderRadius: "1px", background: t.preview.sidebar === "#FFFFFF" ? "rgba(10,10,10,.2)" : "rgba(255,255,255,.25)" }} />
                   ))}
                 </div>
                 {/* Fake-Content */}
