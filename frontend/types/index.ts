@@ -271,7 +271,7 @@ export interface AISuggestion {
   title: string | null;
   description: string | null;
   acceptance_criteria: string | null;
-  explanation: string;
+  explanation?: string | null;
   dor_issues: string[];
   quality_score: number | null;
   source?: "rag_direct" | "rag_context" | "llm";

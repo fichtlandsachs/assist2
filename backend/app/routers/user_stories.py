@@ -482,6 +482,35 @@ async def ai_suggest_test_cases(
 
 
 @router.post(
+    "/user-stories/{story_id}/ai-test-case-suggestions",
+    response_model=AITestCaseSuggestResponse,
+    summary="Generate AI test case suggestions (preview — not persisted)",
+)
+async def ai_suggest_test_cases_preview(
+    story_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),  # noqa: ARG001
+) -> AITestCaseSuggestResponse:
+    """Return AI test case suggestions without persisting them."""
+    stmt = select(UserStory).where(UserStory.id == story_id)
+    result = await db.execute(stmt)
+    story = result.scalar_one_or_none()
+    if story is None:
+        raise NotFoundException("User story not found")
+
+    await _check_llm_allowed(story.organization_id, db)
+    ai_settings = await _get_ai_settings(story.organization_id, db)
+    suggestions = await generate_test_case_suggestions(
+        story.title,
+        story.acceptance_criteria,
+        ai_settings=ai_settings,
+        org_id=story.organization_id,
+        db=db,
+    )
+    return AITestCaseSuggestResponse(suggestions=suggestions)
+
+
+@router.post(
     "/user-stories/{story_id}/ai-dod",
     response_model=AIDoDSuggestResponse,
     summary="Generate AI Definition of Done suggestions and KPIs",

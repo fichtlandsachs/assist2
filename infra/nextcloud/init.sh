@@ -29,9 +29,9 @@ $NC_EXEC config:app:set sociallogin custom_providers --value='{
   "custom_oidc": [{
     "name": "authentik",
     "title": "Login with Workplace",
-    "authorizeUrl": "https://authentik.fichtlworks.com/application/o/nextcloud/authorize/",
-    "tokenUrl": "https://authentik.fichtlworks.com/application/o/nextcloud/token/",
-    "userInfoUrl": "https://authentik.fichtlworks.com/application/o/nextcloud/userinfo/",
+    "authorizeUrl": "https://authentik.heykarl.app/application/o/nextcloud/authorize/",
+    "tokenUrl": "https://authentik.heykarl.app/application/o/nextcloud/token/",
+    "userInfoUrl": "https://authentik.heykarl.app/application/o/nextcloud/userinfo/",
     "clientId": "'"${NEXTCLOUD_OIDC_CLIENT_ID}"'",
     "clientSecret": "'"${NEXTCLOUD_OIDC_CLIENT_SECRET}"'",
     "scope": "openid email profile",

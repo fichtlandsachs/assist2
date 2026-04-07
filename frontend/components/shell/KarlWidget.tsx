@@ -5,9 +5,10 @@ import { useTheme } from "@/lib/theme/context";
 
 interface KarlWidgetProps {
   orgSlug: string;
+  onMobileClose?: () => void;
 }
 
-export function KarlWidget({ orgSlug }: KarlWidgetProps) {
+export function KarlWidget({ orgSlug, onMobileClose }: KarlWidgetProps) {
   const { theme } = useTheme();
   const isPaperwork = theme === "paperwork";
 
@@ -25,7 +26,8 @@ export function KarlWidget({ orgSlug }: KarlWidgetProps) {
         </p>
         <Link href={`/${orgSlug}/ai-workspace`}
           style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--sidebar-logout-text)" }}
-          aria-label="KI Workspace">
+          aria-label="KI Workspace"
+          onClick={onMobileClose}>
           →
         </Link>
       </div>
@@ -48,7 +50,8 @@ export function KarlWidget({ orgSlug }: KarlWidgetProps) {
       </p>
 
       <Link href={`/${orgSlug}/ai-workspace`}
-        className="w-full text-center px-4 py-2 rounded-xl text-[11px] font-bold tracking-[0.15em] uppercase transition-colors bg-slate-900 text-white hover:bg-rose-500 font-['Architects_Daughter']">
+        className="w-full text-center px-4 py-2 rounded-xl text-[11px] font-bold tracking-[0.15em] uppercase transition-colors bg-slate-900 text-white hover:bg-rose-500 font-['Architects_Daughter']"
+        onClick={onMobileClose}>
         Talk to Karl
       </Link>
     </div>

@@ -22,7 +22,7 @@ export default function LoginPage() {
     } catch (err) {
       const apiErr = err as ApiError & { status?: number };
       if (apiErr?.code === "HTTP_401" || apiErr?.status === 401) {
-        setError("Ungültige Zugangsdaten. Falls du dein Passwort noch nicht zurückgesetzt hast, besuche: authentik.fichtlworks.com");
+        setError("Ungültige Zugangsdaten. Falls du dein Passwort noch nicht zurückgesetzt hast, besuche: authentik.heykarl.app");
       } else {
         setError(apiErr?.error ?? "Login fehlgeschlagen. Bitte versuche es erneut.");
       }

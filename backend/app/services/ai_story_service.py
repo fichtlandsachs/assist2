@@ -295,6 +295,10 @@ async def get_story_suggestions(
 
     # 4. Parse and return
     parsed = _parse_json(raw)
+    # Coerce acceptance_criteria to str if the model returned a list
+    ac = parsed.get("acceptance_criteria")
+    if isinstance(ac, list):
+        parsed["acceptance_criteria"] = "\n".join(str(item) for item in ac)
     return AISuggestion(**parsed, source=rag_source, sources=rag_sources)
 
 
