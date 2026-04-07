@@ -565,7 +565,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                 </div>
               )}
 
-              <div className="flex items-end gap-2">
+              <div className={isMobile ? "flex flex-col gap-2" : "flex items-end gap-2"}>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -582,7 +582,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                   onPaste={handlePaste}
                   rows={2}
                   placeholder="Nachricht oder Bild einfügen… (Strg+V für Screenshot)"
-                  className="flex-1 resize-none rounded-sm px-3 py-2 outline-none"
+                  className="flex-1 resize-none rounded-sm px-3 py-2 outline-none w-full"
                   style={{
                     fontFamily: "var(--font-body)",
                     fontSize: "14px",
@@ -591,38 +591,41 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                     color: "var(--ink)",
                   }}
                 />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-2 rounded-sm transition-colors"
-                  style={{
-                    background: "transparent",
-                    border: "0.5px solid var(--paper-rule)",
-                    color: "var(--ink-faint)",
-                  }}
-                  title="Bild hochladen"
-                >
-                  <ImagePlus size={14} />
-                </button>
-                <button
-                  onClick={toggleRecording}
-                  className="p-2 rounded-sm transition-colors"
-                  style={{
-                    background: recording ? "rgba(192,57,43,.1)" : "transparent",
-                    border: `0.5px solid ${recording ? "var(--accent-red)" : "var(--paper-rule)"}`,
-                    color: recording ? "var(--accent-red)" : "var(--ink-faint)",
-                  }}
-                  title={recording ? "Aufnahme stoppen" : "Sprachaufnahme starten"}
-                >
-                  {recording ? <MicOff size={14} /> : <Mic size={14} />}
-                </button>
-                <Button
-                  onClick={sendMessage}
-                  disabled={(!input.trim() && pendingImages.length === 0) || streaming}
-                  size="sm"
-                >
-                  <Send size={12} />
-                  Senden
-                </Button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 rounded-sm transition-colors"
+                    style={{
+                      background: "transparent",
+                      border: "0.5px solid var(--paper-rule)",
+                      color: "var(--ink-faint)",
+                    }}
+                    title="Bild hochladen"
+                  >
+                    <ImagePlus size={14} />
+                  </button>
+                  <button
+                    onClick={toggleRecording}
+                    className="p-2 rounded-sm transition-colors"
+                    style={{
+                      background: recording ? "rgba(192,57,43,.1)" : "transparent",
+                      border: `0.5px solid ${recording ? "var(--accent-red)" : "var(--paper-rule)"}`,
+                      color: recording ? "var(--accent-red)" : "var(--ink-faint)",
+                    }}
+                    title={recording ? "Aufnahme stoppen" : "Sprachaufnahme starten"}
+                  >
+                    {recording ? <MicOff size={14} /> : <Mic size={14} />}
+                  </button>
+                  <Button
+                    onClick={sendMessage}
+                    disabled={(!input.trim() && pendingImages.length === 0) || streaming}
+                    size="sm"
+                    className={isMobile ? "flex-1" : ""}
+                  >
+                    <Send size={12} />
+                    Senden
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

@@ -79,16 +79,19 @@ const STATUS_LABEL: Record<string, string> = {
   ready: "Ready", testing: "Testing", draft: "Draft",
 };
 
-function StoryRow({ story }: { story: UserStory }) {
+function StoryRow({ story, orgSlug }: { story: UserStory; orgSlug: string }) {
   const cls = STATUS_STYLE[story.status] ?? STATUS_STYLE.draft;
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-slate-100 last:border-0 group">
+    <div className="flex items-center gap-3 py-2.5 border-b border-slate-100 last:border-0">
       <span className={`shrink-0 text-[8px] font-bold uppercase px-2 py-0.5 rounded-full border font-['Architects_Daughter'] ${cls}`}>
         {STATUS_LABEL[story.status] ?? story.status}
       </span>
-      <span className="flex-1 text-[12px] text-slate-700 font-['Architects_Daughter'] truncate group-hover:text-slate-900 transition-colors">
+      <Link
+        href={`/${orgSlug}/stories/${story.id}`}
+        className="flex-1 text-[12px] text-slate-700 font-['Architects_Daughter'] truncate hover:text-rose-500 hover:underline transition-colors"
+      >
         {story.title}
-      </span>
+      </Link>
       {story.story_points != null && (
         <span className="shrink-0 text-[10px] font-bold text-slate-400 font-['Architects_Daughter']">
           {story.story_points}P
@@ -128,19 +131,6 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
   return (
     <div className="relative min-h-screen font-sans overflow-x-hidden">
 
-      {/* ── Karl 4 — fixed right edge, responsive scale ──────────────────── */}
-      <div
-        className="fixed bottom-0 right-0 z-40 pointer-events-none select-none"
-        style={{ width: "clamp(100px, 14vw, 220px)" }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/karl-4.png"
-          alt="Karl"
-          className="w-full object-contain object-bottom drop-shadow-2xl"
-          style={{ maxHeight: "90vh" }}
-        />
-      </div>
 
       {/* ── Content — right padding so Karl doesn't overlap on large screens ── */}
       <div
@@ -294,7 +284,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
               </Link>
             </div>
             <div>
-              {topStories.map(story => <StoryRow key={story.id} story={story} />)}
+              {topStories.map(story => <StoryRow key={story.id} story={story} orgSlug={resolvedParams.org} />)}
             </div>
           </section>
         )}

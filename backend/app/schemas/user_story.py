@@ -75,7 +75,7 @@ class AISuggestion(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     acceptance_criteria: Optional[str] = None
-    explanation: str
+    explanation: Optional[str] = None
     dor_issues: list[str] = []
     quality_score: Optional[int] = None  # 0-100; None when answered from RAG knowledge base
     source: Literal["rag_direct", "rag_context", "llm"] = "llm"

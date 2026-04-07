@@ -265,92 +265,81 @@ interface AITestCaseSuggestionData {
   title: string;
   steps: string | null;
   expected_result: string | null;
+  sources?: import("@/components/stories/AISuggestionItem").Source[];
 }
 
 function SuggestedTestCaseCard({
   suggestion,
   onAdd,
-  onDragToForm,
 }: {
   suggestion: AITestCaseSuggestionData;
   onAdd: (s: AITestCaseSuggestionData) => Promise<void>;
-  onDragToForm: (s: AITestCaseSuggestionData) => void;
 }) {
   const [adding, setAdding] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData(
-      "application/x-test-case-suggestion",
-      JSON.stringify(suggestion)
-    );
-    e.dataTransfer.setData("text/plain", suggestion.title);
-    e.dataTransfer.effectAllowed = "copy";
-  };
+  const hasSources = suggestion.sources && suggestion.sources.length > 0;
 
   async function handleAdd() {
     setAdding(true);
-    try {
-      await onAdd(suggestion);
-    } finally {
-      setAdding(false);
-    }
+    try { await onAdd(suggestion); }
+    finally { setAdding(false); }
   }
 
   return (
-    <div
-      draggable
-      onDragStart={handleDragStart}
-      className="border border-[rgba(var(--btn-primary-rgb),.3)] rounded-sm bg-[rgba(var(--btn-primary-rgb),.08)] hover:bg-[var(--card)] hover:border-[var(--btn-primary)] transition-all cursor-grab active:cursor-grabbing group"
-    >
-      <div className="flex items-center gap-2 px-3 py-2.5">
-        <GripVertical size={13} className="shrink-0 text-[var(--btn-primary)] group-hover:text-[var(--btn-primary)] transition-colors" />
-        <span className="flex-1 min-w-0 text-sm font-medium text-[var(--ink)] leading-tight break-words">{suggestion.title}</span>
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="shrink-0 text-xs text-[var(--ink-faint)] hover:text-[var(--ink-mid)] px-1"
-        >
-          {expanded ? "▲" : "▼"}
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleAdd()}
-          disabled={adding}
-          title="Direkt als Testfall hinzufügen"
-          className="shrink-0 flex items-center gap-1 px-2 py-1 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[var(--btn-primary)] text-white rounded-sm text-xs font-medium transition-colors"
-        >
-          {adding ? (
-            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
+    <div className="relative flex items-start gap-2 px-3 py-2.5 border border-[var(--paper-rule)] rounded-sm bg-[var(--card)] hover:border-[rgba(var(--accent-red-rgb),.3)] transition-colors group">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-[var(--ink-mid)] break-words leading-snug pr-5">{suggestion.title}</p>
+        {(suggestion.steps || suggestion.expected_result) && (
+          <>
+            {!expanded && (
+              <button onClick={() => setExpanded(true)} className="text-xs text-[var(--ink-faint)] hover:text-[var(--ink-mid)] mt-0.5">
+                Details ▼
+              </button>
+            )}
+            {expanded && (
+              <>
+                {suggestion.steps && (
+                  <div className="mt-1.5">
+                    <p className="text-xs font-medium text-[var(--ink-faint)] mb-0.5">Schritte:</p>
+                    <p className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap">{suggestion.steps}</p>
+                  </div>
+                )}
+                {suggestion.expected_result && (
+                  <div className="mt-1.5">
+                    <p className="text-xs font-medium text-[var(--ink-faint)] mb-0.5">Ergebnis:</p>
+                    <p className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap">{suggestion.expected_result}</p>
+                  </div>
+                )}
+                <button onClick={() => setExpanded(false)} className="text-xs text-[var(--ink-faint)] hover:text-[var(--ink-mid)]">▲</button>
+              </>
+            )}
+          </>
+        )}
+        <div className="flex flex-wrap items-center gap-1 mt-1.5">
+          {hasSources ? (
+            suggestion.sources!.map((s, i) => (
+              <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 text-[10px] text-[var(--ink-faint)] hover:text-[var(--accent-red)] border border-[var(--paper-rule)] rounded-sm px-1.5 py-0.5 transition-colors">
+                <FileText size={9} />{s.title}
+              </a>
+            ))
           ) : (
-            <Plus size={12} />
+            <span className="inline-flex items-center gap-1 text-[10px] text-[var(--ink-faintest)] border border-[var(--paper-rule)] rounded-sm px-1.5 py-0.5">
+              <Sparkles size={9} />KI
+            </span>
           )}
-          Hinzufügen
-        </button>
-      </div>
-      {expanded && (suggestion.steps || suggestion.expected_result) && (
-        <div className="px-3 pb-3 space-y-2 border-t border-[rgba(var(--btn-primary-rgb),.3)] pt-2">
-          {suggestion.steps && (
-            <div>
-              <p className="text-xs font-medium text-[var(--ink-faint)] mb-0.5">Schritte:</p>
-              <p className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap">{suggestion.steps}</p>
-            </div>
-          )}
-          {suggestion.expected_result && (
-            <div>
-              <p className="text-xs font-medium text-[var(--ink-faint)] mb-0.5">Erwartetes Ergebnis:</p>
-              <p className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap">{suggestion.expected_result}</p>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => onDragToForm(suggestion)}
-            className="text-xs text-[var(--btn-primary)] hover:text-[var(--btn-primary)] underline"
-          >
-            In Formular laden zum Bearbeiten
-          </button>
         </div>
-      )}
+      </div>
+      <button
+        type="button"
+        onClick={() => void handleAdd()}
+        disabled={adding}
+        aria-label="Testfall übernehmen"
+        className="absolute top-[6px] right-[6px] w-[18px] h-[18px] flex items-center justify-center bg-[rgba(var(--accent-red-rgb),.08)] border-[0.5px] border-[rgba(var(--accent-red-rgb),.3)] text-[var(--accent-red)] rounded-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent-red)] hover:text-white"
+      >
+        {adding ? <div className="animate-spin rounded-full h-2.5 w-2.5 border border-current border-t-transparent" /> : <Plus size={10} />}
+      </button>
     </div>
   );
 }
@@ -700,31 +689,31 @@ function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: s
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [lastAiCount, setLastAiCount] = useState<number | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<AITestCaseSuggestionData[] | null>(null);
 
-  async function generateAndSave() {
+  async function handleLoadSuggestions() {
     setAiLoading(true);
     setAiError(null);
-    setLastAiCount(null);
     try {
-      const saved = await apiRequest<TestCase[]>(
-        `/api/v1/user-stories/${storyId}/ai-test-cases`,
+      const res = await apiRequest<{ suggestions: AITestCaseSuggestionData[] }>(
+        `/api/v1/user-stories/${storyId}/ai-test-case-suggestions`,
         { method: "POST" }
       );
-      setLastAiCount(saved.length);
-      // Replace AI-generated entries in cache without refetch
-      mutate(
-        (current) => {
-          const manual = (current ?? []).filter((tc) => !tc.is_ai_generated);
-          return [...saved, ...manual];
-        },
-        false
-      );
+      setAiSuggestions(res.suggestions ?? []);
     } catch (err: unknown) {
-      setAiError((err as { error?: string })?.error ?? "Fehler beim Generieren der Testfälle.");
+      setAiError((err as { error?: string })?.error ?? "Fehler beim Generieren der Vorschläge.");
     } finally {
       setAiLoading(false);
     }
+  }
+
+  async function addTestCaseFromSuggestion(s: AITestCaseSuggestionData) {
+    setAiSuggestions((prev) => prev?.filter((x) => x.title !== s.title) ?? prev);
+    const created = await apiRequest<TestCase>(`/api/v1/user-stories/${storyId}/test-cases`, {
+      method: "POST",
+      body: JSON.stringify({ title: s.title, steps: s.steps || null, expected_result: s.expected_result || null }),
+    });
+    mutate((current) => [...(current ?? []), created], false);
   }
 
   async function handleAddTestCase(e: React.FormEvent) {
@@ -968,58 +957,52 @@ function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: s
         </div>
       </div>
 
-      {/* RIGHT: Assistent */}
-      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
-        <div className="mb-4">
-          <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
-            <Sparkles size={16} className="text-[var(--accent-red)]" />
-            Assistent
-          </h2>
-          <p className="text-xs text-[var(--ink-faint)] mt-1">
-            Generiert Testfall-Vorschläge aus den Akzeptanzkriterien und speichert sie direkt an der Story.
-            Beim erneuten Generieren werden bestehende Testfälle ersetzt.
-          </p>
+      {/* RIGHT: Testfall-Vorschläge */}
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto space-y-4">
+        <div className="flex items-center gap-2">
+          <Sparkles size={16} className="text-[var(--accent-red)]" />
+          <h3 className="font-semibold text-[var(--ink)]">Testfall-Vorschläge</h3>
         </div>
+        <p className="text-sm text-[var(--ink-faint)]">
+          Analysiert die Akzeptanzkriterien und schlägt Testfälle vor. Mit + einzeln zur Story hinzufügen.
+        </p>
 
         {isLocked ? (
           <div className="flex items-center gap-2 px-4 py-3 bg-[var(--paper-warm)] text-[var(--ink-faint)] rounded-sm text-sm">
             <Lock size={15} />
-            Generierung gesperrt (Status: {storyStatus})
+            Gesperrt (Status: {storyStatus})
           </div>
         ) : (
           <button
-            onClick={editing ? () => void generateAndSave() : undefined}
+            onClick={editing ? () => void handleLoadSuggestions() : undefined}
             disabled={!editing || aiLoading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
+            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
           >
-            {aiLoading ? (
-              <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />Analysiert…</>
-            ) : (
-              <><Sparkles size={16} />Testfälle generieren &amp; speichern</>
-            )}
+            {aiLoading
+              ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Wird analysiert…</>
+              : <><Sparkles size={14} /> Vorschläge generieren</>
+            }
           </button>
         )}
 
         {aiError && (
-          <div className="mt-3 p-3 bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm text-[var(--accent-red)] text-xs">{aiError}</div>
+          <p className="text-sm text-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] px-3 py-2 rounded-sm">{aiError}</p>
         )}
 
-        {lastAiCount !== null && !aiError && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-[rgba(82,107,94,.1)] border border-[rgba(82,107,94,.3)] rounded-sm text-[var(--green)] text-xs">
-            <CheckCircle size={13} />
-            {lastAiCount} Testfall{lastAiCount !== 1 ? "fälle" : ""} generiert und gespeichert.
+        {aiSuggestions !== null && aiSuggestions.length === 0 && !aiLoading && (
+          <p className="text-sm text-[var(--ink-faint)] text-center py-4">Keine Vorschläge generiert.</p>
+        )}
+
+        {aiSuggestions !== null && aiSuggestions.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">
+              {aiSuggestions.length} Vorschläge
+            </p>
+            {aiSuggestions.map((s, i) => (
+              <SuggestedTestCaseCard key={i} suggestion={s} onAdd={addTestCaseFromSuggestion} />
+            ))}
           </div>
         )}
-
-        <div className="mt-5 space-y-2 text-xs text-[var(--ink-faint)]">
-          <p className="font-medium text-[var(--ink-mid)]">Regeln:</p>
-          <ul className="space-y-1 list-disc list-inside">
-            <li>Testfälle werden sofort gespeichert</li>
-            <li>Erneutes Generieren ersetzt bestehende Testfälle</li>
-            <li>Manuell hinzugefügte Testfälle bleiben erhalten</li>
-            <li>Ab Status <strong>Test</strong> sind Hinzufügen und Bearbeiten gesperrt</li>
-          </ul>
-        </div>
       </div>
     </div>
   );
@@ -1668,11 +1651,7 @@ function SuggestedFeatureCard({
   const [adding, setAdding] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  async function handleAdd() {
-    setAdding(true);
-    try { await onAdd(suggestion); }
-    finally { setAdding(false); }
-  }
+  const hasSources = suggestion.sources && suggestion.sources.length > 0;
 
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("application/x-feature-suggestion", JSON.stringify(suggestion));
@@ -1680,53 +1659,68 @@ function SuggestedFeatureCard({
     e.dataTransfer.effectAllowed = "copy";
   }
 
+  async function handleAdd() {
+    setAdding(true);
+    try { await onAdd(suggestion); }
+    finally { setAdding(false); }
+  }
+
   return (
     <div
       draggable
       onDragStart={handleDragStart}
-      className="border border-emerald-200 rounded-sm bg-emerald-50 hover:border-emerald-300 transition-colors cursor-grab active:cursor-grabbing"
+      className="relative flex items-start gap-2 px-3 py-2.5 border border-[var(--paper-rule)] rounded-sm bg-[var(--card)] hover:border-[rgba(var(--accent-red-rgb),.3)] transition-colors group cursor-grab active:cursor-grabbing"
     >
-      <div className="flex items-start gap-2 px-3 py-2.5">
-        <GripVertical size={13} className="shrink-0 mt-1 text-emerald-400" />
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-            <span className={`text-xs font-medium ${PRIORITY_COLORS[suggestion.priority ?? "medium"]}`}>
-              ● {PRIORITY_OPTIONS.find((p) => p.value === (suggestion.priority ?? "medium"))?.label}
-            </span>
-            {suggestion.story_points !== null && suggestion.story_points !== undefined && (
-              <span className="px-1.5 py-0.5 rounded-sm bg-emerald-100 text-emerald-600 text-xs">{suggestion.story_points} SP</span>
-            )}
-          </div>
-          <p className="text-sm font-medium text-[var(--ink)] leading-snug">{suggestion.title}</p>
-          {suggestion.description && (
-            <>
-              {!expanded && (
-                <button onClick={() => setExpanded(true)} className="text-xs text-[var(--ink-faint)] hover:text-[var(--ink-mid)] mt-0.5">
-                  Details ▼
-                </button>
-              )}
-              {expanded && (
-                <>
-                  <p className="text-xs text-[var(--ink-mid)] mt-1 whitespace-pre-wrap">{suggestion.description}</p>
-                  <button onClick={() => setExpanded(false)} className="text-xs text-[var(--ink-faint)] hover:text-[var(--ink-mid)]">▲</button>
-                </>
-              )}
-            </>
+      <GripVertical size={13} className="shrink-0 mt-0.5 text-[var(--ink-faintest)] group-hover:text-[var(--ink-faint)]" />
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+          <span className={`text-xs font-medium ${PRIORITY_COLORS[suggestion.priority ?? "medium"]}`}>
+            ● {PRIORITY_OPTIONS.find((p) => p.value === (suggestion.priority ?? "medium"))?.label}
+          </span>
+          {suggestion.story_points != null && (
+            <span className="px-1.5 py-0.5 rounded-sm bg-[var(--paper-warm)] text-[var(--ink-faint)] text-xs">{suggestion.story_points} SP</span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => void handleAdd()}
-          disabled={adding}
-          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-sm text-xs font-medium transition-colors"
-        >
-          {adding
-            ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
-            : <Plus size={11} />
-          }
-          Übernehmen
-        </button>
+        <p className="text-sm text-[var(--ink-mid)] break-words leading-snug pr-5">{suggestion.title}</p>
+        {suggestion.description && (
+          <>
+            {!expanded && (
+              <button onClick={() => setExpanded(true)} className="text-xs text-[var(--ink-faint)] hover:text-[var(--ink-mid)] mt-0.5">
+                Beschreibung ▼
+              </button>
+            )}
+            {expanded && (
+              <>
+                <p className="text-xs text-[var(--ink-mid)] mt-1 whitespace-pre-wrap">{suggestion.description}</p>
+                <button onClick={() => setExpanded(false)} className="text-xs text-[var(--ink-faint)] hover:text-[var(--ink-mid)]">▲</button>
+              </>
+            )}
+          </>
+        )}
+        <div className="flex flex-wrap items-center gap-1 mt-1.5">
+          {hasSources ? (
+            suggestion.sources!.map((s, i) => (
+              <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 text-[10px] text-[var(--ink-faint)] hover:text-[var(--accent-red)] border border-[var(--paper-rule)] rounded-sm px-1.5 py-0.5 transition-colors">
+                <FileText size={9} />{s.title}
+              </a>
+            ))
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[10px] text-[var(--ink-faintest)] border border-[var(--paper-rule)] rounded-sm px-1.5 py-0.5">
+              <Sparkles size={9} />KI
+            </span>
+          )}
+        </div>
       </div>
+      <button
+        type="button"
+        onClick={() => void handleAdd()}
+        disabled={adding}
+        aria-label="Feature übernehmen"
+        className="absolute top-[6px] right-[6px] w-[18px] h-[18px] flex items-center justify-center bg-[rgba(var(--accent-red-rgb),.08)] border-[0.5px] border-[rgba(var(--accent-red-rgb),.3)] text-[var(--accent-red)] rounded-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent-red)] hover:text-white"
+      >
+        {adding ? <div className="animate-spin rounded-full h-2.5 w-2.5 border border-current border-t-transparent" /> : <Plus size={10} />}
+      </button>
     </div>
   );
 }
@@ -2012,7 +2006,7 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
         {aiSuggestions.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">
-              {aiSuggestions.length} Vorschläge — mit „Übernehmen" zur Feature-Liste hinzufügen
+              {aiSuggestions.length} Vorschläge
             </p>
             {aiSuggestions.map((s, i) => (
               <SuggestedFeatureCard key={i} suggestion={s} onAdd={handleAddSuggestion} />
@@ -2097,6 +2091,18 @@ export default function StoryDetailPage({
           setEpicId(data.epic_id);
           setProjectId(data.project_id);
           setInitialized(true);
+          // Restore persisted score panel if score was previously saved
+          if (data.quality_score !== null && data.quality_score !== undefined) {
+            const q = data.quality_score;
+            setScore({
+              level: q >= 80 ? "low" : q >= 50 ? "medium" : "high",
+              confidence: q / 100,
+              clarity: q / 100,
+              complexity: 1 - q / 100,
+              risk: q < 50 ? 0.7 : q < 80 ? 0.4 : 0.1,
+              domain: "",
+            });
+          }
         }
       },
     }
@@ -2189,13 +2195,24 @@ export default function StoryDetailPage({
     setIsScoring(true);
     setScore(null);
     try {
-      const result = await apiRequest<{ level: "low" | "medium" | "high"; confidence: number; clarity: number; complexity: number; risk: number; domain: string }>(
-        `/api/v1/user-stories/${resolvedParams.id}/score`,
+      const result = await apiRequest<UserStory>(
+        `/api/v1/user-stories/${resolvedParams.id}/validate`,
         { method: "POST" }
       );
-      setScore(result);
+      // Update SWR cache with new quality_score without refetch
+      void mutate(result, false);
+      // Derive display score from persisted quality_score
+      const q = result.quality_score ?? 0;
+      setScore({
+        level: q >= 80 ? "low" : q >= 50 ? "medium" : "high",
+        confidence: q / 100,
+        clarity: q / 100,
+        complexity: 1 - q / 100,
+        risk: q < 50 ? 0.7 : q < 80 ? 0.4 : 0.1,
+        domain: "",
+      });
     } catch {
-      setFieldErrors({ general: "Scoring fehlgeschlagen." });
+      setFieldErrors({ general: "Prüfung fehlgeschlagen." });
     } finally {
       setIsScoring(false);
     }
@@ -2270,6 +2287,22 @@ export default function StoryDetailPage({
             <h1 className="text-xl font-bold text-[var(--ink)] break-words">
               {story.title}
             </h1>
+            {story.quality_score !== null && story.quality_score !== undefined && (
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-20 h-1.5 bg-[var(--paper-rule)] rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${story.quality_score >= 80 ? "bg-[var(--green)]" : story.quality_score >= 50 ? "bg-[var(--brown)]" : "bg-[var(--accent-red)]"}`}
+                      style={{ width: `${story.quality_score}%` }}
+                    />
+                  </div>
+                  <span className={`text-xs font-semibold ${story.quality_score >= 80 ? "text-[var(--green)]" : story.quality_score >= 50 ? "text-[var(--brown)]" : "text-[var(--accent-red)]"}`}>
+                    {story.quality_score}/100
+                  </span>
+                </div>
+                <span className="text-xs text-[var(--ink-faint)]">Qualität</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -2476,7 +2509,7 @@ export default function StoryDetailPage({
 
       {/* Story tab */}
       {activeTab === "story" && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {/* LEFT: Story fields */}
           <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-5">
             <DroppableField
@@ -2616,7 +2649,7 @@ export default function StoryDetailPage({
           </div>
 
           {/* RIGHT: AI Suggestions */}
-          <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+          <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 lg:sticky lg:top-6 lg:h-[calc(100vh-8rem)] lg:overflow-hidden lg:flex lg:flex-col">
             <AISuggestPanel
               title={title}
               description={description}
@@ -2625,25 +2658,24 @@ export default function StoryDetailPage({
               storyId={resolvedParams.id}
               persistedScore={story.quality_score}
               onScorePersisted={() => void mutate()}
+              onNavigateToTab={(tab) => setActiveTab(tab)}
             />
           </div>
         </div>
       )}
 
-      {/* DoD tab */}
-      {activeTab === "dod" && (
+      {/* DoD / Tests / Features — always mounted so suggestion state survives tab switches */}
+      <div className={activeTab !== "dod" ? "hidden" : ""}>
         <DefinitionOfDoneSection storyId={resolvedParams.id} initialDod={story.definition_of_done} editing={editing} orgId={story.organization_id} currentUserId={currentUser?.id ?? ""} />
-      )}
+      </div>
 
-      {/* Tests tab */}
-      {activeTab === "tests" && (
+      <div className={activeTab !== "tests" ? "hidden" : ""}>
         <TestCasesSection storyId={resolvedParams.id} storyStatus={story.status} editing={editing} orgId={story.organization_id} />
-      )}
+      </div>
 
-      {/* Features tab */}
-      {activeTab === "features" && (
+      <div className={activeTab !== "features" ? "hidden" : ""}>
         <FeaturesSection storyId={resolvedParams.id} orgId={story.organization_id} editing={editing} />
-      )}
+      </div>
 
       {/* Docs tab */}
       {activeTab === "docs" && (

@@ -5,14 +5,14 @@
 
 model_list:
 
-  # ── IONOS AI (OpenAI-compatible, inference.de-txl.ionos.com) ──
-  # Requires a PaaS inference API key (NOT the cloud management JWT).
-  # Create one in the IONOS AI Model Hub console and set IONOS_API_KEY.
+  # ── IONOS AI (OpenAI-compatible, openai.inference.de-txl.ionos.com) ──
+  # Requires IONOS AI Model Hub API token — set IONOS_API_KEY in .env.
+  # api_base includes /v1; LiteLLM appends /chat/completions directly.
   # fast/cheap tier — Llama 3.1 8B
   - model_name: ionos-fast
     litellm_params:
-      model: openai/meta-llama-3-8b-instruct
-      api_base: https://inference.de-txl.ionos.com
+      model: meta-llama/Meta-Llama-3.1-8B-Instruct
+      api_base: https://openai.inference.de-txl.ionos.com/v1
       api_key: os.environ/IONOS_API_KEY
       timeout: 30
       max_retries: 2
@@ -20,8 +20,8 @@ model_list:
   # quality tier — Llama 3.3 70B
   - model_name: ionos-quality
     litellm_params:
-      model: openai/meta-llama-3-3-70b-instruct
-      api_base: https://inference.de-txl.ionos.com
+      model: meta-llama/Llama-3.3-70B-Instruct
+      api_base: https://openai.inference.de-txl.ionos.com/v1
       api_key: os.environ/IONOS_API_KEY
       timeout: 60
       max_retries: 2
@@ -29,8 +29,8 @@ model_list:
   # reasoning tier — Mistral Small 24B
   - model_name: ionos-reasoning
     litellm_params:
-      model: openai/mistral-small-24b-instruct
-      api_base: https://inference.de-txl.ionos.com
+      model: mistralai/Mistral-Small-24B-Instruct
+      api_base: https://openai.inference.de-txl.ionos.com/v1
       api_key: os.environ/IONOS_API_KEY
       timeout: 90
       max_retries: 1
@@ -38,8 +38,8 @@ model_list:
   # embeddings — BAAI bge-m3 (multilingual, production-grade)
   - model_name: ionos-embed
     litellm_params:
-      model: openai/bge-m3
-      api_base: https://inference.de-txl.ionos.com
+      model: BAAI/bge-m3
+      api_base: https://openai.inference.de-txl.ionos.com/v1
       api_key: os.environ/IONOS_API_KEY
       timeout: 20
 
@@ -69,8 +69,8 @@ model_list:
   # ── Fallback group: ionos-fast → anthropic haiku ──────────────
   - model_name: fallback-eu
     litellm_params:
-      model: openai/meta-llama-3-8b-instruct
-      api_base: https://inference.de-txl.ionos.com
+      model: meta-llama/Meta-Llama-3.1-8B-Instruct
+      api_base: https://openai.inference.de-txl.ionos.com/v1
       api_key: os.environ/IONOS_API_KEY
       timeout: 30
     model_info:
@@ -102,5 +102,6 @@ litellm_settings:
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
   ui_access_mode: "username_password"
+  store_model_in_db: true
   health_check_interval: 30
   return_response_headers: false

@@ -2,8 +2,41 @@
 
 import { useState } from "react";
 import { apiRequest } from "@/lib/api/client";
-import type { AISuggestion } from "@/types";
-import { Sparkles, AlertTriangle, GripVertical, CheckCircle, ListChecks, CopyPlus, Database, Brain } from "lucide-react";
+import type { AISuggestion, Source } from "@/types";
+import {
+  Sparkles, AlertTriangle, GripVertical, CheckCircle,
+  ListChecks, CopyPlus, Database, Brain, ChevronRight, Check,
+} from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+interface AIDoDSuggestion {
+  text: string;
+  category?: string;
+  sources?: Source[];
+}
+
+interface AIFeatureSuggestion {
+  title: string;
+  description?: string;
+  priority?: string;
+  sources?: Source[];
+}
+
+interface AITestCaseSuggestion {
+  title: string;
+  steps?: string;
+  expected_result?: string;
+  sources?: Source[];
+}
+
+interface FullAnalysis {
+  story: AISuggestion;
+  dod: AIDoDSuggestion[];
+  features: AIFeatureSuggestion[];
+  tests: AITestCaseSuggestion[];
+}
 
 interface AISuggestPanelProps {
   title: string;
@@ -13,10 +46,11 @@ interface AISuggestPanelProps {
   storyId?: string;
   persistedScore?: number | null;
   onScorePersisted?: () => void;
+  onNavigateToTab?: (tab: "features" | "dod" | "tests") => void;
 }
 
 // ---------------------------------------------------------------------------
-// Parse AC string into individual numbered items
+// Helpers
 // ---------------------------------------------------------------------------
 function parseACItems(text: string): string[] {
   if (!text?.trim()) return [];
@@ -34,8 +68,23 @@ function parseACItems(text: string): string[] {
   return items.filter(Boolean);
 }
 
+function normalise(s: string) {
+  return s.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function isResolved<T extends { text?: string; title?: string }>(
+  prev: T[],
+  curr: T[],
+  item: T,
+): boolean {
+  const key = normalise(item.text ?? item.title ?? "");
+  if (!key) return false;
+  const inCurr = curr.some((c) => normalise(c.text ?? c.title ?? "") === key);
+  return !inCurr;
+}
+
 // ---------------------------------------------------------------------------
-// SuggestionCard — for title and description (single-value fields)
+// Sub-components
 // ---------------------------------------------------------------------------
 interface SuggestionCardProps {
   field: "title" | "description" | "acceptance_criteria";
@@ -50,7 +99,6 @@ function SuggestionCard({ field, label, value, onApply }: SuggestionCardProps) {
     e.dataTransfer.setData("application/x-story-field", field);
     e.dataTransfer.effectAllowed = "copy";
   };
-
   return (
     <div
       draggable
@@ -58,9 +106,7 @@ function SuggestionCard({ field, label, value, onApply }: SuggestionCardProps) {
       className="border border-slate-200 rounded-lg p-3 bg-slate-50 hover:bg-white hover:border-brand-300 transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-          {label}
-        </span>
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</span>
         <GripVertical size={14} className="text-slate-300 group-hover:text-slate-400 transition-colors" />
       </div>
       <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{value}</p>
@@ -76,9 +122,6 @@ function SuggestionCard({ field, label, value, onApply }: SuggestionCardProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// CriterionCard — single AC item, appends to the AC field
-// ---------------------------------------------------------------------------
 interface CriterionCardProps {
   index: number;
   text: string;
@@ -91,7 +134,6 @@ function CriterionCard({ index, text, onApply }: CriterionCardProps) {
     e.dataTransfer.setData("application/x-story-criterion", text);
     e.dataTransfer.effectAllowed = "copy";
   };
-
   return (
     <div
       draggable
@@ -117,9 +159,6 @@ function CriterionCard({ index, text, onApply }: CriterionCardProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// ACBlock — header + individual items + "alle übernehmen"
-// ---------------------------------------------------------------------------
 interface ACBlockProps {
   raw: string;
   onApply: AISuggestPanelProps["onApply"];
@@ -127,22 +166,11 @@ interface ACBlockProps {
 
 function ACBlock({ raw, onApply }: ACBlockProps) {
   const items = parseACItems(raw);
-
-  // Fallback: if parsing yields nothing, treat as single card
   if (items.length === 0) {
-    return (
-      <SuggestionCard
-        field="acceptance_criteria"
-        label="Akzeptanzkriterien"
-        value={raw}
-        onApply={onApply}
-      />
-    );
+    return <SuggestionCard field="acceptance_criteria" label="Akzeptanzkriterien" value={raw} onApply={onApply} />;
   }
-
   return (
     <div className="border border-slate-200 rounded-lg overflow-hidden">
-      {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
           <ListChecks size={13} />
@@ -158,8 +186,6 @@ function ACBlock({ raw, onApply }: ACBlockProps) {
           Alle übernehmen
         </button>
       </div>
-
-      {/* Individual items */}
       <div className="divide-y divide-slate-100">
         {items.map((item, i) => (
           <div key={i} className="px-2 py-1.5">
@@ -172,16 +198,153 @@ function ACBlock({ raw, onApply }: ACBlockProps) {
 }
 
 // ---------------------------------------------------------------------------
+// CategorySection — DoD / Features / Testfälle summary
+// ---------------------------------------------------------------------------
+interface CategorySectionProps {
+  label: string;
+  tab: "dod" | "features" | "tests";
+  items: { key: string; resolved: boolean }[];
+  onNavigate?: (tab: "dod" | "features" | "tests") => void;
+  isLoading?: boolean;
+  isRefreshing?: boolean;
+}
+
+function CategorySection({ label, tab, items, onNavigate, isLoading, isRefreshing }: CategorySectionProps) {
+  const pending = items.filter((i) => !i.resolved);
+  const resolved = items.filter((i) => i.resolved);
+
+  return (
+    <div className={`border rounded-lg overflow-hidden transition-colors ${isRefreshing ? "border-brand-200" : "border-slate-200"}`}>
+      <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+          {label}
+          {isRefreshing && (
+            <span className="inline-block w-3 h-3 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
+          )}
+        </span>
+        <div className="flex items-center gap-2">
+          {resolved.length > 0 && (
+            <span className="text-[10px] font-medium text-green-600 flex items-center gap-0.5">
+              <Check size={10} />
+              {resolved.length} erledigt
+            </span>
+          )}
+          {pending.length > 0 && (
+            <span className="text-[10px] font-medium text-amber-600">{pending.length} offen</span>
+          )}
+          {onNavigate && (
+            <button
+              type="button"
+              onClick={() => onNavigate(tab)}
+              className="flex items-center gap-0.5 text-[10px] font-medium text-brand-600 hover:text-brand-700 transition-colors"
+            >
+              öffnen
+              <ChevronRight size={10} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="px-3 py-2 space-y-1.5">
+          <div className="h-3 bg-slate-100 rounded w-4/5 animate-pulse" />
+          <div className="h-3 bg-slate-100 rounded w-3/5 animate-pulse" />
+        </div>
+      ) : items.length === 0 ? (
+        <div className="px-3 py-2 flex items-center gap-1.5 text-xs text-green-600">
+          <Check size={12} />
+          Alles in Ordnung
+        </div>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {items.map((item) => (
+            <li
+              key={item.key}
+              className={`flex items-start gap-2 px-3 py-2 text-xs ${
+                item.resolved ? "opacity-50" : ""
+              }`}
+            >
+              <span
+                className={`shrink-0 mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${
+                  item.resolved
+                    ? "border-green-400 bg-green-50 text-green-600"
+                    : "border-slate-300 text-transparent"
+                }`}
+              >
+                {item.resolved && <Check size={9} />}
+              </span>
+              <span className={`leading-relaxed ${item.resolved ? "line-through text-slate-400" : "text-slate-700"}`}>
+                {item.key}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // AISuggestPanel (main export)
 // ---------------------------------------------------------------------------
-export function AISuggestPanel({ title, description, acceptanceCriteria, onApply, storyId, persistedScore, onScorePersisted }: AISuggestPanelProps) {
+export function AISuggestPanel({
+  title,
+  description,
+  acceptanceCriteria,
+  onApply,
+  storyId,
+  persistedScore,
+  onScorePersisted,
+  onNavigateToTab,
+}: AISuggestPanelProps) {
   const [loading, setLoading] = useState(false);
-  const [suggestion, setSuggestion] = useState<AISuggestion | null>(null);
+  const [analysis, setAnalysis] = useState<FullAnalysis | null>(null);
+  const [prevAnalysis, setPrevAnalysis] = useState<FullAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Displayed score: fresh analysis > persisted DB value
+  const suggestion = analysis?.story ?? null;
   const displayScore = suggestion?.quality_score ?? persistedScore ?? null;
   const isPersistedScore = suggestion === null && persistedScore !== null;
+
+  // Build item lists with resolved tracking
+  function buildDodItems() {
+    const curr = analysis?.dod ?? [];
+    const prev = prevAnalysis?.dod ?? [];
+    return curr.length === 0 && prev.length === 0
+      ? []
+      : [
+          ...curr.map((d) => ({ key: d.text, resolved: false })),
+          ...prev
+            .filter((p) => isResolved(prev, curr, p))
+            .map((p) => ({ key: p.text, resolved: true })),
+        ];
+  }
+
+  function buildFeatureItems() {
+    const curr = analysis?.features ?? [];
+    const prev = prevAnalysis?.features ?? [];
+    return curr.length === 0 && prev.length === 0
+      ? []
+      : [
+          ...curr.map((f) => ({ key: f.title, resolved: false })),
+          ...prev
+            .filter((p) => isResolved(prev, curr, p))
+            .map((p) => ({ key: p.title, resolved: true })),
+        ];
+  }
+
+  function buildTestItems() {
+    const curr = analysis?.tests ?? [];
+    const prev = prevAnalysis?.tests ?? [];
+    return curr.length === 0 && prev.length === 0
+      ? []
+      : [
+          ...curr.map((t) => ({ key: t.title, resolved: false })),
+          ...prev
+            .filter((p) => isResolved(prev, curr, p))
+            .map((p) => ({ key: p.title, resolved: true })),
+        ];
+  }
 
   async function handleAnalyze() {
     if (!title.trim()) {
@@ -190,10 +353,12 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
     }
     setLoading(true);
     setError(null);
+    // Save current as previous for resolved tracking
+    if (analysis) setPrevAnalysis(analysis);
+
     try {
-      const response = await apiRequest<{ suggestions: AISuggestion }>(
-        "/api/v1/user-stories/ai-suggest",
-        {
+      const [storyRes, dodRes, featuresRes, testsRes] = await Promise.all([
+        apiRequest<{ suggestions: AISuggestion }>("/api/v1/user-stories/ai-suggest", {
           method: "POST",
           body: JSON.stringify({
             title,
@@ -201,9 +366,33 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
             acceptance_criteria: acceptanceCriteria || null,
             story_id: storyId ?? null,
           }),
-        }
-      );
-      setSuggestion(response.suggestions);
+        }),
+        storyId
+          ? apiRequest<{ suggestions: AIDoDSuggestion[] }>(
+              `/api/v1/user-stories/${storyId}/ai-dod`,
+              { method: "POST" },
+            ).catch(() => ({ suggestions: [] as AIDoDSuggestion[] }))
+          : Promise.resolve({ suggestions: [] as AIDoDSuggestion[] }),
+        storyId
+          ? apiRequest<{ suggestions: AIFeatureSuggestion[] }>(
+              `/api/v1/user-stories/${storyId}/ai-features`,
+              { method: "POST" },
+            ).catch(() => ({ suggestions: [] as AIFeatureSuggestion[] }))
+          : Promise.resolve({ suggestions: [] as AIFeatureSuggestion[] }),
+        storyId
+          ? apiRequest<{ suggestions: AITestCaseSuggestion[] }>(
+              `/api/v1/user-stories/${storyId}/ai-test-case-suggestions`,
+              { method: "POST" },
+            ).catch(() => ({ suggestions: [] as AITestCaseSuggestion[] }))
+          : Promise.resolve({ suggestions: [] as AITestCaseSuggestion[] }),
+      ]);
+
+      setAnalysis({
+        story: storyRes.suggestions,
+        dod: dodRes.suggestions,
+        features: featuresRes.suggestions,
+        tests: testsRes.suggestions,
+      });
       if (storyId) onScorePersisted?.();
     } catch (err: unknown) {
       const msg = (err as { error?: string })?.error;
@@ -213,15 +402,20 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
     }
   }
 
+  const dodItems = buildDodItems();
+  const featureItems = buildFeatureItems();
+  const testItems = buildTestItems();
+  const hasResults = analysis !== null;
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0 flex-1">
       <div className="mb-4">
         <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
           <Sparkles size={16} className="text-brand-500" />
           Assistent
         </h2>
         <p className="text-xs text-slate-500 mt-1">
-          Analysiert deine Story gegen die Definition of Ready und schlägt Verbesserungen vor.
+          Analysiert Story, DoD, Features und Testfälle und schlägt Verbesserungen vor.
         </p>
       </div>
 
@@ -239,7 +433,7 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
         ) : (
           <>
             <Sparkles size={16} />
-            Analysieren
+            {hasResults ? "Erneut analysieren" : "Analysieren"}
           </>
         )}
       </button>
@@ -250,33 +444,64 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
         </div>
       )}
 
-      {/* Results — real when available, ghost skeleton when not yet analysed */}
-      <div className={`mt-4 space-y-4 flex-1 overflow-y-auto transition-opacity duration-300 ${!suggestion && !loading ? "opacity-30 pointer-events-none select-none" : "opacity-100"}`}>
+      <div
+        className={`mt-4 space-y-4 flex-1 min-h-0 overflow-y-auto transition-opacity duration-300 ${
+          !hasResults && !loading ? "opacity-30 pointer-events-none select-none" : "opacity-100"
+        }`}
+      >
+        {/* Re-analysis loading indicator */}
+        {loading && hasResults && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-brand-50 border border-brand-200 rounded-lg text-xs text-brand-700">
+            <div className="shrink-0 w-3.5 h-3.5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+            Analyse läuft…
+          </div>
+        )}
 
-        {/* Source badge */}
+        {/* Source badges */}
         {suggestion && (
-          suggestion.source === "rag_direct" ? (
-            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
-              <Database size={13} className="text-emerald-600 shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-emerald-700">Aus Org-Wissensbank</p>
-                <p className="text-xs text-emerald-600">Direkte Antwort aus indexierten Dokumenten — kein KI-Aufruf nötig.</p>
-              </div>
-            </div>
-          ) : suggestion.source === "rag_context" ? (
-            <div className="flex items-center gap-2 px-3 py-2 bg-violet-50 border border-violet-200 rounded-lg">
-              <Database size={13} className="text-violet-500 shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-violet-700">Org-Wissen eingeflossen</p>
-                <p className="text-xs text-violet-600">KI hat relevante Dokumente aus eurer Nextcloud-Ablage einbezogen.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
-              <Brain size={13} className="text-slate-400 shrink-0" />
-              <p className="text-xs text-slate-500">KI-generiert — kein passendes Org-Wissen gefunden.</p>
-            </div>
-          )
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-500">
+              <Brain size={9} />
+              ai
+            </span>
+            {suggestion.source === "rag_direct" && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-emerald-200 bg-emerald-50 text-emerald-700">
+                <Database size={9} />
+                direkt
+              </span>
+            )}
+            {(suggestion.sources ?? []).map((s, i) => {
+              const isYd = s.type === "confluence" || s.type === "nextcloud" || s.type === "karl_story";
+              const isYt = s.type === "jira";
+              const isLc = s.type === "user_action";
+              const label = isYd ? "yd" : isYt ? "yt" : isLc ? "lc" : s.type;
+              const colorCls = isYd
+                ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                : isYt
+                  ? "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
+                  : isLc
+                    ? "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+                    : "border-slate-200 bg-slate-50 text-slate-500";
+              const displayTitle = s.title
+                .replace(/^Jira:\s*/i, "")
+                .replace(/^Confluence:\s*/i, "")
+                .replace(/^Story:\s*/i, "")
+                .replace(/^User Action:\s*/i, "");
+              const badge = (
+                <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border ${colorCls}`}>
+                  <span className="font-bold shrink-0">{label}</span>
+                  {displayTitle && <span className="font-normal">{displayTitle}</span>}
+                </span>
+              );
+              return s.url ? (
+                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" title={s.title} className="no-underline">
+                  {badge}
+                </a>
+              ) : (
+                <span key={i} title={s.title}>{badge}</span>
+              );
+            })}
+          </div>
         )}
 
         {/* Quality score */}
@@ -286,11 +511,17 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
               Qualitätsscore
               {isPersistedScore && <span className="text-slate-400 font-normal">(gespeichert)</span>}
             </span>
-            <span className={`font-bold ${
-              displayScore === null ? "text-slate-400" :
-              displayScore >= 75 ? "text-green-600" :
-              displayScore >= 50 ? "text-amber-600" : "text-red-500"
-            }`}>
+            <span
+              className={`font-bold ${
+                displayScore === null
+                  ? "text-slate-400"
+                  : displayScore >= 75
+                    ? "text-green-600"
+                    : displayScore >= 50
+                      ? "text-amber-600"
+                      : "text-red-500"
+              }`}
+            >
               {displayScore !== null ? `${displayScore}/100` : "—/100"}
             </span>
           </div>
@@ -298,7 +529,11 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 displayScore !== null
-                  ? displayScore >= 75 ? "bg-green-500" : displayScore >= 50 ? "bg-amber-400" : "bg-red-400"
+                  ? displayScore >= 75
+                    ? "bg-green-500"
+                    : displayScore >= 50
+                      ? "bg-amber-400"
+                      : "bg-red-400"
                   : "bg-slate-300"
               }`}
               style={{ width: displayScore !== null ? `${displayScore}%` : "40%" }}
@@ -317,7 +552,10 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">DoR-Probleme</p>
           {suggestion && suggestion.dor_issues.length > 0 ? (
             suggestion.dor_issues.map((issue, i) => (
-              <div key={i} className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
+              <div
+                key={i}
+                className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800"
+              >
                 <AlertTriangle size={12} className="mt-0.5 shrink-0 text-amber-500" />
                 {issue}
               </div>
@@ -327,22 +565,27 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
           )}
         </div>
 
-        {/* Suggestions */}
+        {/* Story field improvements */}
         <div className="space-y-3">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Vorschläge
+            Story-Verbesserungen
             {suggestion && (
-              <span className="normal-case font-normal text-slate-400 ml-1">(ziehen oder klicken zum Übernehmen)</span>
+              <span className="normal-case font-normal text-slate-400 ml-1">(ziehen oder klicken)</span>
             )}
           </p>
-
           {suggestion ? (
             <>
               {suggestion.title && <SuggestionCard field="title" label="Titel" value={suggestion.title} onApply={onApply} />}
-              {suggestion.description && <SuggestionCard field="description" label="Beschreibung" value={suggestion.description} onApply={onApply} />}
-              {suggestion.acceptance_criteria && <ACBlock raw={suggestion.acceptance_criteria} onApply={onApply} />}
+              {suggestion.description && (
+                <SuggestionCard field="description" label="Beschreibung" value={suggestion.description} onApply={onApply} />
+              )}
+              {suggestion.acceptance_criteria && (
+                <ACBlock raw={suggestion.acceptance_criteria} onApply={onApply} />
+              )}
               {!suggestion.title && !suggestion.description && !suggestion.acceptance_criteria && (
-                <p className="text-xs text-slate-400 italic">Keine Änderungen nötig — die Story ist bereits gut formuliert.</p>
+                <p className="text-xs text-slate-400 italic">
+                  Keine Änderungen nötig — die Story ist bereits gut formuliert.
+                </p>
               )}
             </>
           ) : (
@@ -354,22 +597,132 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
           )}
         </div>
 
+        {/* DoD */}
+        <CategorySection
+          label="Definition of Done"
+          tab="dod"
+          items={dodItems}
+          onNavigate={onNavigateToTab}
+          isLoading={loading && !hasResults}
+          isRefreshing={loading && hasResults}
+        />
+
+        {/* Features */}
+        <CategorySection
+          label="Features"
+          tab="features"
+          items={featureItems}
+          onNavigate={onNavigateToTab}
+          isLoading={loading && !hasResults}
+          isRefreshing={loading && hasResults}
+        />
+
+        {/* Testfälle */}
+        <CategorySection
+          label="Testfälle"
+          tab="tests"
+          items={testItems}
+          onNavigate={onNavigateToTab}
+          isLoading={loading && !hasResults}
+          isRefreshing={loading && hasResults}
+        />
+
         {/* Explanation */}
         {suggestion?.explanation ? (
-          <div className={`p-3 rounded-lg border ${suggestion.source === "rag_direct" ? "bg-emerald-50 border-emerald-100" : "bg-blue-50 border-blue-100"}`}>
-            <p className={`text-xs font-semibold mb-1 ${suggestion.source === "rag_direct" ? "text-emerald-700" : "text-blue-700"}`}>
+          <div
+            className={`p-3 rounded-lg border ${
+              suggestion.source === "rag_direct"
+                ? "bg-emerald-50 border-emerald-100"
+                : "bg-blue-50 border-blue-100"
+            }`}
+          >
+            <p
+              className={`text-xs font-semibold mb-1 ${
+                suggestion.source === "rag_direct" ? "text-emerald-700" : "text-blue-700"
+              }`}
+            >
               {suggestion.source === "rag_direct" ? "Antwort aus Wissensbank" : "Erklärung"}
             </p>
-            <p className={`text-xs leading-relaxed ${suggestion.source === "rag_direct" ? "text-emerald-800" : "text-blue-800"}`}>
+            <p
+              className={`text-xs leading-relaxed ${
+                suggestion.source === "rag_direct" ? "text-emerald-800" : "text-blue-800"
+              }`}
+            >
               {suggestion.explanation}
             </p>
           </div>
-        ) : (
+        ) : !hasResults ? (
           <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg space-y-1.5">
             <div className="h-3 bg-slate-200 rounded w-20" />
             <div className="h-3 bg-slate-200 rounded w-full" />
             <div className="h-3 bg-slate-200 rounded w-4/5" />
-            <p className="text-xs text-slate-400 text-center pt-1">Deine Vorschläge findest du hier nach der Analyse.</p>
+            <p className="text-xs text-slate-400 text-center pt-1">
+              Deine Vorschläge findest du hier nach der Analyse.
+            </p>
+          </div>
+        ) : null}
+
+        {/* Sources */}
+        {suggestion && (suggestion.sources ?? []).length > 0 && (
+          <div className="pt-2 border-t border-slate-100">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Quellen</p>
+            <ul className="space-y-1">
+              {(suggestion.sources ?? []).slice(0, 5).map((s, i) => {
+                const isYd = s.type === "confluence" || s.type === "nextcloud" || s.type === "karl_story";
+                const isYt = s.type === "jira";
+                const isLc = s.type === "user_action";
+                const label = isYd ? "yd" : isYt ? "yt" : isLc ? "lc" : s.type;
+                const displayTitle = s.title
+                  .replace(/^Jira:\s*/i, "")
+                  .replace(/^Confluence:\s*/i, "")
+                  .replace(/^Story:\s*/i, "")
+                  .replace(/^User Action:\s*/i, "");
+                const labelCls = isYd
+                  ? "text-blue-600"
+                  : isYt
+                    ? "text-orange-600"
+                    : isLc
+                      ? "text-violet-600"
+                      : "text-slate-400";
+                const inner = (
+                  <li key={i} className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <span className={`text-[10px] font-bold shrink-0 ${labelCls}`}>{label}</span>
+                    <span className="truncate">{displayTitle}</span>
+                  </li>
+                );
+                return s.url ? (
+                  <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-red)] no-underline block">
+                    {inner}
+                  </a>
+                ) : (
+                  inner
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {/* Sticky re-analyse button at bottom of results */}
+        {hasResults && (
+          <div className="pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => void handleAnalyze()}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-brand-300 text-brand-700 hover:bg-brand-50 disabled:opacity-50 rounded-lg text-xs font-medium transition-colors"
+            >
+              {loading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+                  Analysiert…
+                </>
+              ) : (
+                <>
+                  <Sparkles size={13} />
+                  Erneut analysieren
+                </>
+              )}
+            </button>
           </div>
         )}
       </div>

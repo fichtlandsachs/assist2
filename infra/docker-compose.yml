@@ -196,13 +196,13 @@ services:
       LITELLM_URL: ${LITELLM_URL:-http://assist2-litellm:4000}
       LITELLM_API_KEY: ${LITELLM_API_KEY}
       IONOS_API_KEY: ${IONOS_API_KEY:-}
-      IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.ionos.com/openai}
+      IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.inference.de-txl.ionos.com/v1}
       IONOS_MODEL_CACHE_TTL: ${IONOS_MODEL_CACHE_TTL:-300}
       PROVIDER_ROUTING_SUGGEST: ${PROVIDER_ROUTING_SUGGEST:-auto}
       PROVIDER_ROUTING_DOCS: ${PROVIDER_ROUTING_DOCS:-claude-sonnet-4-6}
       PROVIDER_ROUTING_FALLBACK: ${PROVIDER_ROUTING_FALLBACK:-ionos-fast}
       AI_FEATURE_FLAGS: ${AI_FEATURE_FLAGS:-streaming,embeddings}
-      NEXTCLOUD_URL: ${NEXTCLOUD_URL:-https://nextcloud.fichtlworks.com}
+      NEXTCLOUD_URL: ${NEXTCLOUD_URL:-https://nextcloud.heykarl.app}
       NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
       NEXTCLOUD_ADMIN_APP_PASSWORD: ${NEXTCLOUD_ADMIN_APP_PASSWORD}
       APP_BASE_URL: ${APP_BASE_URL:-https://heykarl.app}
@@ -256,7 +256,7 @@ services:
       LITELLM_URL: ${LITELLM_URL:-http://assist2-litellm:4000}
       LITELLM_API_KEY: ${LITELLM_API_KEY}
       IONOS_API_KEY: ${IONOS_API_KEY:-}
-      IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.ionos.com/openai}
+      IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.inference.de-txl.ionos.com/v1}
       IONOS_MODEL_CACHE_TTL: ${IONOS_MODEL_CACHE_TTL:-300}
       PROVIDER_ROUTING_SUGGEST: ${PROVIDER_ROUTING_SUGGEST:-auto}
       PROVIDER_ROUTING_DOCS: ${PROVIDER_ROUTING_DOCS:-claude-sonnet-4-6}
@@ -305,7 +305,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: https://heykarl.app
-        NEXT_PUBLIC_AUTHENTIK_URL: https://authentik.fichtlworks.com
+        NEXT_PUBLIC_AUTHENTIK_URL: https://authentik.heykarl.app
         NEXT_PUBLIC_ADMIN_CLIENT_ID: ${AUTHENTIK_ADMIN_CLIENT_ID}
         NEXT_PUBLIC_ADMIN_REDIRECT_URI: https://admin.heykarl.app/callback
     container_name: assist2-admin
@@ -334,7 +334,7 @@ services:
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       IONOS_API_KEY: ${IONOS_API_KEY:-}
-      IONOS_API_BASE: ${IONOS_API_BASE:-https://inference.de-txl.ionos.com}
+      IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.inference.de-txl.ionos.com/v1}
       LITELLM_MASTER_KEY: ${LITELLM_API_KEY:-sk-assist2}
       DATABASE_URL: postgresql://litellm:${LITELLM_DB_PASSWORD}@assist2-litellm-postgres:5432/litellm_db
       SERVER_ROOT_PATH: /litellm
@@ -562,7 +562,7 @@ services:
     environment:
       PMA_HOST: assist2-nextcloud-db
       PMA_PORT: 3306
-      PMA_ABSOLUTE_URI: https://admin.fichtlworks.com/phpmyadmin/
+      PMA_ABSOLUTE_URI: https://admin.heykarl.app/phpmyadmin/
     networks:
       - internal
       - proxy
