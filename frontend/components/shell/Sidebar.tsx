@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   LayoutDashboard, Settings, BookOpen, Inbox, CalendarDays, FileText,
   Workflow, Folder, Globe, Bell, Star, Zap, Users, Shield, MessageSquare,
-  X, HardDrive, ChevronRight, ShieldCheck, type LucideIcon,
+  X, HardDrive, ChevronRight, ShieldCheck, Sparkles, type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { usePluginRegistry } from "@/lib/plugins/registry";
@@ -102,6 +102,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
     { id: "settings-calendar",   label: "Kalender",    icon: CalendarDays, route: `/${orgSlug}/settings?tab=calendar` },
     { id: "settings-jira",       label: "Jira",        icon: Zap,         route: `/${orgSlug}/settings?tab=jira` },
     { id: "settings-confluence", label: "Confluence",  icon: Globe,       route: `/${orgSlug}/settings?tab=confluence` },
+    { id: "settings-ai",        label: "KI",          icon: Sparkles,    route: `/${orgSlug}/settings?tab=ai` },
     { id: "workflows",           label: "Workflows",   icon: Workflow,    route: `/${orgSlug}/workflows` },
   ];
 
