@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     N8N_WEBHOOK_URL: str = "http://n8n:5678"
     N8N_API_KEY: str = ""
 
+    # LangGraph Service
+    LANGGRAPH_BASE_URL: str = "http://assist2-langgraph:8100"
+    LANGGRAPH_API_KEY: str = "dev-langgraph-secret"
+    LANGGRAPH_TIMEOUT: int = 90
+
     # AI (all model calls go through LiteLLM — no direct API keys needed here)
 
     # ── IONOS AI ──────────────────────────────────────────────────────────────
