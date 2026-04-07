@@ -94,8 +94,8 @@ export default function SetupPage() {
             <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-100 rounded-xl mb-4">
               <Building2 size={24} className="text-brand-600" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">Workspace einrichten</h1>
-            <p className="text-slate-500 mt-1 text-sm">
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Workspace einrichten</h1>
+            <p className="text-[var(--ink-faint)] mt-1 text-sm">
               Erstelle deine erste Organisation, um loszulegen.
             </p>
           </div>
@@ -108,7 +108,7 @@ export default function SetupPage() {
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="name" className="block text-sm font-medium text-[var(--ink-mid)] mb-1">
                 Name der Organisation <span className="text-red-500">*</span>
               </label>
               <input
@@ -124,11 +124,11 @@ export default function SetupPage() {
             </div>
 
             <div>
-              <label htmlFor="slug" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="slug" className="block text-sm font-medium text-[var(--ink-mid)] mb-1">
                 URL-Kürzel <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center border border-slate-300 rounded-lg focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent overflow-hidden">
-                <span className="px-3 py-2 text-sm text-slate-400 bg-slate-50 border-r border-slate-300 shrink-0">
+                <span className="px-3 py-2 text-sm text-[var(--ink-faint)] bg-[var(--paper-warm)] border-r border-slate-300 shrink-0">
                   heykarl.app/
                 </span>
                 <input
@@ -141,14 +141,14 @@ export default function SetupPage() {
                   placeholder="mein-unternehmen"
                 />
               </div>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-[var(--ink-faint)]">
                 Nur Kleinbuchstaben, Zahlen und Bindestriche. Mindestens 3 Zeichen.
               </p>
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">
-                Beschreibung <span className="text-slate-400 font-normal">(optional)</span>
+              <label htmlFor="description" className="block text-sm font-medium text-[var(--ink-mid)] mb-1">
+                Beschreibung <span className="text-[var(--ink-faint)] font-normal">(optional)</span>
               </label>
               <textarea
                 id="description"

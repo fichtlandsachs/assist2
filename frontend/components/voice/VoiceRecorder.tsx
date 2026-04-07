@@ -75,7 +75,7 @@ export function VoiceRecorder({ onTranscription }: VoiceRecorderProps) {
           Stopp
         </button>
       )}
-      {processing && <span className="text-sm text-slate-500">Verarbeite...</span>}
+      {processing && <span className="text-sm text-[var(--ink-faint)]">Verarbeite...</span>}
     </div>
   );
 }

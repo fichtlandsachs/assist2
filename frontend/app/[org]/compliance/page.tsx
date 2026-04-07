@@ -40,16 +40,16 @@ function StatCard({ label, value, sub, icon: Icon, accent }: {
   icon: React.ElementType; accent: string;
 }) {
   return (
-    <div className="bg-white border-2 border-slate-900/8 rounded-2xl p-5 flex flex-col gap-3">
+    <div className="bg-[var(--card)] border-2 border-[var(--ink)]/8 rounded-2xl p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase font-['Architects_Daughter']">{label}</span>
+        <span className="text-[10px] font-bold tracking-[0.15em] text-[var(--ink-faint)] uppercase">{label}</span>
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${accent}`}>
           <Icon size={14} />
         </div>
       </div>
       <div>
-        <p className="text-3xl font-black text-slate-900 font-['Architects_Daughter']">{value}</p>
-        {sub && <p className="text-[11px] text-slate-400 font-['Architects_Daughter'] mt-0.5">{sub}</p>}
+        <p className="text-3xl font-black text-[var(--ink)]">{value}</p>
+        {sub && <p className="text-[11px] text-[var(--ink-faint)] mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -99,14 +99,14 @@ export default function CompliancePage({ params }: { params: Promise<{ org: stri
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 font-['Architects_Daughter']">Compliance</h1>
-          <p className="text-[12px] text-slate-400 font-['Architects_Daughter'] mt-1">
+          <h1 className="text-2xl font-black text-[var(--ink)]">Compliance</h1>
+          <p className="text-[12px] text-[var(--ink-faint)] mt-1">
             Story-Qualität und Definition of Ready im Überblick
           </p>
         </div>
         <Link
           href={`/${resolvedParams.org}/stories/board`}
-          className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-slate-900/10 rounded-xl text-[11px] font-bold font-['Architects_Daughter'] text-slate-600 hover:border-slate-900/30 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-[var(--ink)]/10 rounded-xl text-[11px] font-bold text-[var(--ink-mid)] hover:border-[var(--ink)]/30 transition-colors"
         >
           Stories <ArrowUpRight size={12} />
         </Link>
@@ -114,7 +114,7 @@ export default function CompliancePage({ params }: { params: Promise<{ org: stri
 
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--ink)]" />
         </div>
       )}
 
@@ -155,8 +155,8 @@ export default function CompliancePage({ params }: { params: Promise<{ org: stri
           {/* Score distribution + gauge */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Gauge */}
-            <div className="bg-white border-2 border-slate-900/8 rounded-2xl p-6 flex flex-col items-center justify-center gap-2">
-              <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase font-['Architects_Daughter']">
+            <div className="bg-[var(--card)] border-2 border-[var(--ink)]/8 rounded-2xl p-6 flex flex-col items-center justify-center gap-2">
+              <p className="text-[10px] font-bold tracking-[0.15em] text-[var(--ink-faint)] uppercase">
                 Compliance-Score
               </p>
               <div className="w-40 h-24">
@@ -165,14 +165,14 @@ export default function CompliancePage({ params }: { params: Promise<{ org: stri
                   color={metrics.compliancePct >= 80 ? "#10B981" : metrics.compliancePct >= 60 ? "#F59E0B" : "#EF4444"}
                 />
               </div>
-              <p className="text-[11px] text-slate-500 font-['Architects_Daughter'] text-center">
+              <p className="text-[11px] text-[var(--ink-faint)] text-center">
                 {metrics.compliancePct >= 80 ? "✓ Ziel erreicht" : `Ziel: 80% — noch ${80 - metrics.compliancePct}% bis Ziel`}
               </p>
             </div>
 
             {/* Distribution bars */}
-            <div className="lg:col-span-2 bg-white border-2 border-slate-900/8 rounded-2xl p-6">
-              <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase font-['Architects_Daughter'] mb-4">
+            <div className="lg:col-span-2 bg-[var(--card)] border-2 border-[var(--ink)]/8 rounded-2xl p-6">
+              <p className="text-[10px] font-bold tracking-[0.15em] text-[var(--ink-faint)] uppercase mb-4">
                 Score-Verteilung
               </p>
               <div className="space-y-3">
@@ -180,20 +180,20 @@ export default function CompliancePage({ params }: { params: Promise<{ org: stri
                   { label: "Hoch (≥ 80)", count: metrics.highScore.length, color: "bg-emerald-500", icon: CheckCircle2, textColor: "text-emerald-700" },
                   { label: "Mittel (60–79)", count: metrics.midScore.length, color: "bg-amber-400", icon: AlertTriangle, textColor: "text-amber-700" },
                   { label: "Niedrig (< 60)", count: metrics.lowScore.length, color: "bg-red-500", icon: XCircle, textColor: "text-red-700" },
-                  { label: "Nicht bewertet", count: metrics.unscored.length, color: "bg-slate-200", icon: Star, textColor: "text-slate-500" },
+                  { label: "Nicht bewertet", count: metrics.unscored.length, color: "bg-slate-200", icon: Star, textColor: "text-[var(--ink-faint)]" },
                 ].map(({ label, count, color, icon: Icon, textColor }) => {
                   const pct = metrics.total > 0 ? Math.round((count / metrics.total) * 100) : 0;
                   return (
                     <div key={label} className="flex items-center gap-3">
                       <Icon size={13} className={textColor} />
-                      <span className="text-[11px] font-bold text-slate-600 font-['Architects_Daughter'] w-32 flex-shrink-0">{label}</span>
-                      <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <span className="text-[11px] font-bold text-[var(--ink-mid)] w-32 flex-shrink-0">{label}</span>
+                      <div className="flex-1 bg-[var(--paper-warm)] rounded-full h-2 overflow-hidden">
                         <div
                           className={`h-full rounded-full ${color} transition-all duration-500`}
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-700 font-['Architects_Daughter'] w-12 text-right">{count} ({pct}%)</span>
+                      <span className="text-[11px] font-bold text-[var(--ink-mid)] w-12 text-right">{count} ({pct}%)</span>
                     </div>
                   );
                 })}
@@ -203,33 +203,33 @@ export default function CompliancePage({ params }: { params: Promise<{ org: stri
 
           {/* Stories requiring attention */}
           {worstStories.length > 0 && (
-            <div className="bg-white border-2 border-slate-900/8 rounded-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-900/5 flex items-center gap-2">
+            <div className="bg-white border-2 border-[var(--ink)]/8 rounded-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--ink)]/5 flex items-center gap-2">
                 <AlertTriangle size={15} className="text-amber-500" />
-                <h2 className="font-bold text-slate-900 font-['Architects_Daughter']">Stories mit Handlungsbedarf</h2>
-                <span className="ml-auto text-[10px] text-slate-400 font-['Architects_Daughter']">Score &lt; 80</span>
+                <h2 className="font-bold text-[var(--ink)]">Stories mit Handlungsbedarf</h2>
+                <span className="ml-auto text-[10px] text-[var(--ink-faint)]">Score &lt; 80</span>
               </div>
               <div className="divide-y divide-slate-900/5">
                 {worstStories.map(story => {
                   const score = story.quality_score ?? 0;
                   const scoreColor = score >= 60 ? "text-amber-600 bg-amber-50" : "text-red-600 bg-red-50";
                   return (
-                    <div key={story.id} className="flex items-center gap-4 px-6 py-3 hover:bg-slate-50 transition-colors">
-                      <span className={`text-[11px] font-black font-['Architects_Daughter'] px-2 py-0.5 rounded-lg ${scoreColor}`}>
+                    <div key={story.id} className="flex items-center gap-4 px-6 py-3 hover:bg-[var(--paper-warm)] transition-colors">
+                      <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg ${scoreColor}`}>
                         {score}
                       </span>
                       <Link
                         href={`/${resolvedParams.org}/stories/${story.id}`}
-                        className="flex-1 text-[13px] font-bold text-slate-800 font-['Architects_Daughter'] hover:text-teal-600 transition-colors truncate"
+                        className="flex-1 text-[13px] font-bold text-[var(--ink)] hover:text-teal-600 transition-colors truncate"
                       >
                         {story.title}
                       </Link>
-                      <span className="text-[10px] text-slate-400 font-['Architects_Daughter'] flex-shrink-0">
+                      <span className="text-[10px] text-[var(--ink-faint)] flex-shrink-0">
                         {story.status}
                       </span>
                       <Link
                         href={`/${resolvedParams.org}/stories/${story.id}`}
-                        className="p-1 text-slate-300 hover:text-teal-600 transition-colors flex-shrink-0"
+                        className="p-1 text-[var(--ink-faintest)] hover:text-teal-600 transition-colors flex-shrink-0"
                       >
                         <ArrowUpRight size={14} />
                       </Link>
@@ -242,44 +242,44 @@ export default function CompliancePage({ params }: { params: Promise<{ org: stri
 
           {/* DoR overview */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white border-2 border-slate-900/8 rounded-2xl p-6">
+            <div className="bg-white border-2 border-[var(--ink)]/8 rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp size={15} className="text-teal-500" />
-                <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase font-['Architects_Daughter']">
+                <p className="text-[10px] font-bold tracking-[0.15em] text-[var(--ink-faint)] uppercase">
                   Definition of Ready
                 </p>
               </div>
               <div className="flex items-center gap-6">
                 <div className="text-center">
-                  <p className="text-4xl font-black text-slate-900 font-['Architects_Daughter']">{metrics.dorPassed.length}</p>
-                  <p className="text-[10px] text-emerald-600 font-bold font-['Architects_Daughter'] mt-0.5">DoR bestanden</p>
+                  <p className="text-4xl font-black text-[var(--ink)]">{metrics.dorPassed.length}</p>
+                  <p className="text-[10px] text-emerald-600 font-bold mt-0.5">DoR bestanden</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-4xl font-black text-slate-400 font-['Architects_Daughter']">{metrics.total - metrics.dorPassed.length}</p>
-                  <p className="text-[10px] text-slate-400 font-bold font-['Architects_Daughter'] mt-0.5">nicht bestanden</p>
+                  <p className="text-4xl font-black text-[var(--ink-faint)]">{metrics.total - metrics.dorPassed.length}</p>
+                  <p className="text-[10px] text-[var(--ink-faint)] font-bold mt-0.5">nicht bestanden</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white border-2 border-slate-900/8 rounded-2xl p-6">
+            <div className="bg-white border-2 border-[var(--ink)]/8 rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Star size={15} className="text-violet-500" />
-                <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase font-['Architects_Daughter']">
+                <p className="text-[10px] font-bold tracking-[0.15em] text-[var(--ink-faint)] uppercase">
                   Prüfungsstand
                 </p>
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-[12px] font-['Architects_Daughter']">
-                  <span className="text-slate-600 font-bold">Bewertet</span>
-                  <span className="font-black text-slate-900">{metrics.scored.length}</span>
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="text-[var(--ink-mid)] font-bold">Bewertet</span>
+                  <span className="font-black text-[var(--ink)]">{metrics.scored.length}</span>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-3">
+                <div className="w-full bg-[var(--paper-warm)] rounded-full h-3">
                   <div
                     className="h-full rounded-full bg-violet-500 transition-all duration-500"
                     style={{ width: `${metrics.scoredPct}%` }}
                   />
                 </div>
-                <div className="flex items-center justify-between text-[11px] font-['Architects_Daughter'] text-slate-400">
+                <div className="flex items-center justify-between text-[11px] text-[var(--ink-faint)]">
                   <span>0</span>
                   <span>{metrics.total} Gesamt</span>
                 </div>

@@ -50,7 +50,7 @@ function StoryCard({
       className={`border rounded-xl transition-all ${
         isSelected
           ? "border-brand-400 ring-2 ring-brand-100 bg-brand-50"
-          : "border-slate-200 bg-white"
+          : "border-[var(--paper-rule)] bg-[var(--card)]"
       }`}
     >
       {/* Card header */}
@@ -66,10 +66,10 @@ function StoryCard({
               : "border-slate-300 hover:border-brand-400"
           }`}
         >
-          {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+          {isSelected && <div className="w-2 h-2 rounded-full bg-[var(--card)]" />}
         </button>
 
-        <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isSelected ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+        <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isSelected ? "bg-brand-600 text-white" : "bg-[var(--paper-warm)] text-[var(--ink-faint)]"}`}>
           {index + 1}
         </span>
 
@@ -78,7 +78,7 @@ function StoryCard({
           value={item.title}
           onChange={(e) => onChange({ ...item, title: e.target.value })}
           placeholder="Story-Titel…"
-          className="flex-1 min-w-0 text-sm font-medium bg-transparent border-none outline-none text-slate-800 placeholder:text-slate-400"
+          className="flex-1 min-w-0 text-sm font-medium bg-transparent border-none outline-none text-[var(--ink)] placeholder:text-[var(--ink-faint)]"
         />
 
         <input
@@ -88,13 +88,13 @@ function StoryCard({
           value={item.story_points}
           onChange={(e) => onChange({ ...item, story_points: e.target.value ? parseInt(e.target.value) : "" })}
           placeholder="SP"
-          className="w-14 px-2 py-1 text-xs text-center border border-slate-200 rounded-lg outline-none focus:border-brand-400 bg-white"
+          className="w-14 px-2 py-1 text-xs text-center border border-[var(--paper-rule)] rounded-lg outline-none focus:border-brand-400 bg-[var(--card)]"
         />
 
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+          className="p-1 text-[var(--ink-faint)] hover:text-[var(--ink-mid)] rounded transition-colors"
         >
           {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
@@ -103,7 +103,7 @@ function StoryCard({
           <button
             type="button"
             onClick={onRemove}
-            className="p-1 text-slate-300 hover:text-red-500 rounded transition-colors"
+            className="p-1 text-[var(--ink-faintest)] hover:text-red-500 rounded transition-colors"
           >
             <Trash2 size={14} />
           </button>
@@ -112,25 +112,25 @@ function StoryCard({
 
       {/* Expandable body */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-slate-100 pt-3">
+        <div className="px-4 pb-4 space-y-3 border-t border-[var(--paper-rule)] pt-3">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Beschreibung</label>
+            <label className="block text-xs font-medium text-[var(--ink-faint)] mb-1">Beschreibung</label>
             <textarea
               value={item.description}
               onChange={(e) => onChange({ ...item, description: e.target.value })}
               placeholder="Als [Rolle] möchte ich [Funktion], damit [Nutzen]"
               rows={2}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 resize-none bg-white"
+              className="w-full px-3 py-2 text-sm border border-[var(--paper-rule)] rounded-lg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 resize-none bg-[var(--card)]"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Akzeptanzkriterien</label>
+            <label className="block text-xs font-medium text-[var(--ink-faint)] mb-1">Akzeptanzkriterien</label>
             <textarea
               value={item.acceptance_criteria}
               onChange={(e) => onChange({ ...item, acceptance_criteria: e.target.value })}
               placeholder={"1. Kriterium\n2. Kriterium"}
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 resize-none bg-white"
+              className="w-full px-3 py-2 text-sm border border-[var(--paper-rule)] rounded-lg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 resize-none bg-[var(--card)]"
             />
           </div>
         </div>
@@ -218,16 +218,16 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-xl border border-[var(--paper-rule)] overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-100 bg-slate-50">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)] bg-[var(--paper-warm)]">
         <div className="flex items-center gap-3">
           <div className="p-1.5 bg-brand-100 rounded-lg shrink-0">
             <GitBranch size={16} className="text-brand-700" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Story aufteilen</h2>
-            <p className="text-xs text-slate-500">Teile diese Story in unabhängige Sub-Stories auf und gruppiere sie optional unter einem Epic.</p>
+            <h2 className="text-base font-semibold text-[var(--ink)]">Story aufteilen</h2>
+            <p className="text-xs text-[var(--ink-faint)]">Teile diese Story in unabhängige Sub-Stories auf und gruppiere sie optional unter einem Epic.</p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -245,7 +245,7 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
             Aufteilung vorschlagen
           </button>
           <button type="button" onClick={onClose}
-            className="px-3 py-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg text-xs transition-colors">
+            className="px-3 py-1.5 text-[var(--ink-faint)] hover:text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-lg text-xs transition-colors">
             Abbrechen
           </button>
         </div>
@@ -255,9 +255,9 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
         {/* Epic grouping */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 shrink-0">
-            <Layers size={15} className="text-slate-400" />
-            <label className="text-sm font-medium text-slate-700">Epic</label>
-            <span className="text-xs text-slate-400 font-normal">(optional)</span>
+            <Layers size={15} className="text-[var(--ink-faint)]" />
+            <label className="text-sm font-medium text-[var(--ink-mid)]">Epic</label>
+            <span className="text-xs text-[var(--ink-faint)] font-normal">(optional)</span>
           </div>
           <input
             type="text"
@@ -271,13 +271,13 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
         {/* Story cards */}
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-1">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+            <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide flex items-center gap-1.5">
               Sub-Stories
-              <span className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 normal-case font-normal tracking-normal">
+              <span className="px-1.5 py-0.5 bg-[var(--paper-warm)] rounded text-[var(--ink-mid)] normal-case font-normal tracking-normal">
                 {stories.length}
               </span>
             </p>
-            <p className="text-xs text-slate-400 flex items-center gap-1">
+            <p className="text-xs text-[var(--ink-faint)] flex items-center gap-1">
               <span className="hidden sm:inline">Wähle aus, womit du weitermachen möchtest</span>
               <span className="sm:hidden">Story wählen</span>
               <span className="inline-block w-3 h-3 rounded-full border-2 border-slate-300" />
@@ -300,7 +300,7 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
           <button
             type="button"
             onClick={addStory}
-            className="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-slate-300 text-slate-400 hover:border-brand-400 hover:text-brand-600 rounded-lg text-sm transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-slate-300 text-[var(--ink-faint)] hover:border-brand-400 hover:text-brand-600 rounded-lg text-sm transition-colors"
           >
             <Plus size={14} />
             Story hinzufügen
@@ -340,7 +340,7 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
             {saving ? "Speichern…" : `${stories.filter((s) => s.title.trim()).length} Stories speichern & weiter`}
           </button>
           <button type="button" onClick={onClose}
-            className="px-5 py-2.5 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors">
+            className="px-5 py-2.5 border border-slate-300 text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-lg text-sm font-medium transition-colors">
             Abbrechen
           </button>
         </div>

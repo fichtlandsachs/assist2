@@ -103,13 +103,13 @@ function SuggestionCard({ field, label, value, onApply }: SuggestionCardProps) {
     <div
       draggable
       onDragStart={handleDragStart}
-      className="border border-slate-200 rounded-lg p-3 bg-slate-50 hover:bg-white hover:border-brand-300 transition-all cursor-grab active:cursor-grabbing group"
+      className="border border-[var(--paper-rule)] rounded-lg p-3 bg-[var(--paper-warm)] hover:bg-white hover:border-brand-300 transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</span>
-        <GripVertical size={14} className="text-slate-300 group-hover:text-slate-400 transition-colors" />
+        <span className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">{label}</span>
+        <GripVertical size={14} className="text-[var(--ink-faintest)] group-hover:text-[var(--ink-faint)] transition-colors" />
       </div>
-      <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{value}</p>
+      <p className="text-sm text-[var(--ink-mid)] whitespace-pre-wrap leading-relaxed">{value}</p>
       <button
         type="button"
         onClick={() => onApply(field, value)}
@@ -138,19 +138,19 @@ function CriterionCard({ index, text, onApply }: CriterionCardProps) {
     <div
       draggable
       onDragStart={handleDragStart}
-      className="flex items-start gap-2 border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 hover:bg-white hover:border-brand-300 transition-all cursor-grab active:cursor-grabbing group"
+      className="flex items-start gap-2 border border-[var(--paper-rule)] rounded-lg px-3 py-2 bg-[var(--paper-warm)] hover:bg-white hover:border-brand-300 transition-all cursor-grab active:cursor-grabbing group"
     >
       <span className="shrink-0 mt-0.5 w-5 h-5 flex items-center justify-center rounded-full bg-brand-100 text-brand-700 text-xs font-bold">
         {index + 1}
       </span>
-      <p className="flex-1 text-sm text-slate-700 leading-relaxed">{text}</p>
+      <p className="flex-1 text-sm text-[var(--ink-mid)] leading-relaxed">{text}</p>
       <div className="flex items-center gap-1 shrink-0">
-        <GripVertical size={13} className="text-slate-300 group-hover:text-slate-400 transition-colors" />
+        <GripVertical size={13} className="text-[var(--ink-faintest)] group-hover:text-[var(--ink-faint)] transition-colors" />
         <button
           type="button"
           title="Zu Akzeptanzkriterien hinzufügen"
           onClick={() => onApply("acceptance_criteria", text, "append")}
-          className="p-1 rounded text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+          className="p-1 rounded text-[var(--ink-faint)] hover:text-brand-600 hover:bg-brand-50 transition-colors"
         >
           <CopyPlus size={13} />
         </button>
@@ -170,12 +170,12 @@ function ACBlock({ raw, onApply }: ACBlockProps) {
     return <SuggestionCard field="acceptance_criteria" label="Akzeptanzkriterien" value={raw} onApply={onApply} />;
   }
   return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+    <div className="border border-[var(--paper-rule)] rounded-lg overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 bg-[var(--paper-warm)] border-b border-[var(--paper-rule)]">
+        <span className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide flex items-center gap-1.5">
           <ListChecks size={13} />
           Akzeptanzkriterien
-          <span className="normal-case font-normal text-slate-400">({items.length})</span>
+          <span className="normal-case font-normal text-[var(--ink-faint)]">({items.length})</span>
         </span>
         <button
           type="button"
@@ -214,9 +214,9 @@ function CategorySection({ label, tab, items, onNavigate, isLoading, isRefreshin
   const resolved = items.filter((i) => i.resolved);
 
   return (
-    <div className={`border rounded-lg overflow-hidden transition-colors ${isRefreshing ? "border-brand-200" : "border-slate-200"}`}>
-      <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+    <div className={`border rounded-lg overflow-hidden transition-colors ${isRefreshing ? "border-brand-200" : "border-[var(--paper-rule)]"}`}>
+      <div className="flex items-center justify-between px-3 py-2 bg-[var(--paper-warm)] border-b border-[var(--paper-rule)]">
+        <span className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide flex items-center gap-1.5">
           {label}
           {isRefreshing && (
             <span className="inline-block w-3 h-3 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
@@ -247,8 +247,8 @@ function CategorySection({ label, tab, items, onNavigate, isLoading, isRefreshin
 
       {isLoading ? (
         <div className="px-3 py-2 space-y-1.5">
-          <div className="h-3 bg-slate-100 rounded w-4/5 animate-pulse" />
-          <div className="h-3 bg-slate-100 rounded w-3/5 animate-pulse" />
+          <div className="h-3 bg-[var(--paper-warm)] rounded w-4/5 animate-pulse" />
+          <div className="h-3 bg-[var(--paper-warm)] rounded w-3/5 animate-pulse" />
         </div>
       ) : items.length === 0 ? (
         <div className="px-3 py-2 flex items-center gap-1.5 text-xs text-green-600">
@@ -273,7 +273,7 @@ function CategorySection({ label, tab, items, onNavigate, isLoading, isRefreshin
               >
                 {item.resolved && <Check size={9} />}
               </span>
-              <span className={`leading-relaxed ${item.resolved ? "line-through text-slate-400" : "text-slate-700"}`}>
+              <span className={`leading-relaxed ${item.resolved ? "line-through text-[var(--ink-faint)]" : "text-[var(--ink-mid)]"}`}>
                 {item.key}
               </span>
             </li>
@@ -410,11 +410,11 @@ export function AISuggestPanel({
   return (
     <div className="flex flex-col h-full min-h-0 flex-1">
       <div className="mb-4">
-        <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+        <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
           <Sparkles size={16} className="text-brand-500" />
           Assistent
         </h2>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-[var(--ink-faint)] mt-1">
           Analysiert Story, DoD, Features und Testfälle und schlägt Verbesserungen vor.
         </p>
       </div>
@@ -460,7 +460,7 @@ export function AISuggestPanel({
         {/* Source badges */}
         {suggestion && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-500">
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-[var(--paper-rule)] bg-[var(--paper-warm)] text-[var(--ink-faint)]">
               <Brain size={9} />
               ai
             </span>
@@ -481,7 +481,7 @@ export function AISuggestPanel({
                   ? "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
                   : isLc
                     ? "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
-                    : "border-slate-200 bg-slate-50 text-slate-500";
+                    : "border-[var(--paper-rule)] bg-[var(--paper-warm)] text-[var(--ink-faint)]";
               const displayTitle = s.title
                 .replace(/^Jira:\s*/i, "")
                 .replace(/^Confluence:\s*/i, "")
@@ -507,14 +507,14 @@ export function AISuggestPanel({
         {/* Quality score */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium flex items-center gap-1.5">
+            <span className="text-[var(--ink-faint)] font-medium flex items-center gap-1.5">
               Qualitätsscore
-              {isPersistedScore && <span className="text-slate-400 font-normal">(gespeichert)</span>}
+              {isPersistedScore && <span className="text-[var(--ink-faint)] font-normal">(gespeichert)</span>}
             </span>
             <span
               className={`font-bold ${
                 displayScore === null
-                  ? "text-slate-400"
+                  ? "text-[var(--ink-faint)]"
                   : displayScore >= 75
                     ? "text-green-600"
                     : displayScore >= 50
@@ -549,7 +549,7 @@ export function AISuggestPanel({
 
         {/* DoR issues */}
         <div className="space-y-1.5">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">DoR-Probleme</p>
+          <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">DoR-Probleme</p>
           {suggestion && suggestion.dor_issues.length > 0 ? (
             suggestion.dor_issues.map((issue, i) => (
               <div
@@ -561,16 +561,16 @@ export function AISuggestPanel({
               </div>
             ))
           ) : (
-            <div className="h-8 bg-slate-100 rounded-md" />
+            <div className="h-8 bg-[var(--paper-warm)] rounded-md" />
           )}
         </div>
 
         {/* Story field improvements */}
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">
             Story-Verbesserungen
             {suggestion && (
-              <span className="normal-case font-normal text-slate-400 ml-1">(ziehen oder klicken)</span>
+              <span className="normal-case font-normal text-[var(--ink-faint)] ml-1">(ziehen oder klicken)</span>
             )}
           </p>
           {suggestion ? (
@@ -583,16 +583,16 @@ export function AISuggestPanel({
                 <ACBlock raw={suggestion.acceptance_criteria} onApply={onApply} />
               )}
               {!suggestion.title && !suggestion.description && !suggestion.acceptance_criteria && (
-                <p className="text-xs text-slate-400 italic">
+                <p className="text-xs text-[var(--ink-faint)] italic">
                   Keine Änderungen nötig — die Story ist bereits gut formuliert.
                 </p>
               )}
             </>
           ) : (
             <div className="space-y-2">
-              <div className="h-16 bg-slate-100 rounded-lg" />
-              <div className="h-16 bg-slate-100 rounded-lg" />
-              <div className="h-24 bg-slate-100 rounded-lg" />
+              <div className="h-16 bg-[var(--paper-warm)] rounded-lg" />
+              <div className="h-16 bg-[var(--paper-warm)] rounded-lg" />
+              <div className="h-24 bg-[var(--paper-warm)] rounded-lg" />
             </div>
           )}
         </div>
@@ -652,11 +652,11 @@ export function AISuggestPanel({
             </p>
           </div>
         ) : !hasResults ? (
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg space-y-1.5">
+          <div className="p-3 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-lg space-y-1.5">
             <div className="h-3 bg-slate-200 rounded w-20" />
             <div className="h-3 bg-slate-200 rounded w-full" />
             <div className="h-3 bg-slate-200 rounded w-4/5" />
-            <p className="text-xs text-slate-400 text-center pt-1">
+            <p className="text-xs text-[var(--ink-faint)] text-center pt-1">
               Deine Vorschläge findest du hier nach der Analyse.
             </p>
           </div>
@@ -664,8 +664,8 @@ export function AISuggestPanel({
 
         {/* Sources */}
         {suggestion && (suggestion.sources ?? []).length > 0 && (
-          <div className="pt-2 border-t border-slate-100">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Quellen</p>
+          <div className="pt-2 border-t border-[var(--paper-rule)]">
+            <p className="text-[10px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Quellen</p>
             <ul className="space-y-1">
               {(suggestion.sources ?? []).slice(0, 5).map((s, i) => {
                 const isYd = s.type === "confluence" || s.type === "nextcloud" || s.type === "karl_story";
@@ -683,9 +683,9 @@ export function AISuggestPanel({
                     ? "text-orange-600"
                     : isLc
                       ? "text-violet-600"
-                      : "text-slate-400";
+                      : "text-[var(--ink-faint)]";
                 const inner = (
-                  <li key={i} className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <li key={i} className="flex items-center gap-1.5 text-xs text-[var(--ink-mid)]">
                     <span className={`text-[10px] font-bold shrink-0 ${labelCls}`}>{label}</span>
                     <span className="truncate">{displayTitle}</span>
                   </li>
@@ -704,7 +704,7 @@ export function AISuggestPanel({
 
         {/* Sticky re-analyse button at bottom of results */}
         {hasResults && (
-          <div className="pt-3 border-t border-slate-100">
+          <div className="pt-3 border-t border-[var(--paper-rule)]">
             <button
               type="button"
               onClick={() => void handleAnalyze()}

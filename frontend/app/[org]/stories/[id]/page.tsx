@@ -1110,7 +1110,7 @@ function StoryPromptSection({ story, orgId }: { story: UserStory; orgId: string 
           readOnly
           value={prompt}
           rows={20}
-          className="w-full px-3 py-2 text-sm font-mono border border-[var(--paper-rule)] rounded-sm bg-white text-[var(--ink-mid)] resize-y outline-none focus:border-[rgba(var(--accent-red-rgb),.3)]"
+          className="w-full px-3 py-2 text-sm font-mono border border-[var(--paper-rule)] rounded-sm bg-[var(--card)] text-[var(--ink-mid)] resize-y outline-none focus:border-[rgba(var(--accent-red-rgb),.3)]"
         />
       </div>
     </div>

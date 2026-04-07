@@ -21,7 +21,7 @@ export default function StoriesLayout({ children, params }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-1 mb-4 border-b-2 border-slate-900/5 pb-0">
+      <div className="flex items-center gap-1 mb-4 border-b-2 border-[var(--ink)]/5 pb-0">
         {tabs.map(tab => {
           const segment = tab.href.split("/")[3];
           const isActive = pathname.includes(`/stories/${segment}`) ||
@@ -36,10 +36,10 @@ export default function StoriesLayout({ children, params }: Props) {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`px-4 py-2 text-[12px] font-bold font-['Architects_Daughter'] tracking-wide transition-colors border-b-2 -mb-[2px] ${
+              className={`px-4 py-2 text-[12px] font-bold tracking-wide transition-colors border-b-2 -mb-[2px] ${
                 active
-                  ? "text-slate-900 border-slate-900"
-                  : "text-slate-400 border-transparent hover:text-slate-600 hover:border-slate-300"
+                  ? "text-[var(--ink)] border-[var(--ink)]"
+                  : "text-[var(--ink-faint)] border-transparent hover:text-[var(--ink-mid)] hover:border-slate-300"
               }`}
             >
               {tab.label}
