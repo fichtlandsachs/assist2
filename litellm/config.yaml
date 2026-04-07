@@ -66,6 +66,23 @@ model_list:
       timeout: 120
       max_retries: 1
 
+  # ── Evaluation aliases ───────────────────────────────────────
+  # eval-fast: quick criteria checks, deterministic validation
+  - model_name: eval-fast
+    litellm_params:
+      model: anthropic/claude-haiku-4-5-20251001
+      api_key: os.environ/ANTHROPIC_API_KEY
+      timeout: 30
+      max_retries: 2
+
+  # eval-quality: deep analysis, findings, rewrite generation
+  - model_name: eval-quality
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+      timeout: 90
+      max_retries: 2
+
   # ── Fallback group: ionos-fast → anthropic haiku ──────────────
   - model_name: fallback-eu
     litellm_params:
