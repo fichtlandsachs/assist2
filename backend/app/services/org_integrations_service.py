@@ -102,6 +102,17 @@ def get_confluence_credentials(org: Organization) -> tuple[str, str, str] | None
 
 # ── AI ────────────────────────────────────────────────────────────────────────
 
+DEFAULT_DOR_RULES: list[str] = [
+    "Hat die Story einen klaren Titel?",
+    'Ist die Beschreibung im Format "Als [Rolle] möchte ich [Funktion], damit [Nutzen]"?',
+    "Sind die Akzeptanzkriterien konkret, testbar und vollständig?",
+    "Ist die Story klein genug für einen Sprint?",
+    "Sind Abhängigkeiten bekannt?",
+]
+
+DEFAULT_MIN_QUALITY_SCORE: int = 50
+
+
 def get_ai_settings(org: Organization) -> dict:
     cfg = _get_section(org, "ai")
     return {
@@ -109,6 +120,8 @@ def get_ai_settings(org: Organization) -> dict:
         "anthropic_api_key_set": bool(cfg.get("anthropic_api_key_enc")),
         "openai_api_key_set": bool(cfg.get("openai_api_key_enc")),
         "model_override": cfg.get("model_override", ""),
+        "dor_rules": cfg.get("dor_rules", DEFAULT_DOR_RULES),
+        "min_quality_score": cfg.get("min_quality_score", DEFAULT_MIN_QUALITY_SCORE),
     }
 
 
@@ -118,20 +131,24 @@ def set_ai_settings(
     anthropic_api_key: str | None = None,
     ai_provider: str = "anthropic",
     openai_api_key: str | None = None,
+    dor_rules: list[str] | None = None,
+    min_quality_score: int | None = None,
 ) -> None:
     cfg = _get_section(org, "ai")
     cfg["model_override"] = model_override
     cfg["ai_provider"] = ai_provider
     cfg["anthropic_api_key_enc"] = _maybe_encrypt(cfg.get("anthropic_api_key_enc"), anthropic_api_key)
     cfg["openai_api_key_enc"] = _maybe_encrypt(cfg.get("openai_api_key_enc"), openai_api_key)
+    if dor_rules is not None:
+        cfg["dor_rules"] = [r.strip() for r in dor_rules if r.strip()]
+    if min_quality_score is not None:
+        cfg["min_quality_score"] = max(0, min(100, min_quality_score))
     _set_section(org, "ai", cfg)
 
 
 def get_ai_client_settings(org: Organization) -> dict:
-    """Return decrypted AI credentials for the service layer.
+    """Return decrypted AI credentials + ruleset for the service layer.
 
-    Returns both keys so the service layer can pick the right one per task:
-      {"anthropic_api_key", "openai_api_key", "model_override"}
     Falls back to global env vars if no org-level key is stored.
     """
     cfg = _get_section(org, "ai")
@@ -148,6 +165,8 @@ def get_ai_client_settings(org: Organization) -> dict:
         "anthropic_api_key": anthropic_api_key,
         "openai_api_key": openai_api_key,
         "model_override": model_override,
+        "dor_rules": cfg.get("dor_rules", DEFAULT_DOR_RULES),
+        "min_quality_score": cfg.get("min_quality_score", DEFAULT_MIN_QUALITY_SCORE),
     }
 
 

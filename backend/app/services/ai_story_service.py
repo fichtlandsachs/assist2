@@ -284,7 +284,8 @@ async def get_story_suggestions(
             logger.warning("RAG retrieval error (skipping): %s", e)
 
     # 2. Build prompt (with optional RAG context)
-    prompt = _build_suggest_prompt(data, rag_context=rag_context_block)
+    dor_rules = (ai_settings or {}).get("dor_rules")
+    prompt = _build_suggest_prompt(data, rag_context=rag_context_block, dor_rules=dor_rules)
 
     # 3. Execute via pipeline (single or multi)
     t0 = time.monotonic()
@@ -302,7 +303,15 @@ async def get_story_suggestions(
     return AISuggestion(**parsed, source=rag_source, sources=rag_sources)
 
 
-def _build_suggest_prompt(data: AISuggestRequest, rag_context: str | None = None) -> str:
+def _build_suggest_prompt(
+    data: AISuggestRequest,
+    rag_context: str | None = None,
+    dor_rules: list[str] | None = None,
+) -> str:
+    from app.services.org_integrations_service import DEFAULT_DOR_RULES
+    rules = dor_rules if dor_rules else DEFAULT_DOR_RULES
+    rules_block = "\n".join(f"- {r}" for r in rules)
+
     context_section = ""
     if rag_context:
         context_section = f"""--- Org-Wissen (aus Nextcloud) ---
@@ -318,11 +327,7 @@ Beschreibung: {data.description or "(leer)"}
 Akzeptanzkriterien: {data.acceptance_criteria or "(leer)"}
 
 Du bist ein erfahrener Scrum Master. Prüfe die Story gegen die Definition of Ready (DoR):
-- Hat die Story einen klaren Titel?
-- Ist die Beschreibung im Format "Als [Rolle] möchte ich [Funktion], damit [Nutzen]"?
-- Sind die Akzeptanzkriterien konkret, testbar und vollständig?
-- Ist die Story klein genug für einen Sprint?
-- Sind Abhängigkeiten bekannt?
+{rules_block}
 
 Antworte NUR mit einem JSON-Objekt (kein Markdown, kein Text davor oder danach):
 {{
