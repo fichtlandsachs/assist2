@@ -276,6 +276,31 @@ services:
       redis:
         condition: service_healthy
 
+  langgraph-service:
+    image: assist2-langgraph
+    build:
+      context: ../langgraph-service
+      dockerfile: Dockerfile
+    container_name: assist2-langgraph
+    restart: unless-stopped
+    environment:
+      LITELLM_BASE_URL: http://assist2-litellm:4000
+      LITELLM_API_KEY: ${LITELLM_API_KEY:-sk-assist2}
+      BACKEND_BASE_URL: http://assist2-backend:8000
+      LANGGRAPH_API_KEY: ${LANGGRAPH_API_KEY:-dev-langgraph-secret}
+      LOG_LEVEL: INFO
+    networks:
+      - internal
+    depends_on:
+      litellm:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   frontend:
     build:
       context: ../frontend
