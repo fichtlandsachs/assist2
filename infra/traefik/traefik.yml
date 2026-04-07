@@ -1,0 +1,51 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: WARN
+
+api:
+  dashboard: true
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+    http:
+      tls: {}
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+  docker:
+    endpoint: "tcp://traefik-socket-proxy:2375"
+    exposedByDefault: false
+    network: assist-proxy
+    watch: true
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: falk@bummelletzter.com
+      storage: /certs/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "8.8.8.8:53"
+
+  localdev:
+    acme:
+      email: admin@localhost
+      storage: /certs/acme-local.json
+      tlsChallenge: {}
