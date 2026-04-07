@@ -10,7 +10,7 @@ import useSWR from "swr";
 import type { User, UserStory } from "@/types";
 import {
   Building2, Mail, CalendarDays, AlertCircle,
-  Layers, Cloud, CheckCircle, Trash2, Plus, Eye, EyeOff, RefreshCw, Users2, UserCircle2,
+  Layers, Cloud, CheckCircle, Trash2, Plus, Eye, EyeOff, RefreshCw, Users2, UserCircle2, Sparkles,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -119,6 +119,7 @@ const TABS = [
   { id: "calendar",   label: "Kalender",   Icon: CalendarDays },
   { id: "jira",       label: "Jira",       Icon: Layers },
   { id: "confluence", label: "Confluence", Icon: Cloud },
+  { id: "ai",         label: "KI",         Icon: Sparkles },
 ] as const;
 type TabId = typeof TABS[number]["id"];
 
@@ -1246,6 +1247,16 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
               <h2 className="text-base font-semibold text-[var(--ink)] mb-5">Confluence-Integration</h2>
               {integrationSettings ? (
                 <ConfluenceSection orgId={org.id} settings={integrationSettings.confluence} onSaved={mutateIntegrations} />
+              ) : (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-red)]" />
+              )}
+            </>
+          )}
+          {activeTab === "ai" && (
+            <>
+              <h2 className="text-base font-semibold text-[var(--ink)] mb-5">KI-Einstellungen</h2>
+              {integrationSettings ? (
+                <AISection orgId={org.id} settings={integrationSettings.ai} />
               ) : (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-red)]" />
               )}
