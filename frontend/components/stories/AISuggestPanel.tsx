@@ -400,6 +400,44 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
             <p className="text-xs text-slate-400 text-center pt-1">Deine Vorschläge findest du hier nach der Analyse.</p>
           </div>
         )}
+
+        {/* Sources list */}
+        {suggestion && (suggestion.sources ?? []).length > 0 && (
+          <div className="pt-2 border-t border-slate-100">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Quellen</p>
+            <ul className="space-y-1">
+              {(suggestion.sources ?? []).slice(0, 5).map((s, i) => {
+                const isYd = s.type === "confluence" || s.type === "nextcloud" || s.type === "karl_story"
+                const isYt = s.type === "jira"
+                const isLc = s.type === "user_action"
+                const label = isYd ? "yd" : isYt ? "yt" : isLc ? "lc" : s.type
+                const displayTitle = s.title
+                  .replace(/^Jira:\s*/i, '')
+                  .replace(/^Confluence:\s*/i, '')
+                  .replace(/^Story:\s*/i, '')
+                  .replace(/^User Action:\s*/i, '')
+                const labelCls = isYd
+                  ? "text-blue-600"
+                  : isYt
+                    ? "text-orange-600"
+                    : isLc
+                      ? "text-violet-600"
+                      : "text-slate-400"
+                const inner = (
+                  <li key={i} className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <span className={`text-[10px] font-bold shrink-0 ${labelCls}`}>{label}</span>
+                    <span className="truncate">{displayTitle}</span>
+                  </li>
+                )
+                return s.url ? (
+                  <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-red)] no-underline block">
+                    {inner}
+                  </a>
+                ) : inner
+              })}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

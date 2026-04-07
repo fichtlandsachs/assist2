@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 DIRECT_THRESHOLD = 0.92
 CONTEXT_THRESHOLD = 0.50
-MAX_CHUNKS = 3
+MAX_CHUNKS = 5
 
 
 @dataclass
