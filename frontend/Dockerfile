@@ -23,7 +23,8 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 COPY --from=builder --chown=appuser:nodejs /app/.next ./.next
 COPY --from=builder --chown=appuser:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=appuser:nodejs /app/public ./public
+RUN mkdir -p ./public
+COPY --chown=appuser:nodejs public/ ./public/
 COPY --chown=appuser:nodejs package.json ./
 
 USER appuser
