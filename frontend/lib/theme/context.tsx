@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-export type ThemeId = "agile" | "paperwork";
+export type ThemeId = "agile" | "paperwork" | "karl";
 
 interface ThemeContextValue {
   theme: ThemeId;
@@ -17,20 +17,19 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: "paperwork",
+  theme: "agile",
   setTheme: () => {},
 });
 
 const STORAGE_KEY = "theme";
+const VALID: ThemeId[] = ["agile", "paperwork", "karl"];
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>("agile");
 
-  // Read from localStorage on mount (client-side only to avoid SSR mismatch)
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as ThemeId | null;
-    const initial: ThemeId =
-      stored === "agile" || stored === "paperwork" ? stored : "agile";
+    const initial: ThemeId = stored && VALID.includes(stored) ? stored : "agile";
     setThemeState(initial);
     document.documentElement.dataset.theme = initial;
   }, []);
