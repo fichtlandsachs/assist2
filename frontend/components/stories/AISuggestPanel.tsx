@@ -253,30 +253,58 @@ export function AISuggestPanel({ title, description, acceptanceCriteria, onApply
       {/* Results — real when available, ghost skeleton when not yet analysed */}
       <div className={`mt-4 space-y-4 flex-1 overflow-y-auto transition-opacity duration-300 ${!suggestion && !loading ? "opacity-30 pointer-events-none select-none" : "opacity-100"}`}>
 
-        {/* Source badge */}
+        {/* Source badges */}
         {suggestion && (
-          suggestion.source === "rag_direct" ? (
-            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
-              <Database size={13} className="text-emerald-600 shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-emerald-700">Aus Org-Wissensbank</p>
-                <p className="text-xs text-emerald-600">Direkte Antwort aus indexierten Dokumenten — kein KI-Aufruf nötig.</p>
-              </div>
-            </div>
-          ) : suggestion.source === "rag_context" ? (
-            <div className="flex items-center gap-2 px-3 py-2 bg-violet-50 border border-violet-200 rounded-lg">
-              <Database size={13} className="text-violet-500 shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-violet-700">Org-Wissen eingeflossen</p>
-                <p className="text-xs text-violet-600">KI hat relevante Dokumente aus eurer Nextcloud-Ablage einbezogen.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
-              <Brain size={13} className="text-slate-400 shrink-0" />
-              <p className="text-xs text-slate-500">KI-generiert — kein passendes Org-Wissen gefunden.</p>
-            </div>
-          )
+          <div className="flex flex-wrap items-center gap-1.5">
+            {/* ai — always shown */}
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-500">
+              <Brain size={9} />
+              ai
+            </span>
+
+            {/* rag_direct indicator */}
+            {suggestion.source === "rag_direct" && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-emerald-200 bg-emerald-50 text-emerald-700">
+                <Database size={9} />
+                direkt
+              </span>
+            )}
+
+            {/* per-chunk source badges: yd / yt / lc */}
+            {(suggestion.sources ?? []).map((s, i) => {
+              const isYd = s.type === "confluence" || s.type === "nextcloud" || s.type === "karl_story"
+              const isYt = s.type === "jira"
+              const isLc = s.type === "user_action"
+              const label = isYd ? "yd" : isYt ? "yt" : isLc ? "lc" : s.type
+              const colorCls = isYd
+                ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                : isYt
+                  ? "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
+                  : isLc
+                    ? "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+                    : "border-slate-200 bg-slate-50 text-slate-500"
+
+              const displayTitle = s.title
+                .replace(/^Jira:\s*/i, '')
+                .replace(/^Confluence:\s*/i, '')
+                .replace(/^Story:\s*/i, '')
+                .replace(/^User Action:\s*/i, '')
+              const badge = (
+                <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border ${colorCls}`}>
+                  <span className="font-bold shrink-0">{label}</span>
+                  {displayTitle && <span className="font-normal">{displayTitle}</span>}
+                </span>
+              )
+
+              return s.url ? (
+                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" title={s.title} className="no-underline">
+                  {badge}
+                </a>
+              ) : (
+                <span key={i} title={s.title}>{badge}</span>
+              )
+            })}
+          </div>
         )}
 
         {/* Quality score */}

@@ -236,6 +236,7 @@ async def get_story_suggestions(
     # 1. RAG retrieval (org-scoped, optional)
     rag_context_block: str | None = None
     rag_source: str = "llm"
+    rag_sources: list = []
     if org_id is not None and db is not None:
         try:
             from app.services.rag_service import retrieve
@@ -247,6 +248,7 @@ async def get_story_suggestions(
                 source_types=["jira", "confluence", "karl_story"],
             )
             if rag.mode == "direct" and rag.context:
+                from app.schemas.user_story import Source as RagSource
                 return AISuggestion(
                     title=None,
                     description=None,
@@ -255,12 +257,29 @@ async def get_story_suggestions(
                     dor_issues=[],
                     quality_score=None,
                     source="rag_direct",
+                    sources=[
+                        RagSource(
+                            title=c.source_title or c.source_type,
+                            url=c.source_url or "",
+                            type=c.source_type,
+                        )
+                        for c in rag.chunks if c.source_title or c.source_url
+                    ],
                 )
             if rag.mode == "context" and rag.chunks:
                 rag_context_block = "\n".join(
                     [f"[{c.source_type.upper()}]\n{c.text}" for c in rag.chunks]
                 )
                 rag_source = "rag_context"
+                from app.schemas.user_story import Source as RagSource
+                rag_sources = [
+                    RagSource(
+                        title=c.source_title or c.source_type,
+                        url=c.source_url or "",
+                        type=c.source_type,
+                    )
+                    for c in rag.chunks if c.source_title or c.source_url
+                ]
         except Exception as e:
             logger.warning("RAG retrieval error (skipping): %s", e)
 
@@ -276,7 +295,7 @@ async def get_story_suggestions(
 
     # 4. Parse and return
     parsed = _parse_json(raw)
-    return AISuggestion(**parsed, source=rag_source)
+    return AISuggestion(**parsed, source=rag_source, sources=rag_sources)
 
 
 def _build_suggest_prompt(data: AISuggestRequest, rag_context: str | None = None) -> str:
