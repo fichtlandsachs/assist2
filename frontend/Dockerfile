@@ -11,6 +11,7 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+RUN mkdir -p /app/public
 RUN npm run build
 
 # Stage 3: production
