@@ -76,12 +76,20 @@ gen_secret() {
 }
 
 prompt() {
-  local var_name="$1" prompt_text="$2" default="${3:-}"
+  # prompt VAR_NAME "text" ["default"]
+  # If default is empty string "", the field is optional (Enter = empty).
+  # If default is non-empty, Enter accepts the default.
+  # Only loops when no default is provided AND the variable name does not end in _OPT.
+  local var_name="$1" prompt_text="$2" default="${3-__REQUIRED__}"
   local value
-  if [[ -n "$default" ]]; then
-    read -rp "$(echo -e "${BOLD}${prompt_text}${NC} [${default}]: ")" value
+  if [[ "$default" != "__REQUIRED__" ]]; then
+    # Optional or has default — never loop
+    local hint=""
+    [[ -n "$default" ]] && hint=" [${default}]"
+    read -rp "$(echo -e "${BOLD}${prompt_text}${NC}${hint}: ")" value
     echo "${value:-$default}"
   else
+    # Required — loop until non-empty
     while true; do
       read -rp "$(echo -e "${BOLD}${prompt_text}${NC}: ")" value
       [[ -n "$value" ]] && break
@@ -89,6 +97,13 @@ prompt() {
     done
     echo "$value"
   fi
+}
+
+prompt_optional() {
+  local prompt_text="$1"
+  local value
+  read -rp "$(echo -e "${BOLD}${prompt_text}${NC} [Enter to skip]: ")" value
+  echo "$value"
 }
 
 prompt_secret() {
@@ -131,7 +146,7 @@ section "Step 1 — System prerequisites"
 # ─────────────────────────────────────────────────────────────────────────────
 apt-get update -qq
 apt-get install -y -qq \
-  ca-certificates curl gnupg lsb-release git make jq htpasswd apache2-utils \
+  ca-certificates curl gnupg lsb-release git make jq \
   python3-pip 2>/dev/null || true
 
 # Docker
@@ -178,10 +193,10 @@ IONOS_API_BASE=$(prompt IONOS_API_BASE "IONOS API base URL" "https://openai.iono
 
 echo ""
 echo -e "${BOLD}Optional OAuth (press Enter to skip — can be configured later)${NC}:"
-GITHUB_CLIENT_ID=$(prompt GITHUB_CLIENT_ID "GitHub OAuth Client ID" "")
-GITHUB_CLIENT_SECRET=$(prompt_secret "GitHub OAuth Client Secret" "")
-ATLASSIAN_CLIENT_ID=$(prompt ATLASSIAN_CLIENT_ID "Atlassian OAuth Client ID" "")
-ATLASSIAN_CLIENT_SECRET=$(prompt_secret "Atlassian OAuth Client Secret" "")
+GITHUB_CLIENT_ID=$(prompt_optional "GitHub OAuth Client ID")
+GITHUB_CLIENT_SECRET=$(prompt_optional "GitHub OAuth Client Secret")
+ATLASSIAN_CLIENT_ID=$(prompt_optional "Atlassian OAuth Client ID")
+ATLASSIAN_CLIENT_SECRET=$(prompt_optional "Atlassian OAuth Client Secret")
 
 echo ""
 info "Generating secrets…"
@@ -207,7 +222,8 @@ GHOST_DB_ROOT_PASSWORD=$(gen_secret 32)
 
 # Traefik basic auth (admin:<random>)
 TRAEFIK_ADMIN_PASS=$(gen_secret 16)
-TRAEFIK_BASIC_AUTH=$(htpasswd -nbB admin "$TRAEFIK_ADMIN_PASS" | sed 's/\$/\$\$/g')
+# openssl passwd is always available; htpasswd is not installed on minimal Debian
+TRAEFIK_BASIC_AUTH="admin:$(openssl passwd -apr1 "$TRAEFIK_ADMIN_PASS" | sed 's/\$/\$\$/g')"
 
 ok "Secrets generated."
 
