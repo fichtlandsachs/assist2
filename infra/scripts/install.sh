@@ -118,7 +118,7 @@ prompt_secret() {
     echo ""
     if [[ -z "$value" ]]; then
       value="$(gen_secret 32)"
-      info "Auto-generated secret."
+      echo -e "${BLUE}[INFO]${NC}  Auto-generated secret." >/dev/tty
     fi
     echo "$value"
   fi
