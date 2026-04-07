@@ -49,6 +49,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
   const { navEntries } = usePluginRegistry(orgId ?? "");
   const { theme } = useTheme();
   const isPaperwork = theme === "paperwork";
+  const isKarl = theme === "karl";
   const isWorkspacePath = pathname.startsWith(`/${orgSlug}/ai-workspace`) || pathname.startsWith(`/${orgSlug}/project`) || pathname.startsWith(`/${orgSlug}/stories`) || pathname.startsWith(`/${orgSlug}/docs`) || pathname.startsWith(`/${orgSlug}/nextcloud`) || pathname.startsWith(`/${orgSlug}/compliance`);
   const isSettingsPath = pathname.startsWith(`/${orgSlug}/settings`) || pathname.startsWith(`/${orgSlug}/workflows`);
   const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
@@ -408,7 +409,185 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
     </aside>
   );
 
-  const sidebarContent = isPaperwork ? paperworkSidebar : agileSidebar;
+  const karlSidebar = (
+    <aside className="flex flex-col h-full shrink-0"
+      style={{ width: "var(--sidebar-width)", background: "#FFFFFF", borderRight: "2px solid #0A0A0A" }}>
+
+      {/* Brand */}
+      <div className="relative p-5 pb-4 flex flex-col items-center gap-1.5"
+        style={{ borderBottom: "2px solid #0A0A0A" }}>
+        <div className="karl-logo w-14 h-14 border-2 rounded-xl overflow-hidden flex items-center justify-center"
+          style={{ background: "#FFF5EE", borderColor: "#0A0A0A", boxShadow: "4px 4px 0 #0A0A0A" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/karl-9.png" alt="Karl" className="w-full h-full object-contain" />
+        </div>
+        <span className="font-['Architects_Daughter'] text-lg tracking-tight leading-none truncate max-w-[160px]"
+          style={{ color: "#0A0A0A" }}>
+          {user?.display_name ?? "Karl"}
+        </span>
+        <span className="text-[9px] font-bold tracking-[0.2em] uppercase font-['Architects_Daughter'] truncate max-w-[160px]"
+          style={{ color: "#6B6B6B" }}>
+          {orgName ?? orgSlug}
+        </span>
+        <button onClick={onMobileClose} className="md:hidden absolute top-3 right-3 p-1.5 rounded-lg"
+          style={{ border: "2px solid rgba(10,10,10,0.2)" }} aria-label="Schließen">
+          <X size={14} style={{ color: "#6B6B6B" }} />
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto">
+        {navItems.slice(0, 1).map(item => {
+          const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
+          const Icon = item.icon;
+          return (
+            <Link key={item.id} href={item.route} onClick={onMobileClose}
+              className={`sidebar-nav-item flex items-center gap-2.5 px-3 py-2 transition-all${isActive ? " is-active" : ""}`}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 border-2 transition-all"
+                style={{ borderColor: isActive ? "#0A0A0A" : "transparent", background: isActive ? "#FFF5EE" : "transparent" }}>
+                <Icon size={14} strokeWidth={2.5} style={{ color: isActive ? "#FF5C00" : "#6B6B6B" }} />
+              </div>
+              <span className="text-[13px] font-bold font-['Architects_Daughter'] truncate"
+                style={{ color: isActive ? "#FFFFFF" : "#3A3A3A" }}>
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+
+        <button onClick={() => setWorkspaceManualOpen(o => !o)}
+          className="sidebar-nav-item flex items-center gap-2.5 px-3 py-2 w-full transition-all">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 border-2 transition-all"
+            style={{ borderColor: workspaceOpen ? "#0A0A0A" : "transparent", background: workspaceOpen ? "#EFF6FF" : "transparent" }}>
+            <MessageSquare size={14} strokeWidth={2.5} style={{ color: workspaceOpen ? "#3B82F6" : "#6B6B6B" }} />
+          </div>
+          <span className="text-[13px] font-bold font-['Architects_Daughter'] truncate flex-1 text-left"
+            style={{ color: workspaceOpen ? "#0A0A0A" : "#3A3A3A" }}>
+            Workspace
+          </span>
+          <ChevronRight size={12} style={{ color: "#A0A0A0", transition: "transform .15s", transform: workspaceOpen ? "rotate(90deg)" : "none" }} />
+        </button>
+        {workspaceOpen && workspaceSubItems.map(item => {
+          const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
+          const Icon = item.icon;
+          return (
+            <Link key={item.id} href={item.route} onClick={onMobileClose}
+              className={`sidebar-nav-item flex items-center gap-2 pl-5 pr-3 py-1.5 transition-all${isActive ? " is-active" : ""}`}>
+              <div className="w-1 h-1 rounded-full shrink-0" style={{ background: "#A0A0A0" }} />
+              <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 border-2 transition-all"
+                style={{ borderColor: isActive ? "#0A0A0A" : "transparent", background: isActive ? "#FFF5EE" : "transparent" }}>
+                <Icon size={12} strokeWidth={2.5} style={{ color: isActive ? "#FF5C00" : "#6B6B6B" }} />
+              </div>
+              <span className="text-[12px] font-bold font-['Architects_Daughter'] truncate"
+                style={{ color: isActive ? "#FFFFFF" : "#3A3A3A" }}>
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+
+        {navItems.slice(1).map(item => {
+          const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
+          const Icon = item.icon;
+          return (
+            <Link key={item.id} href={item.route} onClick={onMobileClose}
+              className={`sidebar-nav-item flex items-center gap-2.5 px-3 py-2 transition-all${isActive ? " is-active" : ""}`}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 border-2 transition-all"
+                style={{ borderColor: isActive ? "#0A0A0A" : "transparent", background: isActive ? "#FFF5EE" : "transparent" }}>
+                <Icon size={14} strokeWidth={2.5} style={{ color: isActive ? "#FF5C00" : "#6B6B6B" }} />
+              </div>
+              <span className="text-[13px] font-bold font-['Architects_Daughter'] truncate"
+                style={{ color: isActive ? "#FFFFFF" : "#3A3A3A" }}>
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+
+        <button onClick={() => setSettingsManualOpen(o => !o)}
+          className="sidebar-nav-item flex items-center gap-2.5 px-3 py-2 w-full transition-all">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 border-2 transition-all"
+            style={{ borderColor: settingsOpen ? "#0A0A0A" : "transparent", background: settingsOpen ? "#F5F5F5" : "transparent" }}>
+            <Settings size={14} strokeWidth={2.5} style={{ color: "#6B6B6B" }} />
+          </div>
+          <span className="text-[13px] font-bold font-['Architects_Daughter'] truncate flex-1 text-left"
+            style={{ color: settingsOpen ? "#0A0A0A" : "#3A3A3A" }}>
+            Einstellungen
+          </span>
+          <ChevronRight size={12} style={{ color: "#A0A0A0", transition: "transform .15s", transform: settingsOpen ? "rotate(90deg)" : "none" }} />
+        </button>
+        {settingsOpen && settingsSubItems.map(item => {
+          const [itemPath, itemQuery] = item.route.split("?");
+          const itemTab = new URLSearchParams(itemQuery ?? "").get("tab") ?? "";
+          const isActive = itemTab
+            ? pathname === itemPath && currentTab === itemTab
+            : pathname === item.route || pathname.startsWith(item.route + "/");
+          const Icon = item.icon;
+          return (
+            <Link key={item.id} href={item.route} onClick={onMobileClose}
+              className={`sidebar-nav-item flex items-center gap-2 pl-5 pr-3 py-1.5 transition-all${isActive ? " is-active" : ""}`}>
+              <div className="w-1 h-1 rounded-full shrink-0" style={{ background: "#A0A0A0" }} />
+              <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 border-2 transition-all"
+                style={{ borderColor: isActive ? "#0A0A0A" : "transparent", background: isActive ? "#FFF5EE" : "transparent" }}>
+                <Icon size={12} strokeWidth={2.5} style={{ color: isActive ? "#FF5C00" : "#6B6B6B" }} />
+              </div>
+              <span className="text-[12px] font-bold font-['Architects_Daughter'] truncate"
+                style={{ color: isActive ? "#FFFFFF" : "#3A3A3A" }}>
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+
+        {navEntries.filter(e => e.slot === "sidebar_main").map(entry => {
+          const PluginIcon = PLUGIN_ICONS[entry.icon?.toLowerCase()] ?? Folder;
+          const route = `/${orgSlug}${entry.route}`;
+          const isActive = pathname === route;
+          return (
+            <Link key={entry.id} href={route} onClick={onMobileClose}
+              className={`sidebar-nav-item flex items-center gap-2.5 px-3 py-2 transition-all${isActive ? " is-active" : ""}`}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 border-2"
+                style={{ borderColor: isActive ? "#0A0A0A" : "transparent", background: isActive ? "#FFF5EE" : "transparent" }}>
+                <PluginIcon size={14} strokeWidth={2.5} style={{ color: isActive ? "#FF5C00" : "#6B6B6B" }} />
+              </div>
+              <span className="text-[13px] font-bold font-['Architects_Daughter'] truncate"
+                style={{ color: isActive ? "#FFFFFF" : "#3A3A3A" }}>
+                {entry.label}
+              </span>
+            </Link>
+          );
+        })}
+
+        <SlotRenderer slotId="sidebar_main" orgSlug={orgSlug} orgId={orgId} collapsed={false} />
+      </nav>
+
+      <KarlWidget orgSlug={orgSlug} onMobileClose={onMobileClose} />
+
+      {user && (
+        <div className="p-3 flex items-center gap-2.5" style={{ borderTop: "2px solid #0A0A0A" }}>
+          <SlotRenderer slotId="sidebar_bottom" orgSlug={orgSlug} orgId={orgId} />
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(255,92,0,0.1)", border: "2px solid #0A0A0A", boxShadow: "2px 2px 0 #0A0A0A" }}>
+            <span className="text-[10px] font-bold font-['Architects_Daughter']" style={{ color: "#0A0A0A" }}>
+              {user.display_name.slice(0, 2).toUpperCase()}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-[11px] font-bold font-['Architects_Daughter']" style={{ color: "#3A3A3A" }}>
+              {user.display_name}
+            </p>
+          </div>
+          <button onClick={() => void logout()}
+            className="text-[10px] font-bold font-['Architects_Daughter'] transition-colors"
+            style={{ color: "#A0A0A0" }}>
+            Logout
+          </button>
+        </div>
+      )}
+    </aside>
+  );
+
+  const sidebarContent = isPaperwork ? paperworkSidebar : isKarl ? karlSidebar : agileSidebar;
 
   return (
     <>
