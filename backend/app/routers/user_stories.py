@@ -56,6 +56,7 @@ from app.ai.context_analyzer import analyze_context
 from app.ai.complexity_scorer import score_complexity
 from app.core.exceptions import NotFoundException
 from app.tasks.agent_tasks import analyze_story_task
+from app.tasks.embedding_tasks import embed_story_task
 from app.tasks.pdf_tasks import generate_story_pdf
 from app.tasks.rag_tasks import index_story_knowledge
 from app.models.pdf_settings import PdfSettings
@@ -194,6 +195,7 @@ async def create_user_story(
         _regenerate_docs_bg, story.id, org_id, story.title, story.description, story.acceptance_criteria
     )
     analyze_story_task.delay(str(story.id), str(org_id))
+    embed_story_task.delay(str(story.id), str(org_id))
     return UserStoryRead.model_validate(story)
 
 
@@ -279,6 +281,7 @@ async def update_user_story(
         background_tasks.add_task(
             _regenerate_docs_bg, story.id, story.organization_id, story.title, story.description, story.acceptance_criteria
         )
+        embed_story_task.delay(str(story.id), str(story.organization_id))
 
     return UserStoryRead.model_validate(story)
 
