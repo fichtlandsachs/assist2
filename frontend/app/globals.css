@@ -555,10 +555,20 @@ button { cursor: pointer; font-family: var(--font-body); }
 [data-theme="paperwork"] .rounded-md { border-radius: 4px; }
 [data-theme="paperwork"] .rounded-lg { border-radius: 6px; }
 
-[data-theme="karl"] .rounded-sm { border-radius: 10px; }
-[data-theme="karl"] .rounded    { border-radius: 10px; }
-[data-theme="karl"] .rounded-md { border-radius: 12px; }
-[data-theme="karl"] .rounded-lg { border-radius: 14px; }
+/* Karl: hide agile dot-grid texture */
+[data-theme="karl"] .dot-grid-overlay { display: none; }
+
+[data-theme="karl"] .rounded-sm   { border-radius: 10px; }
+[data-theme="karl"] .rounded-t-sm { border-radius: 10px 10px 0 0; }
+[data-theme="karl"] .rounded-b-sm { border-radius: 0 0 10px 10px; }
+[data-theme="karl"] .rounded      { border-radius: 10px; }
+[data-theme="karl"] .rounded-md   { border-radius: 12px; }
+[data-theme="karl"] .rounded-lg   { border-radius: 14px; }
+[data-theme="karl"] .rounded-xl   { border-radius: 16px; }
+[data-theme="karl"] .rounded-t-xl { border-radius: 16px 16px 0 0; }
+[data-theme="karl"] .rounded-b-xl { border-radius: 0 0 16px 16px; }
+[data-theme="karl"] .rounded-2xl  { border-radius: 18px; }
+[data-theme="karl"] .rounded-3xl  { border-radius: 20px; }
 
 [data-theme="karl"] .border   { border-width: 2px; }
 [data-theme="karl"] .border-t { border-top-width: 2px; }

@@ -56,12 +56,12 @@ export function Topbar({ orgSlug, orgId, onMenuClick }: TopbarProps) {
             aria-label="Menü öffnen">
             <Menu size={18} style={{ color: "#3A3A3A" }} />
           </button>
-          <span className="font-['Architects_Daughter'] font-bold tracking-widest text-[10px] uppercase"
+          <span className="font-bold tracking-widest text-[10px] uppercase"
             style={{ color: "#A0A0A0" }}>
             Karl
           </span>
           <span style={{ color: "#A0A0A0", fontSize: "10px" }}>/</span>
-          <span className="font-['Architects_Daughter'] text-[10px] font-bold tracking-widest uppercase"
+          <span className="text-[10px] font-bold tracking-widest uppercase"
             style={{ color: "#FF5C00" }}>
             {pageTitle}
           </span>
@@ -69,7 +69,7 @@ export function Topbar({ orgSlug, orgId, onMenuClick }: TopbarProps) {
         <div className="flex items-center gap-4">
           <SlotRenderer slotId="topbar_right" orgSlug={orgSlug} orgId={orgId} />
           {clock && (
-            <span className="hidden sm:block font-['Architects_Daughter'] text-[10px] font-bold"
+            <span className="hidden sm:block text-[10px] font-bold"
               style={{ color: "#0A0A0A" }}>
               {clock}
             </span>
@@ -78,7 +78,7 @@ export function Topbar({ orgSlug, orgId, onMenuClick }: TopbarProps) {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: "#FFFFFF", border: "2px solid #0A0A0A", boxShadow: "2px 2px 0 #0A0A0A" }}
               title={user.display_name}>
-              <span className="text-[11px] font-bold font-['Architects_Daughter']" style={{ color: "#0A0A0A" }}>
+              <span className="text-[11px] font-bold" style={{ color: "#0A0A0A" }}>
                 {user.display_name.slice(0, 2).toUpperCase()}
               </span>
             </div>

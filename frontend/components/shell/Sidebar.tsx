@@ -421,11 +421,11 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/karl-9.png" alt="Karl" className="w-full h-full object-contain" />
         </div>
-        <span className="font-['Architects_Daughter'] text-lg tracking-tight leading-none truncate max-w-[160px]"
+        <span className="text-lg tracking-tight leading-none truncate max-w-[160px]"
           style={{ color: "#0A0A0A" }}>
           {user?.display_name ?? "Karl"}
         </span>
-        <span className="text-[9px] font-bold tracking-[0.2em] uppercase font-['Architects_Daughter'] truncate max-w-[160px]"
+        <span className="text-[9px] font-bold tracking-[0.2em] uppercase truncate max-w-[160px]"
           style={{ color: "#6B6B6B" }}>
           {orgName ?? orgSlug}
         </span>
@@ -447,7 +447,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
                 style={{ borderColor: isActive ? "#0A0A0A" : "transparent", background: isActive ? "#FFF5EE" : "transparent" }}>
                 <Icon size={14} strokeWidth={2.5} style={{ color: isActive ? "#FF5C00" : "#6B6B6B" }} />
               </div>
-              <span className="text-[13px] font-bold font-['Architects_Daughter'] truncate"
+              <span className="text-[13px] font-bold truncate"
                 style={{ color: isActive ? "#FFFFFF" : "#3A3A3A" }}>
                 {item.label}
               </span>
@@ -461,7 +461,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
             style={{ borderColor: workspaceOpen ? "#0A0A0A" : "transparent", background: workspaceOpen ? "#EFF6FF" : "transparent" }}>
             <MessageSquare size={14} strokeWidth={2.5} style={{ color: workspaceOpen ? "#3B82F6" : "#6B6B6B" }} />
           </div>
-          <span className="text-[13px] font-bold font-['Architects_Daughter'] truncate flex-1 text-left"
+          <span className="text-[13px] font-bold truncate flex-1 text-left"
             style={{ color: workspaceOpen ? "#0A0A0A" : "#3A3A3A" }}>
             Workspace
           </span>
@@ -478,7 +478,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
                 style={{ borderColor: isActive ? "#0A0A0A" : "transparent", background: isActive ? "#FFF5EE" : "transparent" }}>
                 <Icon size={12} strokeWidth={2.5} style={{ color: isActive ? "#FF5C00" : "#6B6B6B" }} />
               </div>
-              <span className="text-[12px] font-bold font-['Architects_Daughter'] truncate"
+              <span className="text-[12px] font-bold truncate"
                 style={{ color: isActive ? "#FFFFFF" : "#3A3A3A" }}>
                 {item.label}
               </span>
@@ -496,7 +496,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
                 style={{ borderColor: isActive ? "#0A0A0A" : "transparent", background: isActive ? "#FFF5EE" : "transparent" }}>
                 <Icon size={14} strokeWidth={2.5} style={{ color: isActive ? "#FF5C00" : "#6B6B6B" }} />
               </div>
-              <span className="text-[13px] font-bold font-['Architects_Daughter'] truncate"
+              <span className="text-[13px] font-bold truncate"
                 style={{ color: isActive ? "#FFFFFF" : "#3A3A3A" }}>
                 {item.label}
               </span>
@@ -510,7 +510,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
             style={{ borderColor: settingsOpen ? "#0A0A0A" : "transparent", background: settingsOpen ? "#F5F5F5" : "transparent" }}>
             <Settings size={14} strokeWidth={2.5} style={{ color: "#6B6B6B" }} />
           </div>
-          <span className="text-[13px] font-bold font-['Architects_Daughter'] truncate flex-1 text-left"
+          <span className="text-[13px] font-bold truncate flex-1 text-left"
             style={{ color: settingsOpen ? "#0A0A0A" : "#3A3A3A" }}>
             Einstellungen
           </span>
@@ -531,7 +531,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
                 style={{ borderColor: isActive ? "#0A0A0A" : "transparent", background: isActive ? "#FFF5EE" : "transparent" }}>
                 <Icon size={12} strokeWidth={2.5} style={{ color: isActive ? "#FF5C00" : "#6B6B6B" }} />
               </div>
-              <span className="text-[12px] font-bold font-['Architects_Daughter'] truncate"
+              <span className="text-[12px] font-bold truncate"
                 style={{ color: isActive ? "#FFFFFF" : "#3A3A3A" }}>
                 {item.label}
               </span>
@@ -550,7 +550,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
                 style={{ borderColor: isActive ? "#0A0A0A" : "transparent", background: isActive ? "#FFF5EE" : "transparent" }}>
                 <PluginIcon size={14} strokeWidth={2.5} style={{ color: isActive ? "#FF5C00" : "#6B6B6B" }} />
               </div>
-              <span className="text-[13px] font-bold font-['Architects_Daughter'] truncate"
+              <span className="text-[13px] font-bold truncate"
                 style={{ color: isActive ? "#FFFFFF" : "#3A3A3A" }}>
                 {entry.label}
               </span>
@@ -568,17 +568,17 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           <SlotRenderer slotId="sidebar_bottom" orgSlug={orgSlug} orgId={orgId} />
           <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: "rgba(255,92,0,0.1)", border: "2px solid #0A0A0A", boxShadow: "2px 2px 0 #0A0A0A" }}>
-            <span className="text-[10px] font-bold font-['Architects_Daughter']" style={{ color: "#0A0A0A" }}>
+            <span className="text-[10px] font-bold" style={{ color: "#0A0A0A" }}>
               {user.display_name.slice(0, 2).toUpperCase()}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate text-[11px] font-bold font-['Architects_Daughter']" style={{ color: "#3A3A3A" }}>
+            <p className="truncate text-[11px] font-bold" style={{ color: "#3A3A3A" }}>
               {user.display_name}
             </p>
           </div>
           <button onClick={() => void logout()}
-            className="text-[10px] font-bold font-['Architects_Daughter'] transition-colors"
+            className="text-[10px] font-bold transition-colors"
             style={{ color: "#A0A0A0" }}>
             Logout
           </button>
