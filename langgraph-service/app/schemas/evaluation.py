@@ -90,6 +90,7 @@ class DuplicateCandidate(BaseModel):
     description: str = ""
     acceptance_criteria: str = ""
     similarity_score: float
+    explanation: str = ""
 
 
 class DuplicateCheckRequest(BaseModel):
