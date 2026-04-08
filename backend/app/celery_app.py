@@ -15,6 +15,7 @@ celery = Celery(
         "app.tasks.pdf_tasks",
         "app.tasks.sync_dispatcher",
         "app.tasks.rag_tasks",
+        "app.tasks.embedding_tasks",
     ]
 )
 
