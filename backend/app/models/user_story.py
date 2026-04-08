@@ -65,8 +65,8 @@ class UserStory(Base):
 
     project: Mapped[Optional["Project"]] = relationship("Project", back_populates="stories")
     epic: Mapped[Optional["Epic"]] = relationship("Epic", back_populates="stories", foreign_keys=[epic_id])
-    sub_stories: Mapped[list["UserStory"]] = relationship("UserStory", foreign_keys="UserStory.parent_story_id")
-    features: Mapped[list["Feature"]] = relationship("Feature", back_populates="story")
+    sub_stories: Mapped[list["UserStory"]] = relationship("UserStory", foreign_keys="UserStory.parent_story_id", passive_deletes=True)
+    features: Mapped[list["Feature"]] = relationship("Feature", back_populates="story", passive_deletes=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
