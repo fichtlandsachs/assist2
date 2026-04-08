@@ -82,3 +82,25 @@ def compute_ampel(score: float, knockout: bool) -> Ampel:
     if score >= 5.0:
         return Ampel.YELLOW
     return Ampel.RED
+
+
+class DuplicateCandidate(BaseModel):
+    story_id: str
+    title: str
+    description: str = ""
+    acceptance_criteria: str = ""
+    similarity_score: float
+
+
+class DuplicateCheckRequest(BaseModel):
+    story_id: str
+    org_id: str
+    title: str
+    description: str = ""
+    acceptance_criteria: str = ""
+    candidates: list[DuplicateCandidate]
+
+
+class DuplicateCheckResponse(BaseModel):
+    duplicates: list[DuplicateCandidate]
+    similar: list[DuplicateCandidate]

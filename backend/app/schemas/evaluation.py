@@ -77,3 +77,15 @@ class StartEvaluationResponse(BaseModel):
     run_id: uuid.UUID
     status: EvaluationStatusEnum
     result: Optional[EvaluationResultRead] = None
+
+
+class DuplicateCandidate(BaseModel):
+    story_id: uuid.UUID
+    title: str
+    similarity_score: float
+    explanation: str
+
+
+class DuplicateCheckResponse(BaseModel):
+    duplicates: list[DuplicateCandidate]
+    similar: list[DuplicateCandidate]
