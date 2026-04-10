@@ -335,3 +335,105 @@ async def delete_user(
     from datetime import datetime, timezone
     user.deleted_at = datetime.now(timezone.utc)
     await db.commit()
+
+
+# ── Org management ─────────────────────────────────────────────────────────────
+
+class SuperAdminOrgCreate(BaseModel):
+    name: str
+    slug: str
+    plan: str = "free"
+
+
+class SuperAdminOrgPatch(BaseModel):
+    name: Optional[str] = None
+    plan: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+@router.post("/organizations", status_code=201, summary="Create org (superadmin)")
+async def create_org_superadmin(
+    data: SuperAdminOrgCreate,
+    _: User = Depends(require_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    existing = await db.execute(
+        select(Organization).where(Organization.slug == data.slug, Organization.deleted_at.is_(None))
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Slug already in use")
+    org = Organization(name=data.name, slug=data.slug, plan=data.plan, is_active=True)
+    db.add(org)
+    await db.commit()
+    await db.refresh(org)
+    return {
+        "id": str(org.id),
+        "name": org.name,
+        "slug": org.slug,
+        "plan": org.plan,
+        "is_active": org.is_active,
+        "created_at": org.created_at.isoformat(),
+    }
+
+
+@router.patch("/organizations/{org_id}", summary="Update org (superadmin)")
+async def patch_org_superadmin(
+    org_id: uuid.UUID,
+    data: SuperAdminOrgPatch,
+    _: User = Depends(require_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    result = await db.execute(
+        select(Organization).where(Organization.id == org_id, Organization.deleted_at.is_(None))
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    if data.name is not None:
+        org.name = data.name
+    if data.plan is not None:
+        org.plan = data.plan
+    if data.is_active is not None:
+        org.is_active = data.is_active
+    await db.commit()
+    await db.refresh(org)
+    return {
+        "id": str(org.id),
+        "name": org.name,
+        "slug": org.slug,
+        "plan": org.plan,
+        "is_active": org.is_active,
+        "created_at": org.created_at.isoformat(),
+    }
+
+
+@router.delete("/organizations/{org_id}", status_code=204, summary="Soft-delete org (superadmin)")
+async def delete_org_superadmin(
+    org_id: uuid.UUID,
+    _: User = Depends(require_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    result = await db.execute(
+        select(Organization).where(Organization.id == org_id, Organization.deleted_at.is_(None))
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    from datetime import datetime, timezone
+    org.deleted_at = datetime.now(timezone.utc)
+    await db.commit()
+
+
+@router.get("/organizations/{org_id}/members", summary="List org members (superadmin)")
+async def get_org_members_superadmin(
+    org_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    _: User = Depends(require_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    from app.services.membership_service import membership_service
+    from app.routers.memberships import _membership_to_read
+    memberships, total = await membership_service.list(db, org_id, page, page_size)
+    items = [_membership_to_read(m).model_dump(mode="json") for m in memberships]
+    return {"items": items, "total": total, "page": page, "page_size": page_size}

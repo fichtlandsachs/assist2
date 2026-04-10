@@ -90,3 +90,59 @@ async def test_list_users_requires_superuser(
 ):
     r = await client.get("/api/v1/superadmin/users", headers=auth_headers)
     assert r.status_code == 403
+
+
+# ── Org endpoints ─────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_create_org(
+    client: AsyncClient, superuser_headers: dict
+):
+    r = await client.post(
+        "/api/v1/superadmin/organizations",
+        json={"name": "New Org", "slug": "new-org-test", "plan": "free"},
+        headers=superuser_headers,
+    )
+    assert r.status_code == 201
+    data = r.json()
+    assert data["slug"] == "new-org-test"
+    assert data["plan"] == "free"
+
+
+@pytest.mark.asyncio
+async def test_patch_org(
+    client: AsyncClient, superuser_headers: dict, test_org
+):
+    r = await client.patch(
+        f"/api/v1/superadmin/organizations/{test_org.id}",
+        json={"plan": "pro"},
+        headers=superuser_headers,
+    )
+    assert r.status_code == 200
+    assert r.json()["plan"] == "pro"
+
+
+@pytest.mark.asyncio
+async def test_delete_org(
+    client: AsyncClient, superuser_headers: dict, test_org
+):
+    r = await client.delete(
+        f"/api/v1/superadmin/organizations/{test_org.id}",
+        headers=superuser_headers,
+    )
+    assert r.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_get_org_members(
+    client: AsyncClient, superuser_headers: dict, test_org, test_user: User
+):
+    r = await client.get(
+        f"/api/v1/superadmin/organizations/{test_org.id}/members",
+        headers=superuser_headers,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "items" in data
+    user_ids = [item["user"]["id"] for item in data["items"]]
+    assert str(test_user.id) in user_ids
