@@ -221,3 +221,117 @@ async def get_organizations_overview(
             "created_at": org.created_at.isoformat(),
         })
     return overview
+
+
+# ── User management ────────────────────────────────────────────────────────────
+
+class SuperAdminUserPatch(BaseModel):
+    is_active: Optional[bool] = None
+    is_superuser: Optional[bool] = None
+
+
+@router.get("/users", summary="List all users (superadmin)")
+async def list_all_users(
+    search: Optional[str] = None,
+    org_id: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    _: User = Depends(require_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return all non-deleted users with their org memberships."""
+    stmt = select(User).where(User.deleted_at.is_(None))
+    if search:
+        stmt = stmt.where(
+            or_(
+                User.email.ilike(f"%{search}%"),
+                User.display_name.ilike(f"%{search}%"),
+            )
+        )
+    if org_id:
+        stmt = stmt.join(Membership, Membership.user_id == User.id).where(
+            Membership.organization_id == org_id,
+            Membership.status == "active",
+        )
+
+    total_res = await db.execute(select(func.count()).select_from(stmt.subquery()))
+    total: int = total_res.scalar() or 0
+
+    stmt = stmt.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(stmt)
+    users = result.scalars().all()
+
+    items = []
+    for u in users:
+        mem_res = await db.execute(
+            select(Membership, Organization)
+            .join(Organization, Organization.id == Membership.organization_id)
+            .where(
+                Membership.user_id == u.id,
+                Membership.status == "active",
+                Organization.deleted_at.is_(None),
+            )
+        )
+        orgs = [
+            {"id": str(org.id), "name": org.name, "slug": org.slug}
+            for _, org in mem_res.all()
+        ]
+        items.append({
+            "id": str(u.id),
+            "email": u.email,
+            "display_name": u.display_name,
+            "is_active": u.is_active,
+            "is_superuser": u.is_superuser,
+            "created_at": u.created_at.isoformat(),
+            "organizations": orgs,
+        })
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.patch("/users/{user_id}", summary="Update user (superadmin)")
+async def patch_user(
+    user_id: uuid.UUID,
+    data: SuperAdminUserPatch,
+    _: User = Depends(require_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if data.is_active is not None:
+        user.is_active = data.is_active
+    if data.is_superuser is not None:
+        user.is_superuser = data.is_superuser
+    await db.commit()
+    await db.refresh(user)
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "display_name": user.display_name,
+        "is_active": user.is_active,
+        "is_superuser": user.is_superuser,
+        "created_at": user.created_at.isoformat(),
+    }
+
+
+@router.delete("/users/{user_id}", status_code=204, summary="Soft-delete user (superadmin)")
+async def delete_user(
+    user_id: uuid.UUID,
+    admin: User = Depends(require_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    if user_id == admin.id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    from datetime import datetime, timezone
+    user.deleted_at = datetime.now(timezone.utc)
+    await db.commit()
