@@ -1,14 +1,18 @@
-"""Superadmin endpoints — only accessible to is_superuser users via admin OIDC token."""
+"""Superadmin endpoints — only accessible to is_superuser users."""
 import logging
+import uuid
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import func, select
+from pydantic import BaseModel
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 
 from app.core.security import validate_admin_token
 from app.database import get_db
+from app.deps import get_current_user
 from app.models.feature import Feature
 from app.models.membership import Membership
 from app.models.organization import Organization
@@ -35,6 +39,15 @@ async def get_admin_user(
     if not user or not user.is_superuser:
         raise HTTPException(status_code=403, detail="Superuser access required")
     return user
+
+
+async def require_superuser(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Require standard Authentik JWT + is_superuser=True. Used by new endpoints."""
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Superuser access required")
+    return current_user
 
 
 # ── Component status ───────────────────────────────────────────────────────────
