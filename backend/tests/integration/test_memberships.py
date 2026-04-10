@@ -382,3 +382,19 @@ async def test_list_members_unauthorized(
         app.dependency_overrides.pop(get_current_user, None)
 
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_generate_invite_link(
+    client: AsyncClient,
+    auth_headers: dict,
+    test_org,
+):
+    r = await client.post(
+        f"/api/v1/organizations/{test_org.id}/invite-link",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "url" in data
+    assert "token" in data
