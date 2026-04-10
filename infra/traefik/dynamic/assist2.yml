@@ -9,6 +9,15 @@ http:
       tls:
         certResolver: letsencrypt
 
+    # ── Frontend: superadmin panel ────────────────────────────────────────
+    karl-superadmin:
+      rule: "Host(`heykarl.app`) && PathPrefix(`/superadmin`)"
+      entryPoints: [websecure]
+      service: karl-frontend-svc
+      priority: 600
+      tls:
+        certResolver: letsencrypt
+
     # ── Frontend: explicit app routes ──────────────────────────────────────
     karl-frontend-routes:
       rule: "Host(`heykarl.app`) && (PathPrefix(`/_next`) || PathPrefix(`/login`) || PathPrefix(`/register`) || PathPrefix(`/setup`) || PathPrefix(`/karl-`) || Path(`/site.webmanifest`) || Path(`/favicon.ico`))"

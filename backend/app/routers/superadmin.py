@@ -154,15 +154,27 @@ PLAN_LIMITS: dict[str, dict[str, int]] = {
 
 @router.get("/organizations")
 async def get_organizations_overview(
-    _: User = Depends(get_admin_user),
+    search: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    _: User = Depends(require_superuser),
     db: AsyncSession = Depends(get_db),
-) -> list[dict]:
-    """Return all organizations with resource usage metrics."""
-    result = await db.execute(
-        select(Organization)
-        .where(Organization.deleted_at.is_(None))
-        .order_by(Organization.created_at)
-    )
+) -> dict:
+    """Return all organizations with resource usage metrics (paginated)."""
+    stmt = select(Organization).where(Organization.deleted_at.is_(None))
+    if search:
+        stmt = stmt.where(
+            or_(
+                Organization.name.ilike(f"%{search}%"),
+                Organization.slug.ilike(f"%{search}%"),
+            )
+        )
+
+    total_res = await db.execute(select(func.count()).select_from(stmt.subquery()))
+    total: int = total_res.scalar() or 0
+
+    stmt = stmt.order_by(Organization.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(stmt)
     orgs = result.scalars().all()
 
     overview = []
@@ -220,7 +232,45 @@ async def get_organizations_overview(
             "warning": story_pct >= 80 or member_pct >= 80,
             "created_at": org.created_at.isoformat(),
         })
-    return overview
+    return {"items": overview, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/organizations/{org_id}", summary="Get single org (superadmin)")
+async def get_org_superadmin(
+    org_id: uuid.UUID,
+    _: User = Depends(require_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    result = await db.execute(
+        select(Organization).where(Organization.id == org_id, Organization.deleted_at.is_(None))
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    member_count_res = await db.execute(
+        select(func.count()).select_from(Membership).where(
+            Membership.organization_id == org.id,
+            Membership.status == "active",
+        )
+    )
+    member_count: int = member_count_res.scalar() or 0
+
+    story_count_res = await db.execute(
+        select(func.count()).select_from(UserStory).where(UserStory.organization_id == org.id)
+    )
+    story_count: int = story_count_res.scalar() or 0
+
+    return {
+        "id": str(org.id),
+        "name": org.name,
+        "slug": org.slug,
+        "plan": org.plan or "free",
+        "is_active": org.is_active,
+        "member_count": member_count,
+        "story_count": story_count,
+        "created_at": org.created_at.isoformat(),
+    }
 
 
 # ── User management ────────────────────────────────────────────────────────────
