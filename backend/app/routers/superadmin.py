@@ -157,7 +157,7 @@ async def get_organizations_overview(
     search: Optional[str] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    _: User = Depends(require_superuser),
+    _: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Return all organizations with resource usage metrics (paginated)."""
@@ -471,6 +471,115 @@ async def delete_org_superadmin(
         raise HTTPException(status_code=404, detail="Organization not found")
     from datetime import datetime, timezone
     org.deleted_at = datetime.now(timezone.utc)
+    await db.commit()
+
+
+@router.get("/organizations/{org_id}/integrations", summary="Get org integration settings (superadmin)")
+async def get_org_integrations_superadmin(
+    org_id: uuid.UUID,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    from app.services.org_integrations_service import get_all_settings
+    result = await db.execute(
+        select(Organization).where(Organization.id == org_id, Organization.deleted_at.is_(None))
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    return get_all_settings(org)
+
+
+class OrgJiraPatch(BaseModel):
+    base_url: str = ""
+    user: str = ""
+    api_token: Optional[str] = None
+
+
+class OrgConfluencePatch(BaseModel):
+    base_url: str = ""
+    user: str = ""
+    api_token: Optional[str] = None
+    default_space_key: Optional[str] = None
+    default_parent_page_id: Optional[str] = None
+
+
+class OrgSSOPatch(BaseModel):
+    enabled: bool = False
+    client_id: str = ""
+    client_secret: Optional[str] = None
+
+
+@router.patch("/organizations/{org_id}/integrations/jira", status_code=204, summary="Update org Jira settings (superadmin)")
+async def patch_org_jira_superadmin(
+    org_id: uuid.UUID,
+    body: OrgJiraPatch,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    from app.services.org_integrations_service import set_jira_settings
+    result = await db.execute(
+        select(Organization).where(Organization.id == org_id, Organization.deleted_at.is_(None))
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    set_jira_settings(org, body.base_url, body.user, body.api_token)
+    await db.commit()
+
+
+@router.patch("/organizations/{org_id}/integrations/confluence", status_code=204, summary="Update org Confluence settings (superadmin)")
+async def patch_org_confluence_superadmin(
+    org_id: uuid.UUID,
+    body: OrgConfluencePatch,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    from app.services.org_integrations_service import set_confluence_settings
+    result = await db.execute(
+        select(Organization).where(Organization.id == org_id, Organization.deleted_at.is_(None))
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    set_confluence_settings(org, body.base_url, body.user, body.api_token,
+                            body.default_space_key, body.default_parent_page_id)
+    await db.commit()
+
+
+@router.patch("/organizations/{org_id}/integrations/github", status_code=204, summary="Update org GitHub SSO settings (superadmin)")
+async def patch_org_github_superadmin(
+    org_id: uuid.UUID,
+    body: OrgSSOPatch,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    from app.services.org_integrations_service import set_github_settings
+    result = await db.execute(
+        select(Organization).where(Organization.id == org_id, Organization.deleted_at.is_(None))
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    set_github_settings(org, body.enabled, body.client_id, body.client_secret)
+    await db.commit()
+
+
+@router.patch("/organizations/{org_id}/integrations/atlassian", status_code=204, summary="Update org Atlassian SSO settings (superadmin)")
+async def patch_org_atlassian_superadmin(
+    org_id: uuid.UUID,
+    body: OrgSSOPatch,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    from app.services.org_integrations_service import set_atlassian_settings
+    result = await db.execute(
+        select(Organization).where(Organization.id == org_id, Organization.deleted_at.is_(None))
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    set_atlassian_settings(org, body.enabled, body.client_id, body.client_secret)
     await db.commit()
 
 

@@ -11,12 +11,12 @@ import json
 import logging
 import time
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 import anthropic
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.ai.context_analyzer import analyze_context
 from app.ai.complexity_scorer import score_complexity
@@ -97,10 +97,24 @@ class DocsGenerateRequest(BaseModel):
 
 
 class DocsGenerateResponse(BaseModel):
-    changelog_entry: str
-    pdf_outline: list[str]
-    summary: str
-    technical_notes: str
+    changelog_entry: str = ""
+    pdf_outline: list[str] = []
+    summary: str = ""
+    technical_notes: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_string_fields(cls, values: Any) -> Any:
+        if not isinstance(values, dict):
+            return values
+        for field in ("changelog_entry", "summary", "technical_notes"):
+            v = values.get(field)
+            if v is not None and not isinstance(v, str):
+                values = {**values, field: json.dumps(v, ensure_ascii=False)}
+        if "pdf_outline" in values and not isinstance(values["pdf_outline"], list):
+            raw = values["pdf_outline"]
+            values = {**values, "pdf_outline": [str(raw)] if raw else []}
+        return values
 
 
 # ---------------------------------------------------------------------------
@@ -364,7 +378,7 @@ async def generate_story_docs(
     _log_decision("generate_story_docs", decision, usage, elapsed_ms)
 
     parsed = _parse_json(raw)
-    return DocsGenerateResponse(**parsed)
+    return DocsGenerateResponse.model_validate(parsed)
 
 
 # ---------------------------------------------------------------------------

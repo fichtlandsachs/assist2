@@ -48,11 +48,8 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-2.5 px-2 py-2 rounded text-sm transition-colors ${
-                  active
-                    ? "bg-[var(--accent-red)] text-white"
-                    : "text-[var(--ink-mid)] hover:bg-[var(--paper-rule)]"
-                }`}
+                className={`sidebar-nav-item flex items-center gap-2.5 px-2 py-2 text-sm transition-colors${active ? " is-active" : ""}`}
+                style={{ color: active ? "var(--sidebar-text-active)" : "var(--ink-mid)" }}
               >
                 <Icon size={14} />
                 {label}

@@ -9,6 +9,7 @@ from typing import List, Optional
 import httpx
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -61,7 +62,9 @@ from app.tasks.pdf_tasks import generate_story_pdf
 from app.tasks.rag_tasks import index_story_knowledge
 from app.models.pdf_settings import PdfSettings
 from app.models.feature import Feature
+from app.models.project import Project
 from app.services.pdf_service import pdf_service
+from app.services.jira_service import jira_service
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -363,6 +366,27 @@ async def validate_user_story(
         story_id=story_id,
     )
     suggestion = await get_story_suggestions(data, ai_settings=ai_settings, org_id=story.organization_id, db=db)
+
+    # ── Rule-based process warnings (appended to AI dor_issues) ──────────────
+    from app.models.story_process_change import StoryProcessChange
+    from sqlalchemy.orm import selectinload as _sil
+    pc_stmt = (
+        select(StoryProcessChange)
+        .where(StoryProcessChange.story_id == story_id)
+        .options(_sil(StoryProcessChange.process))
+    )
+    process_changes = (await db.execute(pc_stmt)).scalars().all()
+    if not process_changes:
+        suggestion.dor_issues.append(
+            "Kein Prozess verknüpft – jede Story sollte einem Prozess zugeordnet sein."
+        )
+    else:
+        for pc in process_changes:
+            if not pc.section_anchor:
+                suggestion.dor_issues.append(
+                    f"Prozess «{pc.process.name}»: Kein Prozessschritt (Abschnitt) angegeben."
+                )
+    # ─────────────────────────────────────────────────────────────────────────
 
     story.quality_score = suggestion.quality_score
     story.ai_suggestions = json.dumps(suggestion.model_dump(), ensure_ascii=False)
@@ -841,6 +865,193 @@ async def regenerate_story_docs(
         confluence_page_url=story.confluence_page_url,
         additional_info=story.doc_additional_info,
         workarounds=story.doc_workarounds,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Confluence publish / sync
+# ---------------------------------------------------------------------------
+
+class ConfluencePublishRequest(BaseModel):
+    space_key: Optional[str] = None
+    org_id: uuid.UUID
+
+
+class ConfluenceSyncResponse(BaseModel):
+    confluence_url: str
+    confluence_text: str
+    heykarl_text: str
+    changed: bool
+
+
+@router.post(
+    "/user-stories/{story_id}/docs/publish-confluence",
+    response_model=StoryDocsRead,
+    summary="Publish story docs to Confluence under project → story hierarchy, then link to Jira",
+)
+async def publish_docs_to_confluence(
+    story_id: uuid.UUID,
+    data: ConfluencePublishRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> StoryDocsRead:
+    stmt = select(UserStory).where(UserStory.id == story_id)
+    result = await db.execute(stmt)
+    story = result.scalar_one_or_none()
+    if story is None:
+        raise NotFoundException("User story not found")
+
+    if not story.generated_docs:
+        raise HTTPException(status_code=422, detail="Keine Dokumentation vorhanden. Bitte zuerst generieren.")
+
+    docs_dict = json.loads(story.generated_docs)
+    # Enrich with story fields so Confluence page contains full content
+    docs_dict.setdefault("description", story.description or "")
+    docs_dict.setdefault("acceptance_criteria", story.acceptance_criteria or "")
+    docs_dict.setdefault("definition_of_done", story.definition_of_done or "")
+    docs_dict.setdefault("doc_additional_info", story.doc_additional_info or "")
+    docs_dict.setdefault("doc_workarounds", story.doc_workarounds or "")
+
+    # Resolve org + Confluence creds
+    org_stmt = select(Organization).where(Organization.id == data.org_id)
+    org = (await db.execute(org_stmt)).scalar_one_or_none()
+    if org is None:
+        raise NotFoundException("Organisation nicht gefunden")
+
+    creds = integrations_svc.get_confluence_credentials(org)
+    if not creds or not confluence_service.is_configured(*creds):
+        raise HTTPException(
+            status_code=422,
+            detail="Confluence ist nicht konfiguriert. Bitte unter Einstellungen → Confluence einrichten.",
+        )
+    b_url, b_user, b_token = creds
+
+    conf_settings = integrations_svc.get_confluence_settings(org)
+    default_parent_page_id = conf_settings.get("default_parent_page_id") or None
+
+    # Resolve space key: explicit > org default > derived from parent page
+    space_key = (data.space_key or "").strip()
+    if not space_key:
+        space_key = conf_settings.get("default_space_key", "")
+    if not space_key and default_parent_page_id:
+        try:
+            space_key = await confluence_service.get_space_key_for_page(
+                default_parent_page_id, b_url, b_user, b_token
+            )
+        except Exception:
+            pass
+    if not space_key:
+        raise HTTPException(status_code=422, detail="Kein Confluence Space-Key angegeben.")
+
+    # Resolve project name
+    project_name: str | None = None
+    if story.project_id:
+        proj_stmt = select(Project).where(Project.id == story.project_id)
+        proj = (await db.execute(proj_stmt)).scalar_one_or_none()
+        if proj:
+            project_name = proj.name
+
+    try:
+        confluence_url = await confluence_service.publish_story_page(
+            space_key=space_key,
+            story_title=story.title,
+            docs=docs_dict,
+            project_name=project_name,
+            base_url=b_url,
+            user=b_user,
+            token=b_token,
+            existing_page_url=story.confluence_page_url,
+            default_parent_page_id=default_parent_page_id,
+        )
+        story.confluence_page_url = confluence_url
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Confluence-Fehler: {exc}") from exc
+
+    # Link Confluence page to Jira ticket if we have credentials + ticket key
+    if story.jira_ticket_key:
+        jira_creds = integrations_svc.get_jira_settings(org)
+        jira_token = integrations_svc.get_jira_token(org)
+        if jira_creds.get("base_url") and jira_creds.get("user") and jira_token:
+            try:
+                await jira_service.add_remote_link_basic(
+                    base_url=jira_creds["base_url"],
+                    user=jira_creds["user"],
+                    api_token=jira_token,
+                    issue_key=story.jira_ticket_key,
+                    link_url=confluence_url,
+                    link_title=f"Confluence: {story.title}",
+                )
+            except Exception as exc:
+                logger.warning("Jira remote link failed (non-fatal): %s", exc)
+
+    await db.commit()
+    await db.refresh(story)
+
+    return StoryDocsRead(
+        **docs_dict,
+        confluence_page_url=story.confluence_page_url,
+        additional_info=story.doc_additional_info,
+        workarounds=story.doc_workarounds,
+    )
+
+
+@router.get(
+    "/user-stories/{story_id}/docs/confluence-sync",
+    response_model=ConfluenceSyncResponse,
+    summary="Compare HeyKarl docs with current Confluence page content",
+)
+async def confluence_sync_preview(
+    story_id: uuid.UUID,
+    org_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ConfluenceSyncResponse:
+    stmt = select(UserStory).where(UserStory.id == story_id)
+    story = (await db.execute(stmt)).scalar_one_or_none()
+    if story is None:
+        raise NotFoundException("User story not found")
+    if not story.confluence_page_url:
+        raise HTTPException(status_code=422, detail="Kein Confluence-Link vorhanden.")
+    if not story.generated_docs:
+        raise HTTPException(status_code=422, detail="Keine Dokumentation vorhanden.")
+
+    org_stmt = select(Organization).where(Organization.id == org_id)
+    org = (await db.execute(org_stmt)).scalar_one_or_none()
+    if org is None:
+        raise NotFoundException("Organisation nicht gefunden")
+
+    creds = integrations_svc.get_confluence_credentials(org)
+    if not creds:
+        raise HTTPException(status_code=422, detail="Confluence ist nicht konfiguriert.")
+    b_url, b_user, b_token = creds
+
+    # Extract page ID from the stored Confluence URL
+    # URL pattern: {base}/wiki/spaces/{SPACE}/pages/{id}/...
+    import re as _re
+    page_id_match = _re.search(r"/pages/(\d+)", story.confluence_page_url)
+    if not page_id_match:
+        raise HTTPException(status_code=422, detail="Confluence-Seiten-ID konnte nicht ermittelt werden.")
+    page_id = page_id_match.group(1)
+
+    try:
+        confluence_text = await confluence_service.get_page_content_text(page_id, b_url, b_user, b_token)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Confluence-Fehler: {exc}") from exc
+
+    docs_dict = json.loads(story.generated_docs)
+    heykarl_text = (
+        f"Zusammenfassung: {docs_dict.get('summary', '')}\n\n"
+        f"Changelog: {docs_dict.get('changelog_entry', '')}\n\n"
+        f"Technische Hinweise: {docs_dict.get('technical_notes', '')}\n\n"
+        f"Gliederung: {', '.join(docs_dict.get('pdf_outline', []))}"
+    )
+
+    changed = confluence_text.strip() != heykarl_text.strip()
+    return ConfluenceSyncResponse(
+        confluence_url=story.confluence_page_url,
+        confluence_text=confluence_text,
+        heykarl_text=heykarl_text,
+        changed=changed,
     )
 
 

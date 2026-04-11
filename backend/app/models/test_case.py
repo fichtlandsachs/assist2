@@ -28,5 +28,7 @@ class TestCase(Base):
     result: Mapped[TestResult] = mapped_column(Enum(TestResult), default=TestResult.pending)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_ai_generated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    jira_ticket_key: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    jira_ticket_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

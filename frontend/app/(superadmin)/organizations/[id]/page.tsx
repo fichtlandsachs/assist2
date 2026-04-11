@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import { fetcher, apiRequest } from "@/lib/api/client";
+import { Button } from "@/components/ui/button";
 import { Building2, ArrowLeft, UserCircle2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useCallback } from "react";
@@ -35,8 +36,8 @@ function ConfirmDialog({
       <div className="w-full max-w-sm p-5 rounded-sm border" style={{ background: "var(--card)", borderColor: "var(--paper-rule)" }}>
         <p className="text-sm text-[var(--ink)] mb-4">{message}</p>
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="px-3 py-1.5 text-sm border border-[var(--paper-rule)] rounded-sm text-[var(--ink-mid)]">Abbrechen</button>
-          <button onClick={onConfirm} className="px-3 py-1.5 text-sm rounded-sm text-white bg-red-600">Bestätigen</button>
+          <Button variant="outline" size="sm" onClick={onCancel}>Abbrechen</Button>
+          <Button variant="destructive" size="sm" onClick={onConfirm}>Bestätigen</Button>
         </div>
       </div>
     </div>
@@ -82,7 +83,7 @@ export default function SuperadminOrgDetailPage() {
           <span
             className={`ml-2 text-[10px] px-2 py-0.5 rounded-full border font-medium ${
               org.is_active
-                ? "text-[var(--green)] border-[var(--green)] bg-green-50"
+                ? "text-[var(--green)] border-[var(--green)] bg-[rgba(var(--accent-red-rgb),.06)]"
                 : "text-[var(--ink-faint)] border-[var(--paper-rule)]"
             }`}
           >
@@ -147,7 +148,7 @@ export default function SuperadminOrgDetailPage() {
                     message: `"${m.user.display_name ?? m.user.email}" aus der Organisation entfernen?`,
                     onConfirm: () => { setConfirm(null); void removeMember(m.id); },
                   })}
-                  className="p-1 rounded text-[var(--ink-faint)] hover:text-red-600 transition-colors"
+                  className="p-1 rounded text-[var(--ink-faint)] hover:text-[var(--accent-red)] transition-colors"
                 >
                   <Trash2 size={14} />
                 </button>

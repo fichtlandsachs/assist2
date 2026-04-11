@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard, Settings, BookOpen, Inbox, CalendarDays, FileText,
@@ -54,7 +54,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
   const isKarl = theme === "karl";
   const isWorkspacePath = pathname.startsWith(`/${orgSlug}/ai-workspace`) || pathname.startsWith(`/${orgSlug}/project`) || pathname.startsWith(`/${orgSlug}/stories`) || pathname.startsWith(`/${orgSlug}/docs`) || pathname.startsWith(`/${orgSlug}/nextcloud`) || pathname.startsWith(`/${orgSlug}/compliance`);
   const isSettingsPath = pathname.startsWith(`/${orgSlug}/settings`) || pathname.startsWith(`/${orgSlug}/workflows`);
-  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const searchParams = useSearchParams();
   const currentTab = searchParams?.get("tab") ?? "";
   const [workspaceManualOpen, setWorkspaceManualOpen] = useState(false);
   const [settingsManualOpen, setSettingsManualOpen] = useState(false);
@@ -100,7 +100,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
   // Settings sub-items (deep-link via ?tab= param)
   const settingsSubItems = [
     { id: "settings-general",    label: "Organisation", icon: Settings,    route: `/${orgSlug}/settings?tab=general` },
-    { id: "settings-user",       label: "Benutzer",    icon: Users,       route: `/${orgSlug}/settings/members` },
+    { id: "settings-user",       label: "Benutzer",    icon: Users,       route: `/${orgSlug}/settings?tab=profile` },
     { id: "settings-email",      label: "E-Mail",      icon: Inbox,       route: `/${orgSlug}/settings?tab=email` },
     { id: "settings-calendar",   label: t("nav_calendar"), icon: CalendarDays, route: `/${orgSlug}/settings?tab=calendar` },
     { id: "settings-jira",       label: "Jira",        icon: Zap,         route: `/${orgSlug}/settings?tab=jira` },

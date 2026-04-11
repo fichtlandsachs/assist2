@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import { useRouter } from "next/navigation";
 import type { User, TokenResponse } from "@/types";
 import { apiRequest, setTokens, clearTokens, getAccessToken } from "@/lib/api/client";
+import { pushLocale, type Locale } from "@/lib/i18n/context";
 
 interface AuthContextValue {
   user: User | null;
@@ -11,8 +12,9 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithAtlassian: () => void;
+  linkAtlassian: () => void;
   loginWithGitHub: () => void;
-  register: (email: string, password: string, displayName: string, organizationName: string) => Promise<void>;
+  register: (email: string, password: string, displayName: string, organizationName: string, locale?: Locale) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -24,8 +26,9 @@ const AuthContext = createContext<AuthContextValue>({
   isAuthenticated: false,
   login: _noop,
   loginWithAtlassian: () => {},
+  linkAtlassian: () => {},
   loginWithGitHub: () => {},
-  register: _noop,
+  register: async (_e, _p, _d, _o, _l) => {},
   logout: _noop,
   refreshUser: _noop,
 });
@@ -39,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const me = await apiRequest<User>("/api/v1/auth/me");
       setUser(me);
+      if (me.locale) pushLocale(me.locale as Locale);
     } catch {
       setUser(null);
     }
@@ -103,16 +107,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     _handleOAuthPopup("/api/v1/auth/atlassian/start", "atlassian_login");
   }, [_handleOAuthPopup]);
 
+  const linkAtlassian = useCallback(() => {
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    const handleMessage = async (e: MessageEvent) => {
+      if (e.origin !== APP_URL) return;
+      if (e.data?.type !== "atlassian_linked") return;
+      window.removeEventListener("message", handleMessage);
+      await fetchUser(); // refresh user to show updated atlassian_account_id
+    };
+    apiRequest<{ auth_url: string }>("/api/v1/auth/atlassian/link-start")
+      .then(({ auth_url }) => {
+        window.open(auth_url, "atlassian_link", "width=600,height=700");
+        window.addEventListener("message", handleMessage);
+      })
+      .catch(console.error);
+  }, [fetchUser]);
+
   const loginWithGitHub = useCallback(() => {
     _handleOAuthPopup("/api/v1/auth/github/start", "github_login");
   }, [_handleOAuthPopup]);
 
-  const register = async (email: string, password: string, displayName: string, organizationName: string) => {
+  const register = async (email: string, password: string, displayName: string, organizationName: string, locale: Locale = "de") => {
     const data = await apiRequest<TokenResponse>("/api/v1/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, password, display_name: displayName, organization_name: organizationName })
+      body: JSON.stringify({ email, password, display_name: displayName, organization_name: organizationName, locale })
     });
     setTokens(data.access_token, data.refresh_token);
+    pushLocale(locale);
     await fetchUser();
     router.push("/");
   };
@@ -134,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user, isLoading,
       isAuthenticated: !!user,
-      login, loginWithAtlassian, loginWithGitHub, register, logout,
+      login, loginWithAtlassian, linkAtlassian, loginWithGitHub, register, logout,
       refreshUser: fetchUser
     }}>
       {children}

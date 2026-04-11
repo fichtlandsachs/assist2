@@ -1,6 +1,7 @@
 """Atlassian OAuth 2.0 — Authorization Code Flow (3-legged)."""
 import logging
 import secrets
+import uuid
 from urllib.parse import urlencode
 
 import httpx
@@ -23,20 +24,7 @@ router = APIRouter(prefix="/auth/atlassian", tags=["auth"])
 _TIMEOUT = httpx.Timeout(10.0)
 
 
-@router.get("/start")
-async def atlassian_start():
-    """
-    Generate Atlassian OAuth authorization URL.
-    Returns {"auth_url": "..."} — frontend opens this in a popup.
-    """
-    settings = get_settings()
-    state = secrets.token_urlsafe(16)
-
-    # Store state in Redis with 5-minute TTL
-    import redis.asyncio as aioredis
-    redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
-    await redis.setex(f"oauth_state:atlassian:{state}", 300, "1")
-
+async def _build_auth_url(state: str, settings) -> str:
     params = urlencode({
         "audience": "api.atlassian.com",
         "client_id": settings.ATLASSIAN_CLIENT_ID,
@@ -46,8 +34,42 @@ async def atlassian_start():
         "response_type": "code",
         "prompt": "consent",
     })
-    auth_url = f"https://auth.atlassian.com/authorize?{params}"
-    return {"auth_url": auth_url}
+    return f"https://auth.atlassian.com/authorize?{params}"
+
+
+@router.get("/start")
+async def atlassian_start():
+    """
+    Generate Atlassian OAuth authorization URL for login.
+    Returns {"auth_url": "..."} — frontend opens this in a popup.
+    """
+    settings = get_settings()
+    state = secrets.token_urlsafe(16)
+
+    import redis.asyncio as aioredis
+    redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+    await redis.setex(f"oauth_state:atlassian:{state}", 300, "login")
+
+    return {"auth_url": await _build_auth_url(state, settings)}
+
+
+@router.get("/link-start")
+async def atlassian_link_start(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Generate Atlassian OAuth URL for linking to an existing account.
+    Requires the user to already be authenticated.
+    """
+    settings = get_settings()
+    state = secrets.token_urlsafe(16)
+
+    import redis.asyncio as aioredis
+    redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+    # Store the current user's ID so the callback can link to them directly
+    await redis.setex(f"oauth_state:atlassian:{state}", 300, f"link:{current_user.id}")
+
+    return {"auth_url": await _build_auth_url(state, settings)}
 
 
 async def _exchange_code(code: str) -> dict:
@@ -120,10 +142,13 @@ async def atlassian_callback(
     import redis.asyncio as aioredis
     redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
     state_key = f"oauth_state:atlassian:{state}"
-    exists = await redis.get(state_key)
-    if not exists:
+    state_value = await redis.get(state_key)
+    if not state_value:
         raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
     await redis.delete(state_key)
+
+    link_mode = state_value.startswith("link:")
+    link_user_id: str | None = state_value[5:] if link_mode else None
 
     # ── 2. Token exchange ────────────────────────────────────────────────────
     token_data = await _exchange_code(code)
@@ -138,6 +163,33 @@ async def atlassian_callback(
     display_name: str = me.get("display_name", me.get("name", "Atlassian User"))
     avatar_url: str | None = me.get("picture") or me.get("avatarUrls", {}).get("48x48")
     cloud_id = await _get_cloud_id(access_token)
+
+    # ── 4a. Link mode: attach to existing logged-in user and return ──────────
+    if link_mode and link_user_id:
+        result = await db.execute(
+            select(User).where(
+                User.id == uuid.UUID(link_user_id),
+                User.deleted_at.is_(None),
+            )
+        )
+        link_user = result.scalar_one_or_none()
+        if link_user:
+            link_user.atlassian_account_id = account_id
+            link_user.atlassian_email = email or None
+            await db.commit()
+            await atlassian_token_store.save(link_user.id, access_token, refresh_token, expires_in, cloud_id)
+
+        app_origin = settings.APP_BASE_URL.rstrip("/")
+        html = f"""<!DOCTYPE html>
+<html><body><script>
+(function() {{
+  if (window.opener) {{
+    window.opener.postMessage({{ "type": "atlassian_linked" }}, '{app_origin}');
+  }}
+  window.close();
+}})();
+</script></body></html>"""
+        return HTMLResponse(content=html)
 
     # ── 4. Find or create workspace user ────────────────────────────────────
     # Primary lookup: by Atlassian account_id (stable, never changes)

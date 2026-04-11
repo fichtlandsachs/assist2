@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth/context";
 import { usePathname } from "next/navigation";
 import { SlotRenderer } from "@/lib/plugins/slots";
 import { useTheme } from "@/lib/theme/context";
+import { useT } from "@/lib/i18n/context";
 import { useEffect, useState } from "react";
 
 interface TopbarProps {
@@ -13,24 +14,11 @@ interface TopbarProps {
   onMenuClick?: () => void;
 }
 
-const PAGE_TITLES: Record<string, string> = {
-  dashboard:      "Dashboard",
-  "ai-workspace": "Workspace",
-  project:        "Projekte",
-  stories:        "User Stories",
-  inbox:          "Posteingang",
-  calendar:       "Kalender",
-  dateien:        "Dateien",
-  workflows:      "Workflows",
-  docs:           "Dokumentation",
-  settings:       "Einstellungen",
-  admin:          "Administration",
-};
-
 export function Topbar({ orgSlug, orgId, onMenuClick }: TopbarProps) {
   const { user } = useAuth();
   const pathname = usePathname();
   const { theme } = useTheme();
+  const { t } = useT();
   const [clock, setClock] = useState("");
 
   useEffect(() => {
@@ -39,6 +27,20 @@ export function Topbar({ orgSlug, orgId, onMenuClick }: TopbarProps) {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
+
+  const PAGE_TITLES: Record<string, string> = {
+    dashboard:      t("nav_dashboard"),
+    "ai-workspace": t("nav_workspace"),
+    project:        t("nav_projects"),
+    stories:        t("nav_stories"),
+    inbox:          t("nav_inbox"),
+    calendar:       t("nav_calendar"),
+    dateien:        t("nav_files"),
+    workflows:      t("nav_workflows"),
+    docs:           t("nav_docs"),
+    settings:       t("nav_settings"),
+    admin:          t("nav_admin"),
+  };
 
   const segment = pathname.split("/")[2] ?? "dashboard";
   const pageTitle = PAGE_TITLES[segment] ?? segment;
@@ -53,7 +55,7 @@ export function Topbar({ orgSlug, orgId, onMenuClick }: TopbarProps) {
           <button onClick={onMenuClick}
             className="lg:hidden p-2 rounded-xl transition-colors"
             style={{ border: "2px solid rgba(10,10,10,0.2)" }}
-            aria-label="Menü öffnen">
+            aria-label={t("nav_settings")}>
             <Menu size={18} style={{ color: "#3A3A3A" }} />
           </button>
           <span className="font-bold tracking-widest text-[10px] uppercase"
@@ -93,7 +95,7 @@ export function Topbar({ orgSlug, orgId, onMenuClick }: TopbarProps) {
       <header className="flex items-center justify-between px-4 shrink-0"
         style={{ height: "var(--topbar-height)", background: "var(--paper-warm)", borderBottom: "var(--topbar-border)" }}>
         <div className="flex items-center gap-3">
-          <button onClick={onMenuClick} className="md:hidden p-1.5 rounded" style={{ color: "var(--ink-faint)" }} aria-label="Menü öffnen">
+          <button onClick={onMenuClick} className="md:hidden p-1.5 rounded" style={{ color: "var(--ink-faint)" }} aria-label={t("nav_settings")}>
             <Menu size={16} />
           </button>
           <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "17px", color: "var(--ink)" }}>
@@ -130,7 +132,7 @@ export function Topbar({ orgSlug, orgId, onMenuClick }: TopbarProps) {
       <div className="flex items-center gap-3">
         <button onClick={onMenuClick}
           className="lg:hidden p-2 rounded-xl border-2 border-transparent hover:border-slate-900/20 active:border-slate-900 transition-colors"
-          aria-label="Menü öffnen">
+          aria-label={t("nav_settings")}>
           <Menu size={18} className="text-slate-700" />
         </button>
         <span className="font-['Architects_Daughter'] font-bold tracking-widest text-[10px] text-[#B8B3AE] uppercase">

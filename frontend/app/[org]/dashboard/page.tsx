@@ -18,6 +18,7 @@ import {
   Sparkles,
   Target,
 } from "lucide-react";
+import { useT } from "@/lib/i18n/context";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface OrgStats {
@@ -74,17 +75,13 @@ const STATUS_STYLE: Record<string, string> = {
   testing:     "bg-amber-100 text-amber-700 border-amber-200",
   draft:       "bg-[var(--paper-warm)] text-[var(--ink-faint)] border-[var(--paper-rule)]",
 };
-const STATUS_LABEL: Record<string, string> = {
-  done: "Done", in_progress: "In Arbeit", in_review: "Review",
-  ready: "Ready", testing: "Testing", draft: "Draft",
-};
 
-function StoryRow({ story, orgSlug }: { story: UserStory; orgSlug: string }) {
+function StoryRow({ story, orgSlug, statusLabel }: { story: UserStory; orgSlug: string; statusLabel: string }) {
   const cls = STATUS_STYLE[story.status] ?? STATUS_STYLE.draft;
   return (
     <div className="flex items-center gap-3 py-2.5 border-b border-[var(--paper-rule)] last:border-0">
       <span className={`shrink-0 text-[8px] font-bold uppercase px-2 py-0.5 rounded-full border ${cls}`}>
-        {STATUS_LABEL[story.status] ?? story.status}
+        {statusLabel}
       </span>
       <Link
         href={`/${orgSlug}/stories/${story.id}`}
@@ -106,6 +103,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
   const resolvedParams = use(params);
   const { user } = useAuth();
   const { org }  = useOrg(resolvedParams.org);
+  const { t }    = useT();
 
   const { data: stories }  = useSWR<UserStory[]>(
     org ? `/api/v1/user-stories?org_id=${org.id}&page_size=6` : null, fetcher
@@ -124,7 +122,16 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
 
   const firstName = user?.display_name?.split(" ")[0] ?? "Team";
   const hour = new Date().getHours();
-  const greeting = hour < 10 ? "Guten Morgen" : hour < 18 ? "Hallo" : "Guten Abend";
+  const greeting = hour < 10 ? t("dash_good_morning") : hour < 18 ? t("dash_good_day") : t("dash_good_evening");
+
+  const STATUS_LABEL: Record<string, string> = {
+    done:        t("story_status_done"),
+    in_progress: t("story_status_in_progress"),
+    in_review:   t("story_status_in_review"),
+    ready:       t("story_status_ready"),
+    testing:     t("story_status_testing"),
+    draft:       t("story_status_draft"),
+  };
 
   const topStories = (stories ?? []).slice(0, 5);
 
@@ -152,7 +159,7 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
             href={`/${resolvedParams.org}/stories/new`}
             className="flex items-center gap-2 px-4 py-2.5 bg-[var(--ink)] text-white text-[11px] font-bold rounded-xl border-2 border-[var(--ink)] shadow-[3px_3px_0_rgba(0,0,0,1)] hover:shadow-[1px_1px_0_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
           >
-            <Plus size={13} /> Neue Story
+            <Plus size={13} /> {t("nav_new_story")}
           </Link>
         </div>
 
@@ -161,33 +168,33 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
           {[
             {
               icon: CheckCircle2,
-              label: "Done",
+              label: t("dash_kpi_done"),
               value: s ? `${s.donePct}%` : "—",
-              sub: s ? `${s.done} von ${s.total}` : "Stories",
+              sub: s ? `${s.done} ${t("dash_kpi_done_of")} ${s.total}` : "Stories",
               color: "text-emerald-600",
               bg: "bg-emerald-50",
             },
             {
               icon: Zap,
-              label: "Aktiv",
+              label: t("dash_kpi_active"),
               value: s ? String(s.active) : "—",
-              sub: "In Arbeit",
+              sub: t("dash_kpi_active_sub"),
               color: "text-rose-500",
               bg: "bg-rose-50",
             },
             {
               icon: TrendingUp,
-              label: "Velocity",
+              label: t("dash_kpi_velocity"),
               value: orgStats?.story_points_done != null ? `${orgStats.story_points_done}P` : "—",
-              sub: "Story Points",
+              sub: t("dash_kpi_velocity_sub"),
               color: "text-amber-600",
               bg: "bg-amber-50",
             },
             {
               icon: Target,
-              label: "Gesamt",
+              label: t("dash_kpi_total"),
               value: orgStats?.story_points_total != null ? `${orgStats.story_points_total}P` : s ? String(s.total) : "—",
-              sub: orgStats ? "Points im Sprint" : "Stories total",
+              sub: orgStats ? t("dash_kpi_total_sub") : "Stories total",
               color: "text-sky-600",
               bg: "bg-sky-50",
             },
@@ -212,15 +219,15 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
           <section className="lg:col-span-3 bg-[var(--card)] border-2 border-[var(--ink)] rounded-2xl p-5 shadow-[4px_4px_0_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-[11px] font-bold tracking-[0.18em] text-[var(--ink)] uppercase">Burndown</h2>
-                <p className="text-[9px] text-[var(--ink-faint)] mt-0.5">Sprint-Verlauf</p>
+                <h2 className="text-[11px] font-bold tracking-[0.18em] text-[var(--ink)] uppercase">{t("dash_burndown_title")}</h2>
+                <p className="text-[9px] text-[var(--ink-faint)] mt-0.5">{t("dash_burndown_subtitle")}</p>
               </div>
               <div className="flex items-center gap-4 text-[9px] font-bold uppercase">
                 <span className="flex items-center gap-1.5 text-rose-400">
-                  <span className="w-3 h-0.5 bg-rose-400 rounded-full inline-block" />Real
+                  <span className="w-3 h-0.5 bg-rose-400 rounded-full inline-block" />{t("dash_burndown_real")}
                 </span>
                 <span className="flex items-center gap-1.5 text-[var(--ink-faintest)]">
-                  <span className="w-3 h-0.5 bg-slate-300 rounded-full inline-block" />Plan
+                  <span className="w-3 h-0.5 bg-slate-300 rounded-full inline-block" />{t("dash_burndown_plan")}
                 </span>
               </div>
             </div>
@@ -238,22 +245,22 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
               <p className="text-[9px] font-bold text-white/70 uppercase tracking-widest mb-2">Karls Tipp</p>
               <p className="text-[13px] text-white leading-snug">
                 {s?.donePct != null && s.donePct >= 70
-                  ? "Stark! Ihr seid auf Kurs. Fokus auf die letzten offenen Stories."
-                  : "Checkt die blockierten Stories — Karl hilft beim Formulieren!"}
+                  ? t("dash_tip_on_track")
+                  : t("dash_tip_off_track")}
               </p>
               <Link
                 href={`/${resolvedParams.org}/ai-workspace`}
                 className="mt-4 inline-flex items-center gap-1.5 text-[10px] font-bold bg-[var(--card)] text-[var(--ink)] px-3 py-1.5 rounded-lg border-2 border-[var(--ink)] shadow-[2px_2px_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-px hover:translate-y-px transition-all"
               >
-                Frag Karl <ArrowUpRight size={11} />
+                {t("dash_ask_karl")} <ArrowUpRight size={11} />
               </Link>
             </div>
 
             <div className="bg-[var(--ink)] border-2 border-[var(--ink)] rounded-2xl p-4 shadow-[4px_4px_0_rgba(0,0,0,1)] space-y-2">
               {[
-                { label: "Stories Board", href: `/${resolvedParams.org}/stories/board`, icon: LayoutGrid, color: "text-rose-400" },
-                { label: "Sprint planen", href: `/${resolvedParams.org}/stories/epics`, icon: Target, color: "text-amber-400" },
-                { label: "Neue Story", href: `/${resolvedParams.org}/stories/new`, icon: Plus, color: "text-sky-400" },
+                { label: t("dash_stories_board"), href: `/${resolvedParams.org}/stories/board`, icon: LayoutGrid, color: "text-rose-400" },
+                { label: t("dash_sprint_planning"), href: `/${resolvedParams.org}/stories/epics`, icon: Target, color: "text-amber-400" },
+                { label: t("nav_new_story"), href: `/${resolvedParams.org}/stories/new`, icon: Plus, color: "text-sky-400" },
               ].map(({ label, href, icon: Icon, color }) => (
                 <Link
                   key={label}
@@ -275,16 +282,23 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
         {topStories.length > 0 && (
           <section className="bg-[var(--card)] border-2 border-[var(--ink)] rounded-2xl p-5 shadow-[4px_4px_0_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[11px] font-bold tracking-[0.18em] text-[var(--ink)] uppercase">Aktuelle Stories</h2>
+              <h2 className="text-[11px] font-bold tracking-[0.18em] text-[var(--ink)] uppercase">{t("dash_recent_stories")}</h2>
               <Link
                 href={`/${resolvedParams.org}/stories/list`}
                 className="text-[9px] font-bold text-rose-500 uppercase hover:underline flex items-center gap-1"
               >
-                Alle <ArrowUpRight size={10} />
+                {t("dash_see_all")} <ArrowUpRight size={10} />
               </Link>
             </div>
             <div>
-              {topStories.map(story => <StoryRow key={story.id} story={story} orgSlug={resolvedParams.org} />)}
+              {topStories.map(story => (
+                <StoryRow
+                  key={story.id}
+                  story={story}
+                  orgSlug={resolvedParams.org}
+                  statusLabel={STATUS_LABEL[story.status] ?? story.status}
+                />
+              ))}
             </div>
           </section>
         )}
@@ -292,12 +306,12 @@ export default function DashboardPage({ params }: { params: Promise<{ org: strin
         {/* Empty state */}
         {stories?.length === 0 && (
           <div className="bg-[var(--card)] border-2 border-[var(--ink)] rounded-2xl p-10 shadow-[4px_4px_0_rgba(0,0,0,1)] text-center space-y-3">
-            <p className="text-[14px] text-[var(--ink-faint)]">Noch keine Stories — leg gleich los!</p>
+            <p className="text-[14px] text-[var(--ink-faint)]">{t("dash_empty")}</p>
             <Link
               href={`/${resolvedParams.org}/stories/new`}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--ink)] text-white text-[11px] font-bold rounded-xl border-2 border-[var(--ink)] shadow-[3px_3px_0_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-px hover:translate-y-px transition-all"
             >
-              <Plus size={13} /> Erste Story anlegen
+              <Plus size={13} /> {t("dash_empty_create")}
             </Link>
           </div>
         )}

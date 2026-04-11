@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSession, logout } from "@/lib/auth";
 
@@ -82,7 +83,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
             { href: "/resources", label: "Ressourcen" },
             { href: "/settings/system", label: "Einstellungen" },
           ].map(({ href, label }) => (
-            <a
+            <Link
               key={href}
               href={href}
               className="px-3 py-1.5 text-xs rounded-lg border-2 transition-all"
@@ -103,7 +104,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
               }}
             >
               {label}
-            </a>
+            </Link>
           ))}
 
           <button

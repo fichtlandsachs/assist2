@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle, Trash2 } from "lucide-react";
+import { useT } from "@/lib/i18n/context";
 
 export interface DoDItemProps {
   text: string;
@@ -18,6 +19,7 @@ export interface DoDItemProps {
  * Extract from stories/[id]/page.tsx — single source of truth for DoD item UI.
  */
 export function DoDItem({ text, done, onToggle, onDelete, readOnly = false }: DoDItemProps) {
+  const { t } = useT();
   return (
     <div
       className={`flex items-start gap-3 px-3 py-2.5 rounded-sm border transition-colors group ${
@@ -52,7 +54,7 @@ export function DoDItem({ text, done, onToggle, onDelete, readOnly = false }: Do
           type="button"
           onClick={onDelete}
           className="shrink-0 p-0.5 text-[var(--ink-faintest)] hover:text-[var(--accent-red)] opacity-0 group-hover:opacity-100 transition-all rounded-sm"
-          aria-label="Kriterium entfernen"
+          aria-label={t("dod_remove_criterion")}
         >
           <Trash2 size={13} />
         </button>

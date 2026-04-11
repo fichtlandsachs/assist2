@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText, GripVertical, Plus, Sparkles, X } from "lucide-react";
+import { useT } from "@/lib/i18n/context";
 
 export interface Source {
   title: string;
@@ -27,6 +28,7 @@ export interface AISuggestionItemProps {
  * if sources is empty or undefined → ✦ KI badge (pure LLM, no org context).
  */
 export function AISuggestionItem({ text, category, sources, onAdd, onReject, dragType }: AISuggestionItemProps) {
+  const { t } = useT();
   function handleDragStart(e: React.DragEvent) {
     if (!dragType) return;
     e.dataTransfer.setData(dragType, text);
@@ -83,7 +85,7 @@ export function AISuggestionItem({ text, category, sources, onAdd, onReject, dra
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onReject(); }}
-          aria-label="Vorschlag ablehnen"
+          aria-label={t("ai_suggest_reject")}
           className="absolute top-[6px] right-[26px] w-[18px] h-[18px] flex items-center justify-center text-[var(--ink-faintest)] hover:text-[var(--accent-red)] rounded-sm opacity-0 group-hover:opacity-100 transition-all"
         >
           <X size={10} />
@@ -94,7 +96,7 @@ export function AISuggestionItem({ text, category, sources, onAdd, onReject, dra
       <button
         type="button"
         onClick={onAdd}
-        aria-label="Vorschlag übernehmen"
+        aria-label={t("ai_suggest_accept")}
         className="absolute top-[6px] right-[6px] w-[18px] h-[18px] flex items-center justify-center bg-[rgba(var(--accent-red-rgb),.08)] border-[0.5px] border-[rgba(var(--accent-red-rgb),.3)] text-[var(--accent-red)] rounded-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent-red)] hover:text-white"
       >
         <Plus size={10} />

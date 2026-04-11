@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import type { Epic } from "@/types";
 import { Plus, X } from "lucide-react";
+import { useT } from "@/lib/i18n/context";
 
 interface Props {
   orgId: string;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function EpicSelector({ orgId, value, onChange, disabled }: Props) {
+  const { t } = useT();
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [saving, setSaving] = useState(false);
@@ -62,7 +64,7 @@ export function EpicSelector({ orgId, value, onChange, disabled }: Props) {
               if (e.key === "Enter") { e.preventDefault(); void handleCreate(); }
               if (e.key === "Escape") { setCreating(false); setNewTitle(""); }
             }}
-            placeholder="Neues Epic"
+            placeholder={t("epic_board_new")}
             className={`flex-1 ${inputCls}`}
           />
           <button
@@ -73,7 +75,7 @@ export function EpicSelector({ orgId, value, onChange, disabled }: Props) {
             {saving ? (
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
             ) : (
-              "Erstellen"
+              t("common_create")
             )}
           </button>
           <button
@@ -90,7 +92,7 @@ export function EpicSelector({ orgId, value, onChange, disabled }: Props) {
             onChange={(e) => onChange(e.target.value || null)}
             className={`flex-1 ${inputCls}`}
           >
-            <option value="">— Kein Epic —</option>
+            <option value="">— {t("epic_board_empty")} —</option>
             {(epics ?? []).map((epic) => (
               <option key={epic.id} value={epic.id}>
                 {epic.title}

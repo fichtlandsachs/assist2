@@ -6,6 +6,7 @@ class RegisterRequest(BaseModel):
     password: str
     display_name: str
     organization_name: str
+    locale: str = "de"
 
     @field_validator("password")
     @classmethod

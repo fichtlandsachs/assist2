@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { MembersSection } from "@/components/settings/MembersSection";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { useAuth } from "@/lib/auth/context";
 import { useTheme, type ThemeId } from "@/lib/theme/context";
@@ -267,6 +268,31 @@ function GeneralSection({ org, mutateOrg }: { org: any; mutateOrg: () => void })
       </div>
       <SaveButton saving={saving} label={t("settings_general_save")} />
     </form>
+  );
+}
+
+// ── Organisation Tab (Allgemein + Benutzer sub-tabs) ──────────────────────
+
+function OrgTabWithSubTabs({ org, mutateOrg }: { org: any; mutateOrg: () => void }) {
+  const [subTab, setSubTab] = useState<"allgemein" | "benutzer">("allgemein");
+  return (
+    <>
+      <div className="flex gap-1 mb-6 border-b border-[var(--paper-rule)]">
+        {(["allgemein", "benutzer"] as const).map(id => (
+          <button key={id} onClick={() => setSubTab(id)}
+            className={`px-3 py-1.5 text-xs font-medium capitalize transition-colors border-b-2 -mb-px ${subTab === id ? "border-[var(--accent-red)] text-[var(--ink)]" : "border-transparent text-[var(--ink-faint)] hover:text-[var(--ink)]"}`}>
+            {id === "allgemein" ? "Allgemein" : "Benutzer"}
+          </button>
+        ))}
+      </div>
+      {subTab === "allgemein" && (
+        <>
+          <h2 className="text-base font-semibold text-[var(--ink)] mb-5">Organisation</h2>
+          <GeneralSection org={org} mutateOrg={mutateOrg} />
+        </>
+      )}
+      {subTab === "benutzer" && <MembersSection orgId={org.id} />}
+    </>
   );
 }
 
@@ -1317,10 +1343,7 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
             </>
           )}
           {activeTab === "general" && (
-            <>
-              <h2 className="text-base font-semibold text-[var(--ink)] mb-5">{t("settings_general_org_heading")}</h2>
-              <GeneralSection org={org} mutateOrg={mutateOrg} />
-            </>
+            <OrgTabWithSubTabs org={org} mutateOrg={mutateOrg} />
           )}
           {activeTab === "email" && (
             <>

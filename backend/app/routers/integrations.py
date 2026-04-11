@@ -34,6 +34,8 @@ class ConfluenceSettingsUpdate(BaseModel):
     base_url: str = ""
     user: str = ""
     api_token: Optional[str] = None
+    default_space_key: Optional[str] = None
+    default_parent_page_id: Optional[str] = None
 
 
 class AISettingsUpdate(BaseModel):
@@ -95,7 +97,7 @@ async def update_confluence(
     current_user: User = Depends(get_current_user),
 ) -> dict:
     org = await _get_org(org_id, db)
-    svc.set_confluence_settings(org, data.base_url, data.user, data.api_token)
+    svc.set_confluence_settings(org, data.base_url, data.user, data.api_token, data.default_space_key, data.default_parent_page_id)
     await db.commit()
     await db.refresh(org)
     return svc.get_confluence_settings(org)

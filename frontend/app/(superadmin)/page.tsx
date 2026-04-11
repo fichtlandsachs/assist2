@@ -71,7 +71,7 @@ export default function SuperadminDashboard() {
                   {c.available ? (
                     <CheckCircle size={14} className="text-[var(--green)] flex-shrink-0" />
                   ) : (
-                    <XCircle size={14} className="text-red-500 flex-shrink-0" />
+                    <XCircle size={14} className="text-[var(--accent-red)] flex-shrink-0" />
                   )}
                   <span className="text-sm text-[var(--ink)]">{c.name}</span>
                   <span className="text-xs text-[var(--ink-faint)]">{c.label}</span>

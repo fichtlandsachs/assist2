@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, AlertTriangle } from "lucide-react";
 import { use, useState } from "react";
+import { useT } from "@/lib/i18n/context";
 
 // Order matches the board lane sequence (left → right)
 const LANE_ORDER: StoryStatus[] = [
@@ -20,16 +21,6 @@ const LANE_ORDER: StoryStatus[] = [
   "archived",
 ];
 
-const STATUS_LABELS: Record<StoryStatus, string> = {
-  draft: "Entwurf",
-  in_review: "Überarbeitung",
-  ready: "Bereit",
-  in_progress: "In Arbeit",
-  testing: "Test",
-  done: "Fertig",
-  archived: "Archiviert",
-};
-
 const STATUS_COLORS: Record<StoryStatus, string> = {
   draft:       "bg-[var(--paper-warm)] text-[var(--ink-mid)]",
   in_review:   "bg-[rgba(var(--btn-primary-rgb),.08)] text-[var(--btn-primary)]",
@@ -38,13 +29,6 @@ const STATUS_COLORS: Record<StoryStatus, string> = {
   testing:     "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]",
   done:        "bg-[rgba(82,107,94,.1)] text-[var(--green)]",
   archived:    "bg-[var(--paper-rule2)] text-[var(--ink-faint)]",
-};
-
-const PRIORITY_LABELS: Record<StoryPriority, string> = {
-  low: "Niedrig",
-  medium: "Mittel",
-  high: "Hoch",
-  critical: "Kritisch",
 };
 
 const PRIORITY_COLORS: Record<StoryPriority, string> = {
@@ -59,6 +43,24 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
   const { org } = useOrg(resolvedParams.org);
   const router = useRouter();
   const [deleting, setDeleting] = useState<string | null>(null);
+  const { t } = useT();
+
+  const STATUS_LABELS: Record<StoryStatus, string> = {
+    draft:       t("story_status_draft"),
+    in_review:   t("story_status_in_review"),
+    ready:       t("story_status_ready"),
+    in_progress: t("story_status_in_progress"),
+    testing:     t("story_status_testing"),
+    done:        t("story_status_done"),
+    archived:    t("story_status_archived"),
+  };
+
+  const PRIORITY_LABELS: Record<StoryPriority, string> = {
+    low:      t("story_priority_low"),
+    medium:   t("story_priority_medium"),
+    high:     t("story_priority_high"),
+    critical: t("story_priority_critical"),
+  };
 
   const { data: stories, isLoading, error, mutate } = useSWR<UserStory[]>(
     org ? `/api/v1/user-stories?org_id=${org.id}` : null,
@@ -68,13 +70,13 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
   async function handleDelete(e: React.MouseEvent, storyId: string) {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm("Story wirklich löschen?")) return;
+    if (!confirm(t("story_list_delete_confirm"))) return;
     setDeleting(storyId);
     try {
       await apiRequest(`/api/v1/user-stories/${storyId}`, { method: "DELETE" });
       await mutate();
     } catch {
-      alert("Fehler beim Löschen.");
+      alert(t("story_list_delete_error"));
     } finally {
       setDeleting(null);
     }
@@ -85,7 +87,7 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">User Stories</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">{t("story_list_title")}</h1>
           <p className="text-[var(--ink-faint)] mt-1">
             {stories ? `${stories.length} ${stories.length === 1 ? "Story" : "Stories"}` : ""}
           </p>
@@ -95,7 +97,7 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
           className="flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus size={16} />
-          Neue Story
+          {t("nav_new_story")}
         </Link>
       </div>
 
@@ -108,23 +110,23 @@ export default function StoriesListPage({ params }: { params: Promise<{ org: str
 
       {error && (
         <div className="bg-[rgba(var(--accent-red-rgb),.08)] border border-[var(--paper-rule)] rounded-sm p-4 text-[var(--accent-red)] text-sm">
-          Fehler beim Laden der Stories.
+          {t("story_list_error")}
         </div>
       )}
 
       {stories && stories.length === 0 && (
         <div className="text-center py-16 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
           <div className="text-4xl mb-4">📋</div>
-          <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Noch keine User Stories</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">{t("story_list_empty")}</h3>
           <p className="text-[var(--ink-faint)] mb-6 text-sm">
-            Erstelle deine erste User Story.
+            {t("story_list_empty_msg")}
           </p>
           <Link
             href={`/${resolvedParams.org}/stories/new`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
-            Erste Story erstellen
+            {t("story_list_create_first")}
           </Link>
         </div>
       )}

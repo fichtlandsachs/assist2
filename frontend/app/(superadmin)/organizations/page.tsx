@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import useSWR from "swr";
 import { fetcher, apiRequest } from "@/lib/api/client";
+import { Button } from "@/components/ui/button";
 import { Building2, Search, Trash2, ToggleLeft, ToggleRight, Plus, Users, BookOpen } from "lucide-react";
 
 interface OrgMetric {
@@ -24,8 +25,8 @@ function ConfirmDialog({
       <div className="w-full max-w-sm p-5 rounded-sm border" style={{ background: "var(--card)", borderColor: "var(--paper-rule)" }}>
         <p className="text-sm text-[var(--ink)] mb-4">{message}</p>
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="px-3 py-1.5 text-sm border border-[var(--paper-rule)] rounded-sm text-[var(--ink-mid)]">Abbrechen</button>
-          <button onClick={onConfirm} className="px-3 py-1.5 text-sm rounded-sm text-white bg-red-600">Bestätigen</button>
+          <Button variant="outline" size="sm" onClick={onCancel}>Abbrechen</Button>
+          <Button variant="destructive" size="sm" onClick={onConfirm}>Bestätigen</Button>
         </div>
       </div>
     </div>
@@ -96,7 +97,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               <option value="enterprise">Enterprise</option>
             </select>
           </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-[var(--accent-red)]">{error}</p>}
           <div className="flex gap-2 justify-end pt-1">
             <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm border border-[var(--paper-rule)] rounded-sm text-[var(--ink-mid)]">Abbrechen</button>
             <button type="submit" disabled={loading} className="px-3 py-1.5 text-sm rounded-sm text-white bg-[var(--accent-red)] disabled:opacity-60">
@@ -226,7 +227,7 @@ export default function SuperadminOrganizationsPage() {
                   message: `Organisation "${o.name}" endgültig löschen?`,
                   onConfirm: () => { setConfirm(null); void deleteOrg(o.id); },
                 })}
-                className="p-1 rounded text-[var(--ink-faint)] hover:text-red-600 transition-colors"
+                className="p-1 rounded text-[var(--ink-faint)] hover:text-[var(--accent-red)] transition-colors"
               >
                 <Trash2 size={14} />
               </button>

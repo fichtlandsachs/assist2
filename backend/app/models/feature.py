@@ -34,6 +34,8 @@ class Feature(Base):
     status: Mapped[FeatureStatus] = mapped_column(Enum(FeatureStatus), default=FeatureStatus.draft, nullable=False)
     priority: Mapped[StoryPriority] = mapped_column(Enum(StoryPriority), default=StoryPriority.medium, nullable=False)
     story_points: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    jira_ticket_key: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    jira_ticket_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

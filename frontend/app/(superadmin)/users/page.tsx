@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import useSWR from "swr";
 import { fetcher, apiRequest } from "@/lib/api/client";
+import { Button } from "@/components/ui/button";
 import { UserCircle2, Search, Trash2, ShieldCheck, ShieldOff, UserCheck, UserX } from "lucide-react";
 
 interface OrgRef { id: string; name: string; slug: string }
@@ -24,8 +25,8 @@ function ConfirmDialog({
       <div className="w-full max-w-sm p-5 rounded-sm border" style={{ background: "var(--card)", borderColor: "var(--paper-rule)" }}>
         <p className="text-sm text-[var(--ink)] mb-4">{message}</p>
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="px-3 py-1.5 text-sm border border-[var(--paper-rule)] rounded-sm text-[var(--ink-mid)]">Abbrechen</button>
-          <button onClick={onConfirm} className="px-3 py-1.5 text-sm rounded-sm text-white bg-red-600">Bestätigen</button>
+          <Button variant="outline" size="sm" onClick={onCancel}>Abbrechen</Button>
+          <Button variant="destructive" size="sm" onClick={onConfirm}>Bestätigen</Button>
         </div>
       </div>
     </div>
@@ -141,7 +142,7 @@ export default function SuperadminUsersPage() {
                   message: `Benutzer "${u.display_name ?? u.email}" endgültig löschen?`,
                   onConfirm: () => { setConfirm(null); void deleteUser(u.id); },
                 })}
-                className="p-1 rounded text-[var(--ink-faint)] hover:text-red-600 transition-colors"
+                className="p-1 rounded text-[var(--ink-faint)] hover:text-[var(--accent-red)] transition-colors"
               >
                 <Trash2 size={14} />
               </button>
