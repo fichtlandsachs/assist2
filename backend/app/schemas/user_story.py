@@ -32,6 +32,8 @@ class UserStoryUpdate(BaseModel):
     definition_of_done: Optional[str] = None
     doc_additional_info: Optional[str] = None
     doc_workarounds: Optional[str] = None
+    jira_ticket_key: Optional[str] = None
+    jira_ticket_url: Optional[str] = None
     epic_id: Optional[uuid.UUID] = None
     project_id: Optional[uuid.UUID] = None
 
@@ -60,6 +62,8 @@ class UserStoryRead(BaseModel):
     definition_of_done: Optional[str]
     doc_additional_info: Optional[str]
     doc_workarounds: Optional[str]
+    jira_ticket_key: Optional[str]
+    jira_ticket_url: Optional[str]
     created_at: datetime
     updated_at: datetime
 

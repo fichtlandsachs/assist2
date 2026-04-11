@@ -7,6 +7,7 @@ import {
   Sparkles, AlertTriangle, GripVertical, CheckCircle,
   ListChecks, CopyPlus, Database, Brain, ChevronRight, Check,
 } from "lucide-react";
+import { useT } from "@/lib/i18n/context";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,6 +95,7 @@ interface SuggestionCardProps {
 }
 
 function SuggestionCard({ field, label, value, onApply }: SuggestionCardProps) {
+  const { t } = useT();
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("text/plain", value);
     e.dataTransfer.setData("application/x-story-field", field);
@@ -116,7 +118,7 @@ function SuggestionCard({ field, label, value, onApply }: SuggestionCardProps) {
         className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white text-xs font-medium rounded-md transition-colors"
       >
         <CheckCircle size={12} />
-        Übernehmen
+        {t("ai_suggest_accept")}
       </button>
     </div>
   );
@@ -165,6 +167,7 @@ interface ACBlockProps {
 }
 
 function ACBlock({ raw, onApply }: ACBlockProps) {
+  const { t } = useT();
   const items = parseACItems(raw);
   if (items.length === 0) {
     return <SuggestionCard field="acceptance_criteria" label="Akzeptanzkriterien" value={raw} onApply={onApply} />;
@@ -183,7 +186,7 @@ function ACBlock({ raw, onApply }: ACBlockProps) {
           className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[var(--accent-red)] hover:bg-[var(--paper-warm)] rounded transition-colors"
         >
           <CheckCircle size={11} />
-          Alle übernehmen
+          {t("ai_suggest_accept")}
         </button>
       </div>
       <div className="divide-y divide-[var(--paper-rule)]">
@@ -297,6 +300,7 @@ export function AISuggestPanel({
   onScorePersisted,
   onNavigateToTab,
 }: AISuggestPanelProps) {
+  const { t } = useT();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<FullAnalysis | null>(null);
   const [prevAnalysis, setPrevAnalysis] = useState<FullAnalysis | null>(null);
@@ -348,7 +352,7 @@ export function AISuggestPanel({
 
   async function handleAnalyze() {
     if (!title.trim()) {
-      setError("Bitte gib zuerst einen Titel ein.");
+      setError(t("story_new_error_title"));
       return;
     }
     setLoading(true);
@@ -396,7 +400,7 @@ export function AISuggestPanel({
       if (storyId) onScorePersisted?.();
     } catch (err: unknown) {
       const msg = (err as { error?: string })?.error;
-      setError(msg ?? "Fehler bei der Analyse. Bitte versuche es erneut.");
+      setError(msg ?? t("ai_suggest_error"));
     } finally {
       setLoading(false);
     }
@@ -428,7 +432,7 @@ export function AISuggestPanel({
         {loading ? (
           <>
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-            Analysiert…
+            {t("ai_suggest_loading")}
           </>
         ) : (
           <>
@@ -453,7 +457,7 @@ export function AISuggestPanel({
         {loading && hasResults && (
           <div className="flex items-center gap-2 px-3 py-2 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-lg text-xs text-[var(--accent-red)]">
             <div className="shrink-0 w-3.5 h-3.5 border-2 border-[var(--accent-red)] border-t-transparent rounded-full animate-spin" />
-            Analyse läuft…
+            {t("ai_suggest_loading")}
           </div>
         )}
 
@@ -714,7 +718,7 @@ export function AISuggestPanel({
               {loading ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-[var(--accent-red)] border-t-transparent rounded-full animate-spin" />
-                  Analysiert…
+                  {t("ai_suggest_loading")}
                 </>
               ) : (
                 <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard, Settings, BookOpen, Inbox, CalendarDays, FileText,
@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth/context";
 import { usePluginRegistry } from "@/lib/plugins/registry";
 import { SlotRenderer } from "@/lib/plugins/slots";
 import { useTheme } from "@/lib/theme/context";
+import { useT } from "@/lib/i18n/context";
 import { KarlWidget } from "./KarlWidget";
 import { useState } from "react";
 import useSWR from "swr";
@@ -48,11 +49,12 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
   const { user, logout } = useAuth();
   const { navEntries } = usePluginRegistry(orgId ?? "");
   const { theme } = useTheme();
+  const { t } = useT();
   const isPaperwork = theme === "paperwork";
   const isKarl = theme === "karl";
   const isWorkspacePath = pathname.startsWith(`/${orgSlug}/ai-workspace`) || pathname.startsWith(`/${orgSlug}/project`) || pathname.startsWith(`/${orgSlug}/stories`) || pathname.startsWith(`/${orgSlug}/docs`) || pathname.startsWith(`/${orgSlug}/nextcloud`) || pathname.startsWith(`/${orgSlug}/compliance`);
   const isSettingsPath = pathname.startsWith(`/${orgSlug}/settings`) || pathname.startsWith(`/${orgSlug}/workflows`);
-  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const searchParams = useSearchParams();
   const currentTab = searchParams?.get("tab") ?? "";
   const [workspaceManualOpen, setWorkspaceManualOpen] = useState(false);
   const [settingsManualOpen, setSettingsManualOpen] = useState(false);
@@ -73,38 +75,38 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
 
   // Level-1 nav (no Projekte, no User Stories — those are in workspace submenu)
   const navItems = [
-    { id: "dashboard",    label: "Dashboard",   icon: LayoutDashboard, route: `/${orgSlug}/dashboard` },
+    { id: "dashboard",    label: t("nav_dashboard"),  icon: LayoutDashboard, route: `/${orgSlug}/dashboard` },
     ...(mailConfigured
-      ? [{ id: "inbox",    label: "Posteingang", icon: Inbox,        route: `/${orgSlug}/inbox` }]
+      ? [{ id: "inbox",    label: t("nav_inbox"),    icon: Inbox,        route: `/${orgSlug}/inbox` }]
       : []),
     ...(calendarConfigured
-      ? [{ id: "calendar", label: "Kalender",    icon: CalendarDays, route: `/${orgSlug}/calendar` }]
+      ? [{ id: "calendar", label: t("nav_calendar"), icon: CalendarDays, route: `/${orgSlug}/calendar` }]
       : []),
     ...(user?.is_superuser
-      ? [{ id: "admin", label: "Admin", icon: Shield, route: `/${orgSlug}/admin` }]
+      ? [{ id: "admin", label: t("nav_admin"), icon: Shield, route: `/${orgSlug}/admin` }]
       : []),
   ];
 
   // Workspace sub-items
   const workspaceSubItems = [
-    { id: "ai-workspace", label: "Chat",          icon: MessageSquare, route: `/${orgSlug}/ai-workspace` },
-    { id: "project",      label: "Projekte",      icon: Folder,        route: `/${orgSlug}/project` },
-    { id: "stories",      label: "User Stories",  icon: BookOpen,      route: `/${orgSlug}/stories` },
-    { id: "compliance",   label: "Compliance",    icon: ShieldCheck,   route: `/${orgSlug}/compliance` },
-    { id: "dateien",      label: "Dateien",        icon: HardDrive,    route: `/${orgSlug}/nextcloud` },
-    { id: "docs",         label: "Dokumentation", icon: FileText,      route: `/${orgSlug}/docs` },
+    { id: "ai-workspace", label: t("nav_chat"),       icon: MessageSquare, route: `/${orgSlug}/ai-workspace` },
+    { id: "project",      label: t("nav_projects"),   icon: Folder,        route: `/${orgSlug}/project` },
+    { id: "stories",      label: t("nav_stories"),    icon: BookOpen,      route: `/${orgSlug}/stories` },
+    { id: "compliance",   label: t("nav_compliance"), icon: ShieldCheck,   route: `/${orgSlug}/compliance` },
+    { id: "dateien",      label: t("nav_files"),      icon: HardDrive,     route: `/${orgSlug}/nextcloud` },
+    { id: "docs",         label: t("nav_docs"),       icon: FileText,      route: `/${orgSlug}/docs` },
   ];
 
   // Settings sub-items (deep-link via ?tab= param)
   const settingsSubItems = [
     { id: "settings-general",    label: "Organisation", icon: Settings,    route: `/${orgSlug}/settings?tab=general` },
-    { id: "settings-user",       label: "Benutzer",    icon: Users,       route: `/${orgSlug}/settings?tab=user` },
+    { id: "settings-user",       label: "Benutzer",    icon: Users,       route: `/${orgSlug}/settings?tab=profile` },
     { id: "settings-email",      label: "E-Mail",      icon: Inbox,       route: `/${orgSlug}/settings?tab=email` },
-    { id: "settings-calendar",   label: "Kalender",    icon: CalendarDays, route: `/${orgSlug}/settings?tab=calendar` },
+    { id: "settings-calendar",   label: t("nav_calendar"), icon: CalendarDays, route: `/${orgSlug}/settings?tab=calendar` },
     { id: "settings-jira",       label: "Jira",        icon: Zap,         route: `/${orgSlug}/settings?tab=jira` },
     { id: "settings-confluence", label: "Confluence",  icon: Globe,       route: `/${orgSlug}/settings?tab=confluence` },
     { id: "settings-ai",        label: "KI",          icon: Sparkles,    route: `/${orgSlug}/settings?tab=ai` },
-    { id: "workflows",           label: "Workflows",   icon: Workflow,    route: `/${orgSlug}/workflows` },
+    { id: "workflows",           label: t("nav_workflows"), icon: Workflow, route: `/${orgSlug}/workflows` },
   ];
 
   const paperworkSidebar = (
@@ -118,7 +120,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           {orgName ?? orgSlug}
         </span>
         <button onClick={onMobileClose} className="md:hidden p-1 rounded"
-          style={{ color: "var(--sidebar-text)" }} aria-label="Schließen">
+          style={{ color: "var(--sidebar-text)" }} aria-label={t("nav_settings")}>
           <X size={14} />
         </button>
       </div>
@@ -145,7 +147,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".08em", textTransform: "uppercase",
             color: workspaceOpen ? "var(--sidebar-text-active)" : "var(--sidebar-text)" }}>
           <MessageSquare size={13} style={{ flexShrink: 0, opacity: workspaceOpen ? 1 : 0.6 }} />
-          <span className="truncate flex-1 text-left">Workspace</span>
+          <span className="truncate flex-1 text-left">{t("nav_workspace")}</span>
           <ChevronRight size={10} style={{ transition: "transform .15s", transform: workspaceOpen ? "rotate(90deg)" : "none", opacity: .5 }} />
         </button>
         {workspaceOpen && workspaceSubItems.map(item => {
@@ -183,7 +185,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: ".08em", textTransform: "uppercase",
             color: settingsOpen ? "var(--sidebar-text-active)" : "var(--sidebar-text)" }}>
           <Settings size={13} style={{ flexShrink: 0, opacity: settingsOpen ? 1 : 0.6 }} />
-          <span className="truncate flex-1 text-left">Einstellungen</span>
+          <span className="truncate flex-1 text-left">{t("nav_settings")}</span>
           <ChevronRight size={10} style={{ transition: "transform .15s", transform: settingsOpen ? "rotate(90deg)" : "none", opacity: .5 }} />
         </button>
         {settingsOpen && settingsSubItems.map(item => {
@@ -237,7 +239,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           </div>
           <button onClick={() => void logout()}
             style={{ fontFamily: "var(--font-mono)", fontSize: "7px", color: "var(--sidebar-logout-text)", letterSpacing: ".04em" }}>
-            Logout
+            {t("nav_logout")}
           </button>
         </div>
       )}
@@ -291,7 +293,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
             <MessageSquare size={14} strokeWidth={2.5} className={workspaceOpen ? "text-indigo-500" : "text-slate-400"} />
           </div>
           <span className={`text-[13px] font-bold font-['Architects_Daughter'] truncate flex-1 text-left ${workspaceOpen ? "text-slate-900" : "text-slate-500"}`}>
-            Workspace
+            {t("nav_workspace")}
           </span>
           <ChevronRight size={12} className={`text-slate-400 transition-transform ${workspaceOpen ? "rotate-90" : ""}`} />
         </button>
@@ -338,7 +340,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
             <Settings size={14} strokeWidth={2.5} className={settingsOpen ? "text-slate-500" : "text-slate-400"} />
           </div>
           <span className={`text-[13px] font-bold font-['Architects_Daughter'] truncate flex-1 text-left ${settingsOpen ? "text-slate-900" : "text-slate-500"}`}>
-            Einstellungen
+            {t("nav_settings")}
           </span>
           <ChevronRight size={12} className={`text-slate-400 transition-transform ${settingsOpen ? "rotate-90" : ""}`} />
         </button>
@@ -402,7 +404,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           </div>
           <button onClick={() => void logout()}
             className="text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors font-['Architects_Daughter']">
-            Logout
+            {t("nav_logout")}
           </button>
         </div>
       )}
@@ -463,7 +465,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           </div>
           <span className="text-[13px] font-bold truncate flex-1 text-left"
             style={{ color: workspaceOpen ? "#0A0A0A" : "#3A3A3A" }}>
-            Workspace
+            {t("nav_workspace")}
           </span>
           <ChevronRight size={12} style={{ color: "#A0A0A0", transition: "transform .15s", transform: workspaceOpen ? "rotate(90deg)" : "none" }} />
         </button>
@@ -512,7 +514,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           </div>
           <span className="text-[13px] font-bold truncate flex-1 text-left"
             style={{ color: settingsOpen ? "#0A0A0A" : "#3A3A3A" }}>
-            Einstellungen
+            {t("nav_settings")}
           </span>
           <ChevronRight size={12} style={{ color: "#A0A0A0", transition: "transform .15s", transform: settingsOpen ? "rotate(90deg)" : "none" }} />
         </button>
@@ -580,7 +582,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           <button onClick={() => void logout()}
             className="text-[10px] font-bold transition-colors"
             style={{ color: "#A0A0A0" }}>
-            Logout
+            {t("nav_logout")}
           </button>
         </div>
       )}

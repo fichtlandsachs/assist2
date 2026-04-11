@@ -23,6 +23,10 @@ from app.routers.suggestions import router as suggestions_router
 from app.routers.confluence import router as confluence_router
 from app.routers.webhooks import router as webhooks_router
 from app.routers.evaluations import router as evaluations_router
+from app.routers.processes import router as processes_router
+from app.routers.rule_sets import router as rule_sets_router
+from app.routers.scoring_profiles import router as scoring_profiles_router
+from app.routers.story_versions import router as story_versions_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -122,3 +126,7 @@ app.include_router(suggestions_router, prefix="/api/v1", tags=["Suggestions"])
 app.include_router(confluence_router, prefix="/api/v1", tags=["Confluence"])
 app.include_router(webhooks_router, prefix="/api/v1", tags=["Webhooks"])
 app.include_router(evaluations_router, prefix="/api/v1", tags=["Evaluations"])
+app.include_router(processes_router, prefix="/api/v1", tags=["Processes"])
+app.include_router(rule_sets_router)
+app.include_router(scoring_profiles_router)
+app.include_router(story_versions_router)

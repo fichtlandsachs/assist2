@@ -12,13 +12,7 @@ import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { VoiceRecorder } from "@/components/voice/VoiceRecorder";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
-
-const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
-  { value: "low", label: "Niedrig" },
-  { value: "medium", label: "Mittel" },
-  { value: "high", label: "Hoch" },
-  { value: "critical", label: "Kritisch" },
-];
+import { useT } from "@/lib/i18n/context";
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -34,6 +28,7 @@ function DroppableTextarea({
   rows = 4,
   fieldName,
   error,
+  dragHint,
 }: {
   id: string;
   label: string;
@@ -43,6 +38,7 @@ function DroppableTextarea({
   rows?: number;
   fieldName: "title" | "description" | "acceptance_criteria";
   error?: string;
+  dragHint: string;
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -106,7 +102,7 @@ function DroppableTextarea({
         }`}
       />
       {isDragOver && (
-        <p className="text-xs text-[var(--accent-red)] mt-1">Loslassen zum Übernehmen</p>
+        <p className="text-xs text-[var(--accent-red)] mt-1">{dragHint}</p>
       )}
       <FieldError msg={error} />
     </div>
@@ -184,6 +180,14 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
   const router = useRouter();
+  const { t } = useT();
+
+  const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
+    { value: "low",      label: t("story_priority_low") },
+    { value: "medium",   label: t("story_priority_medium") },
+    { value: "high",     label: t("story_priority_high") },
+    { value: "critical", label: t("story_priority_critical") },
+  ];
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -215,7 +219,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
     e.preventDefault();
     if (!org) return;
     if (!title.trim()) {
-      setFieldErrors({ title: "Bitte gib einen Titel ein." });
+      setFieldErrors({ title: t("story_new_error_title") });
       return;
     }
     setSaving(true);
@@ -241,7 +245,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
       router.push(`/${resolvedParams.org}/stories/${story.id}`);
     } catch (err: unknown) {
       const msg = (err as { error?: string })?.error;
-      setFieldErrors({ general: msg ?? "Fehler beim Speichern." });
+      setFieldErrors({ general: msg ?? t("story_new_error_save") });
     } finally {
       setSaving(false);
     }
@@ -258,8 +262,8 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
           <ArrowLeft size={18} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-[var(--ink)]">Neue User Story</h1>
-          <p className="text-[var(--ink-faint)] text-sm">Erstelle eine neue Story mit Assistent-Unterstützung</p>
+          <h1 className="text-xl font-bold text-[var(--ink)]">{t("story_new_title")}</h1>
+          <p className="text-[var(--ink-faint)] text-sm">{t("story_new_subtitle")}</p>
         </div>
       </div>
 
@@ -270,16 +274,16 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
           <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-5">
             <DroppableInput
               id="title"
-              label="Titel"
+              label={t("story_new_field_title")}
               value={title}
               onChange={(v) => { setTitle(v); setFieldErrors((e) => ({ ...e, title: undefined })); }}
-              placeholder="z.B. Als Nutzer möchte ich mein Passwort zurücksetzen"
+              placeholder={t("story_new_title_placeholder")}
               fieldName="title"
               error={fieldErrors.title}
             />
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[var(--ink-faint)]">Sprachaufnahme:</span>
+              <span className="text-xs text-[var(--ink-faint)]">{t("story_new_voice")}</span>
               <VoiceRecorder
                 onTranscription={(text) => setDescription((prev) => prev ? `${prev}\n${text}` : text)}
               />
@@ -287,28 +291,30 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
 
             <DroppableTextarea
               id="description"
-              label="Beschreibung"
+              label={t("story_new_field_desc")}
               value={description}
               onChange={setDescription}
-              placeholder="Als [Rolle] möchte ich [Funktion], damit [Nutzen]"
+              placeholder={t("story_new_desc_placeholder")}
               rows={5}
               fieldName="description"
+              dragHint={t("story_new_drag_hint")}
             />
 
             <DroppableTextarea
               id="acceptance_criteria"
-              label="Akzeptanzkriterien"
+              label={t("story_new_field_criteria")}
               value={acceptanceCriteria}
               onChange={setAcceptanceCriteria}
-              placeholder={"1. Gegeben...\n2. Wenn...\n3. Dann..."}
+              placeholder={t("story_new_criteria_placeholder")}
               rows={5}
               fieldName="acceptance_criteria"
+              dragHint={t("story_new_drag_hint")}
             />
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="priority" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                  Priorität
+                  {t("story_new_field_priority")}
                 </label>
                 <select
                   id="priority"
@@ -326,7 +332,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
 
               <div>
                 <label htmlFor="story_points" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                  Story Points
+                  {t("story_new_field_points")}
                 </label>
                 <input
                   id="story_points"
@@ -335,7 +341,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
                   max={100}
                   value={storyPoints}
                   onChange={(e) => setStoryPoints(e.target.value)}
-                  placeholder="z.B. 5"
+                  placeholder={t("story_new_points_placeholder")}
                   className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[rgba(var(--accent-red-rgb),.08)] bg-[var(--card)]"
                 />
               </div>
@@ -373,12 +379,12 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
               {saving ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                  Speichern…
+                  {t("common_saving")}
                 </>
               ) : (
                 <>
                   <Save size={16} />
-                  Story speichern
+                  {t("story_new_save")}
                 </>
               )}
             </button>
@@ -386,7 +392,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
               href={`/${resolvedParams.org}/stories`}
               className="px-5 py-2.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
             >
-              Abbrechen
+              {t("common_cancel")}
             </Link>
           </div>
         </form>

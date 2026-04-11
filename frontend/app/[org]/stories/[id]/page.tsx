@@ -4,16 +4,30 @@ import { use, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
-import type { UserStory, StoryStatus, StoryPriority, TestCase, TestResult, DoDItem, Feature, FeatureStatus, Epic } from "@/types";
+import type { UserStory, StoryStatus, StoryPriority, TestCase, TestResult, DoDItem, Feature, FeatureStatus, Epic, Process, StoryProcessChange } from "@/types";
 import { AISuggestPanel } from "@/components/stories/AISuggestPanel";
 import { EpicSelector } from "@/components/stories/EpicSelector";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { DoDItem as DoDItemComponent } from "@/components/stories/DoDItem";
 import { AISuggestionItem } from "@/components/stories/AISuggestionItem";
-import { ArrowLeft, Save, Pencil, X, Plus, CheckCircle, XCircle, Sparkles, GripVertical, GitBranch, ClipboardCheck, Trash2, FileText, RefreshCw, Users, Package, Lock, UserCircle } from "lucide-react";
+import { ArrowLeft, Save, Pencil, X, Plus, CheckCircle, XCircle, Sparkles, GripVertical, GitBranch, ClipboardCheck, Trash2, FileText, RefreshCw, Users, Package, Lock, UserCircle, Upload, AlertTriangle } from "lucide-react";
 import { SplitStoryPanel } from "@/components/stories/SplitStoryPanel";
 import { useAuth } from "@/lib/auth/context";
 import Link from "next/link";
+import { useT } from "@/lib/i18n/context";
+
+interface SyncItem {
+  item_type: "story" | "feature" | "testcase";
+  item_id: string;
+  jira_key: string;
+  jira_url: string;
+  heykarl_title: string;
+  jira_title: string;
+  title_changed: boolean;
+  heykarl_description: string;
+  jira_description: string;
+  description_changed: boolean;
+}
 
 interface StoryDocsData {
   changelog_entry: string;
@@ -25,16 +39,6 @@ interface StoryDocsData {
   workarounds?: string | null;
 }
 
-const STATUS_OPTIONS: { value: StoryStatus; label: string }[] = [
-  { value: "draft", label: "Entwurf" },
-  { value: "in_review", label: "Überarbeitung" },
-  { value: "ready", label: "Bereit" },
-  { value: "in_progress", label: "In Arbeit" },
-  { value: "testing", label: "Test" },
-  { value: "done", label: "Fertig" },
-  { value: "archived", label: "Archiviert" },
-];
-
 const STATUS_COLORS: Record<StoryStatus, string> = {
   draft: "bg-[var(--paper-warm)] text-[var(--ink-mid)]",
   in_review: "bg-[rgba(var(--btn-primary-rgb),.08)] text-[var(--btn-primary)]",
@@ -44,13 +48,6 @@ const STATUS_COLORS: Record<StoryStatus, string> = {
   done: "bg-[rgba(82,107,94,.1)] text-[var(--green)]",
   archived: "bg-[var(--paper-rule2)] text-[var(--ink-faint)]",
 };
-
-const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
-  { value: "low", label: "Niedrig" },
-  { value: "medium", label: "Mittel" },
-  { value: "high", label: "Hoch" },
-  { value: "critical", label: "Kritisch" },
-];
 
 const PRIORITY_COLORS: Record<StoryPriority, string> = {
   low: "text-[var(--ink-faint)]",
@@ -93,6 +90,7 @@ function ProjectBadge({ projectId, orgId }: { projectId: string; orgId: string }
 }
 
 function StoryAssignmentView({ story, orgId }: { story: UserStory; orgId: string }) {
+  const { t } = useT();
   const { data: epics } = useSWR<Epic[]>(`/api/v1/epics?org_id=${orgId}`, fetcher);
   const { data: projects } = useSWR<import("@/types").Project[]>(`/api/v1/projects?org_id=${orgId}`, fetcher);
   const epic = epics?.find((e) => e.id === story.epic_id);
@@ -103,7 +101,7 @@ function StoryAssignmentView({ story, orgId }: { story: UserStory; orgId: string
   return (
     <div className="grid grid-cols-2 gap-4 pt-1">
       <div>
-        <p className="text-xs font-medium text-[var(--ink-faint)] mb-1">Epic</p>
+        <p className="text-xs font-medium text-[var(--ink-faint)] mb-1">{t("story_detail_field_epic")}</p>
         {epic ? (
           <span className="flex items-center gap-1 text-sm text-[var(--ink)]">
             <GitBranch size={13} className="text-purple-600 shrink-0" />
@@ -114,7 +112,7 @@ function StoryAssignmentView({ story, orgId }: { story: UserStory; orgId: string
         )}
       </div>
       <div>
-        <p className="text-xs font-medium text-[var(--ink-faint)] mb-1">Projekt</p>
+        <p className="text-xs font-medium text-[var(--ink-faint)] mb-1">{t("story_detail_field_project")}</p>
         {project ? (
           <span className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
             {project.color && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: project.color }} />}
@@ -251,14 +249,6 @@ const TEST_RESULT_COLORS: Record<TestResult, string> = {
   skipped:     "bg-[rgba(122,100,80,.1)] text-[var(--brown)]",
 };
 
-const TEST_RESULT_LABELS: Record<TestResult, string> = {
-  pending:     "Offen",
-  in_progress: "Im Test",
-  passed:      "Erfolgreich",
-  failed:      "Fehlerhaft",
-  skipped:     "Übersprungen",
-};
-
 const TEST_RESULT_CYCLE: TestResult[] = ["pending", "in_progress", "passed", "failed"];
 
 interface AITestCaseSuggestionData {
@@ -374,6 +364,7 @@ interface AIDoDSuggestionData {
 }
 
 function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentUserId }: { storyId: string; initialDod: string | null; editing: boolean; orgId: string; currentUserId: string }) {
+  const { t } = useT();
   const membersMap = useMembersMap(orgId);
   function parseDod(raw: string | null): DoDItem[] {
     if (!raw) return [];
@@ -479,7 +470,7 @@ function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentU
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
           <div className="flex items-center gap-2">
             <ClipboardCheck size={16} className="text-[var(--ink-faint)]" />
-            <h2 className="text-base font-semibold text-[var(--ink)]">Definition of Done</h2>
+            <h2 className="text-base font-semibold text-[var(--ink)]">{t("story_dod_title")}</h2>
             {items.length > 0 && (
               <span className="px-1.5 py-0.5 bg-[var(--paper-warm)] text-[var(--ink-mid)] rounded-sm text-xs font-medium">
                 {doneCount}/{items.length}
@@ -492,7 +483,7 @@ function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentU
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-xs font-medium transition-colors"
             >
               <Plus size={14} />
-              Kriterium
+              {t("story_dod_add")}
             </button>
           )}
         </div>
@@ -541,14 +532,14 @@ function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentU
                 onClick={() => { setNewText(""); setShowInput(false); }}
                 className="shrink-0 px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors"
               >
-                Abbrechen
+                {t("story_detail_cancel")}
               </button>
             </div>
           )}
 
           {items.length === 0 && !showInput && (
             <p className="text-sm text-[var(--ink-faint)] text-center py-8">
-              Noch keine DoD-Kriterien definiert. Füge eigene hinzu oder lass dir Vorschläge generieren.
+              {t("story_dod_empty")}
             </p>
           )}
 
@@ -579,7 +570,7 @@ function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentU
         <div className="mb-4">
           <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
             <Sparkles size={16} className="text-[var(--accent-red)]" />
-            Assistent
+            {t("story_docs_assistant")}
           </h2>
           <p className="text-xs text-[var(--ink-faint)] mt-1">
             Schlägt DoD-Kriterien basierend auf der Story vor.
@@ -595,12 +586,12 @@ function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentU
             {aiLoading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                Analysiert…
+                {t("story_dod_generating")}
               </>
             ) : (
               <>
                 <Sparkles size={16} />
-                Vorschläge
+                {t("story_dod_ai_suggest")}
               </>
             )}
           </button>
@@ -668,8 +659,17 @@ function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentU
 const LOCKED_STORY_STATUSES = new Set(["testing", "done", "archived"]);
 
 function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: string; storyStatus: string; editing: boolean; orgId: string }) {
+  const { t } = useT();
   const isLocked = LOCKED_STORY_STATUSES.has(storyStatus);
   const membersMap = useMembersMap(orgId);
+
+  const TEST_RESULT_LABELS: Record<TestResult, string> = {
+    pending:     t("story_tests_result_pending"),
+    in_progress: t("story_tests_result_in_progress"),
+    passed:      t("story_tests_result_passed"),
+    failed:      t("story_tests_result_failed"),
+    skipped:     t("story_tests_result_skipped"),
+  };
 
   const { data: testCases, isLoading, mutate } = useSWR<TestCase[]>(
     `/api/v1/user-stories/${storyId}/test-cases`,
@@ -789,7 +789,7 @@ function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: s
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
           <div className="flex items-center gap-2">
             <ClipboardCheck size={16} className="text-[var(--ink-faint)]" />
-            <h2 className="text-base font-semibold text-[var(--ink)]">Testfälle</h2>
+            <h2 className="text-base font-semibold text-[var(--ink)]">{t("story_tests_title")}</h2>
             {testCases && testCases.length > 0 && (
               <span className="px-1.5 py-0.5 bg-[var(--paper-warm)] text-[var(--ink-mid)] rounded-sm text-xs font-medium">
                 {testCases.length}
@@ -807,7 +807,7 @@ function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: s
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-xs font-medium transition-colors"
             >
               <Plus size={14} />
-              Hinzufügen
+              {t("story_tests_add")}
             </button>
           ) : null}
         </div>
@@ -823,19 +823,19 @@ function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: s
           {!isLocked && editing && showForm && (
             <form onSubmit={(e) => void handleAddTestCase(e)} className="border border-[var(--paper-rule)] bg-[var(--paper-warm)] rounded-sm p-4 space-y-3">
               <div>
-                <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">Titel <span className="text-[var(--accent-red)]">*</span></label>
+                <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">{t("story_tests_field_title")} <span className="text-[var(--accent-red)]">*</span></label>
                 <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)}
                   placeholder="Testfall Titel"
                   className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)]" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">Schritte</label>
+                <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">{t("story_tests_field_steps")}</label>
                 <textarea value={formSteps} onChange={e => setFormSteps(e.target.value)}
                   placeholder={"1. Schritt\n2. Schritt"} rows={3}
                   className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)] resize-none" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">Erwartetes Ergebnis</label>
+                <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">{t("story_tests_field_expected")}</label>
                 <textarea value={formExpected} onChange={e => setFormExpected(e.target.value)}
                   placeholder="Das erwartete Ergebnis..." rows={2}
                   className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)] resize-none" />
@@ -844,11 +844,11 @@ function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: s
                 <button type="submit" disabled={saving || !formTitle.trim()}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[var(--accent-red)] text-white rounded-sm text-xs font-medium transition-colors">
                   {saving ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" /> : <Plus size={12} />}
-                  Hinzufügen
+                  {t("story_tests_save")}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)}
                   className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors">
-                  Abbrechen
+                  {t("story_detail_cancel")}
                 </button>
               </div>
             </form>
@@ -861,7 +861,7 @@ function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: s
           )}
 
           {!isLoading && testCases && testCases.length === 0 && !showForm && (
-            <p className="text-sm text-[var(--ink-faint)] text-center py-8">Noch keine Testfälle definiert.</p>
+            <p className="text-sm text-[var(--ink-faint)] text-center py-8">{t("story_tests_empty")}</p>
           )}
 
           {testCases && testCases.length > 0 && (
@@ -882,11 +882,11 @@ function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: s
                         <button onClick={() => void handleSaveEdit(tc.id)} disabled={editSaving}
                           className="flex items-center gap-1 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-xs font-medium transition-colors">
                           {editSaving ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" /> : <CheckCircle size={12} />}
-                          Speichern
+                          {t("story_tests_save")}
                         </button>
                         <button onClick={() => setEditingId(null)}
                           className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors">
-                          Abbrechen
+                          {t("story_detail_cancel")}
                         </button>
                       </div>
                     </div>
@@ -1132,6 +1132,7 @@ function EditableNotesField({
   placeholder: string;
   onSave: (v: string) => Promise<void>;
 }) {
+  const { t } = useT();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
@@ -1160,7 +1161,7 @@ function EditableNotesField({
             className="flex items-center gap-1 px-2 py-0.5 text-xs text-[var(--ink-faint)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] rounded-sm transition-colors"
           >
             <Pencil size={11} />
-            Bearbeiten
+            {t("story_detail_edit")}
           </button>
         )}
       </div>
@@ -1185,13 +1186,13 @@ function EditableNotesField({
               ) : (
                 <Save size={12} />
               )}
-              Speichern
+              {t("story_detail_save")}
             </button>
             <button
               onClick={() => { setEditing(false); setDraft(value); }}
               className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors"
             >
-              Abbrechen
+              {t("story_detail_cancel")}
             </button>
           </div>
         </div>
@@ -1211,7 +1212,15 @@ function EditableNotesField({
   );
 }
 
+interface ConfluenceSyncData {
+  confluence_url: string;
+  confluence_text: string;
+  heykarl_text: string;
+  changed: boolean;
+}
+
 function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string; story: UserStory; refreshTrigger: number }) {
+  const { t } = useT();
   const { data: docs, isLoading, mutate } = useSWR<StoryDocsData | null>(
     `/api/v1/user-stories/${storyId}/docs`,
     fetcher
@@ -1225,6 +1234,14 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [workarounds, setWorkarounds] = useState("");
 
+  // Confluence state
+  const [confluenceSpaceKey, setConfluenceSpaceKey] = useState("");
+  const [publishingConfluence, setPublishingConfluence] = useState(false);
+  const [confluenceError, setConfluenceError] = useState<string | null>(null);
+  const [syncingConfluence, setSyncingConfluence] = useState(false);
+  const [confluenceSync, setConfluenceSync] = useState<ConfluenceSyncData | null>(null);
+  const [showConfluenceSync, setShowConfluenceSync] = useState(false);
+
   useEffect(() => {
     if (refreshTrigger > 0) void mutate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1234,7 +1251,47 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
   useEffect(() => {
     setAdditionalInfo(docs?.additional_info ?? "");
     setWorkarounds(docs?.workarounds ?? "");
-  }, [docs?.additional_info, docs?.workarounds]);
+    // Auto-extract space key from existing Confluence URL
+    if (docs?.confluence_page_url && !confluenceSpaceKey) {
+      const match = docs.confluence_page_url.match(/\/spaces\/([A-Z0-9]+)\//i);
+      if (match) setConfluenceSpaceKey(match[1].toUpperCase());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docs?.additional_info, docs?.workarounds, docs?.confluence_page_url]);
+
+  async function handlePublishConfluence() {
+    if (!confluenceSpaceKey.trim()) return;
+    setPublishingConfluence(true);
+    setConfluenceError(null);
+    try {
+      const updated = await apiRequest<StoryDocsData>(`/api/v1/user-stories/${storyId}/docs/publish-confluence`, {
+        method: "POST",
+        body: JSON.stringify({ space_key: confluenceSpaceKey.trim().toUpperCase(), org_id: story.organization_id }),
+      });
+      mutate(updated, false);
+    } catch (err: unknown) {
+      setConfluenceError((err as { error?: string })?.error ?? "Fehler beim Veröffentlichen.");
+    } finally {
+      setPublishingConfluence(false);
+    }
+  }
+
+  async function handleConfluenceSync() {
+    setSyncingConfluence(true);
+    setConfluenceError(null);
+    try {
+      const result = await apiRequest<ConfluenceSyncData>(
+        `/api/v1/user-stories/${storyId}/docs/confluence-sync?org_id=${story.organization_id}`,
+        { method: "GET" }
+      );
+      setConfluenceSync(result);
+      setShowConfluenceSync(true);
+    } catch (err: unknown) {
+      setConfluenceError((err as { error?: string })?.error ?? "Fehler beim Abrufen der Confluence-Seite.");
+    } finally {
+      setSyncingConfluence(false);
+    }
+  }
 
   async function handleRegenerate() {
     setRegenerating(true);
@@ -1264,8 +1321,8 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
       <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
         <div className="flex items-center gap-2 px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
           <FileText size={15} className="text-[var(--ink-faint)]" />
-          <h2 className="text-base font-semibold text-[var(--ink)]">Dokumentation</h2>
-          {docs && <span className="text-xs text-[var(--ink-faint)] ml-1">Automatisch generiert, wird bei Änderungen aktualisiert</span>}
+          <h2 className="text-base font-semibold text-[var(--ink)]">{t("story_docs_title")}</h2>
+          {docs && <span className="text-xs text-[var(--ink-faint)] ml-1">{t("story_docs_generated_hint")}</span>}
         </div>
 
         <div className="p-4 sm:p-6 space-y-6">
@@ -1293,7 +1350,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
             const sections: OutlineSection[] = [
               {
                 num: 1,
-                label: "Story-Titel",
+                label: t("story_docs_section_title"),
                 hasContent: !!story.title,
                 content: story.title
                   ? <p className="text-sm text-[var(--ink)] font-medium">{story.title}</p>
@@ -1301,7 +1358,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
               },
               {
                 num: 2,
-                label: "Beschreibung",
+                label: t("story_docs_section_desc"),
                 hasContent: !!story.description,
                 content: story.description
                   ? <p className="text-sm text-[var(--ink-mid)] leading-relaxed line-clamp-4">{story.description}</p>
@@ -1309,7 +1366,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
               },
               {
                 num: 3,
-                label: "Akzeptanzkriterien",
+                label: t("story_docs_section_criteria"),
                 hasContent: !!story.acceptance_criteria,
                 content: story.acceptance_criteria
                   ? <p className="text-sm text-[var(--ink-mid)] leading-relaxed line-clamp-4">{story.acceptance_criteria}</p>
@@ -1317,7 +1374,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
               },
               {
                 num: 4,
-                label: "Definition of Done",
+                label: t("story_docs_section_dod"),
                 hasContent: dodItems.length > 0,
                 content: dodItems.length > 0
                   ? (
@@ -1335,7 +1392,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
               },
               {
                 num: 5,
-                label: "Features",
+                label: t("story_docs_section_features"),
                 hasContent: (features?.length ?? 0) > 0,
                 content: features && features.length > 0
                   ? (
@@ -1353,15 +1410,15 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
               },
               {
                 num: 6,
-                label: "Testfälle",
+                label: t("story_docs_section_tests"),
                 hasContent: (testCases?.length ?? 0) > 0,
                 content: testCases && testCases.length > 0
                   ? (
                     <ul className="space-y-1">
-                      {testCases.slice(0, 5).map((t) => (
-                        <li key={t.id} className="flex items-start gap-2 text-sm text-[var(--ink-mid)]">
+                      {testCases.slice(0, 5).map((tc) => (
+                        <li key={tc.id} className="flex items-start gap-2 text-sm text-[var(--ink-mid)]">
                           <ClipboardCheck size={12} className="mt-0.5 shrink-0 text-[var(--ink-faintest)]" />
-                          <span className="line-clamp-1">{t.title}</span>
+                          <span className="line-clamp-1">{tc.title}</span>
                         </li>
                       ))}
                       {testCases.length > 5 && <li className="text-xs text-[var(--ink-faint)] pl-5">+{testCases.length - 5} weitere</li>}
@@ -1371,7 +1428,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
               },
               {
                 num: 7,
-                label: "Zusammenfassung",
+                label: t("story_docs_section_summary"),
                 aiOnly: true,
                 hasContent: !!docs?.summary,
                 content: docs?.summary
@@ -1380,7 +1437,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
               },
               {
                 num: 8,
-                label: "Technische Hinweise",
+                label: t("story_docs_section_tech"),
                 aiOnly: true,
                 hasContent: !!docs?.technical_notes,
                 content: docs?.technical_notes
@@ -1389,7 +1446,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
               },
               {
                 num: 9,
-                label: "Changelog-Eintrag",
+                label: t("story_docs_section_changelog"),
                 aiOnly: true,
                 hasContent: !!docs?.changelog_entry,
                 content: docs?.changelog_entry
@@ -1412,12 +1469,12 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
                       {sec.aiOnly && (
                         <span className="ml-auto flex items-center gap-1 text-[10px] text-[var(--ink-faintest)]">
                           <Sparkles size={9} />
-                          KI
+                          {t("story_docs_ai_badge")}
                         </span>
                       )}
                       {!sec.hasContent && (
                         <span className="ml-auto text-[10px] text-[var(--ink-faintest)] italic">
-                          {sec.aiOnly ? "Noch nicht generiert" : "Kein Inhalt vorhanden"}
+                          {sec.aiOnly ? t("story_docs_section_not_generated") : t("story_docs_section_empty")}
                         </span>
                       )}
                     </div>
@@ -1439,22 +1496,22 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-3 py-1.5 bg-[rgba(74,85,104,.06)] border border-[rgba(74,85,104,.2)] text-[var(--navy)] hover:bg-[rgba(74,85,104,.1)] rounded-sm text-xs font-medium transition-colors"
             >
-              In Confluence öffnen →
+              {t("story_docs_open_confluence")}
             </a>
           )}
 
           {/* Divider for user-editable sections — always visible */}
           <div className="border-t border-[var(--paper-rule)] pt-5 space-y-5">
             <EditableNotesField
-              label="Zusatzinformationen"
+              label={t("story_docs_additional_info")}
               value={additionalInfo}
-              placeholder="Zusätzliche Hinweise, Kontext oder Anmerkungen eintragen…"
+              placeholder={t("story_docs_additional_placeholder")}
               onSave={(v) => saveNotes("doc_additional_info", v)}
             />
             <EditableNotesField
-              label="Bekannte Workarounds"
+              label={t("story_docs_workarounds")}
               value={workarounds}
-              placeholder="Bekannte Einschränkungen, Umgehungslösungen oder temporäre Fixes eintragen…"
+              placeholder={t("story_docs_workarounds_placeholder")}
               onSave={(v) => saveNotes("doc_workarounds", v)}
             />
           </div>
@@ -1466,10 +1523,10 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
         <div className="mb-4">
           <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
             <Sparkles size={16} className="text-[var(--accent-red)]" />
-            Assistent
+            {t("story_docs_assistant")}
           </h2>
           <p className="text-xs text-[var(--ink-faint)] mt-1">
-            Generiert Zusammenfassung, Changelog-Eintrag, Dokumenten-Gliederung und technische Hinweise aus der Story.
+            {t("story_docs_assistant_desc")}
           </p>
         </div>
 
@@ -1481,12 +1538,12 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
           {regenerating ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-              Generiert…
+              {t("story_docs_generating")}
             </>
           ) : (
             <>
               <RefreshCw size={16} />
-              {docs ? "Regenerieren" : "Jetzt generieren"}
+              {docs ? t("story_docs_regenerate") : t("story_docs_generate")}
             </>
           )}
         </button>
@@ -1496,11 +1553,11 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
         )}
 
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-3">KI-Abschnitte</p>
+          <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-3">{t("story_docs_ki_sections")}</p>
           {[
-            { label: "Zusammenfassung", ok: !!docs?.summary },
-            { label: "Changelog-Eintrag", ok: !!docs?.changelog_entry },
-            { label: "Technische Hinweise", ok: !!docs?.technical_notes },
+            { label: t("story_docs_section_summary"), ok: !!docs?.summary },
+            { label: t("story_docs_section_changelog"), ok: !!docs?.changelog_entry },
+            { label: t("story_docs_section_tech"), ok: !!docs?.technical_notes },
           ].map(({ label, ok }) => (
             <div key={label} className="flex items-center gap-2 p-3 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
               <div className={`w-2 h-2 rounded-full shrink-0 ${ok ? "bg-[var(--green)]" : "bg-[var(--paper-rule)]"}`} />
@@ -1509,18 +1566,124 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
           ))}
 
           <div className="border-t border-[var(--paper-rule)] pt-4 mt-4 space-y-2">
-            <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-3">Manuell gepflegt</p>
+            <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-3">{t("story_docs_manual")}</p>
             <div className="flex items-center gap-2 p-3 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
               <div className={`w-2 h-2 rounded-full shrink-0 ${additionalInfo ? "bg-[var(--accent-red)]" : "bg-[var(--paper-rule)]"}`} />
-              <span className="text-xs text-[var(--ink-mid)]">Zusatzinformationen</span>
+              <span className="text-xs text-[var(--ink-mid)]">{t("story_docs_additional_info")}</span>
             </div>
             <div className="flex items-center gap-2 p-3 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
               <div className={`w-2 h-2 rounded-full shrink-0 ${workarounds ? "bg-[var(--accent-red)]" : "bg-[var(--paper-rule)]"}`} />
-              <span className="text-xs text-[var(--ink-mid)]">Bekannte Workarounds</span>
+              <span className="text-xs text-[var(--ink-mid)]">{t("story_docs_workarounds")}</span>
             </div>
+          </div>
+
+          {/* Confluence section */}
+          <div className="border-t border-[var(--paper-rule)] pt-4 mt-4">
+            <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-3">Confluence</p>
+
+            {docs?.confluence_page_url ? (
+              <div className="space-y-2">
+                <a
+                  href={docs.confluence_page_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-2.5 bg-[rgba(74,85,104,.06)] border border-[rgba(74,85,104,.2)] text-[var(--navy)] hover:bg-[rgba(74,85,104,.1)] rounded-sm text-xs font-medium transition-colors"
+                >
+                  <FileText size={12} />
+                  {t("story_docs_open_confluence")}
+                </a>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => void handlePublishConfluence()}
+                    disabled={publishingConfluence || !docs}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[var(--navy)] hover:bg-[rgba(74,85,104,.9)] disabled:opacity-50 text-white rounded-sm text-xs font-medium transition-colors"
+                  >
+                    {publishingConfluence ? <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent" /> : <Upload size={12} />}
+                    Überschreiben
+                  </button>
+                  <button
+                    onClick={() => void handleConfluenceSync()}
+                    disabled={syncingConfluence}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[var(--paper-warm)] hover:bg-[var(--paper-rule)] disabled:opacity-50 text-[var(--ink-mid)] border border-[var(--paper-rule)] rounded-sm text-xs font-medium transition-colors"
+                  >
+                    {syncingConfluence ? <div className="animate-spin rounded-full h-3 w-3 border border-[var(--ink-faint)] border-t-transparent" /> : <RefreshCw size={12} />}
+                    Sync prüfen
+                  </button>
+                </div>
+                {/* Space key for re-publish */}
+                <input
+                  value={confluenceSpaceKey}
+                  onChange={(e) => setConfluenceSpaceKey(e.target.value)}
+                  placeholder="Space-Key (z.B. HKD)"
+                  className="w-full px-2.5 py-1.5 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--navy)]"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  value={confluenceSpaceKey}
+                  onChange={(e) => setConfluenceSpaceKey(e.target.value)}
+                  placeholder="Space-Key (z.B. HKD)"
+                  className="w-full px-2.5 py-1.5 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--navy)]"
+                />
+                <button
+                  onClick={() => void handlePublishConfluence()}
+                  disabled={publishingConfluence || !docs || !confluenceSpaceKey.trim()}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[var(--navy)] hover:bg-[rgba(74,85,104,.9)] disabled:opacity-50 text-white rounded-sm text-xs font-medium transition-colors"
+                >
+                  {publishingConfluence ? <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent" /> : <Upload size={12} />}
+                  Nach Confluence veröffentlichen
+                </button>
+              </div>
+            )}
+
+            {confluenceError && (
+              <div className="mt-2 p-2.5 bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm text-[var(--accent-red)] text-xs">{confluenceError}</div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Confluence sync diff panel */}
+      {showConfluenceSync && confluenceSync && (
+        <div className="col-span-full bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--paper-rule)]">
+            <div className="flex items-center gap-2">
+              <RefreshCw size={14} className="text-[var(--ink-faint)]" />
+              <span className="text-sm font-semibold text-[var(--ink)]">Confluence-Abgleich</span>
+              {confluenceSync.changed
+                ? <span className="px-2 py-0.5 rounded-full bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] text-xs font-medium">Unterschiede gefunden</span>
+                : <span className="px-2 py-0.5 rounded-full bg-[rgba(82,107,94,.1)] text-[var(--green)] text-xs font-medium">Identisch</span>
+              }
+            </div>
+            <button onClick={() => setShowConfluenceSync(false)} className="p-1 hover:bg-[var(--paper-warm)] rounded-sm text-[var(--ink-faint)]">
+              <X size={14} />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 divide-x divide-[var(--paper-rule)]">
+            <div className="p-4">
+              <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">{t("story_sync_heykarl_col")}</p>
+              <pre className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap font-mono leading-relaxed max-h-64 overflow-y-auto">{confluenceSync.heykarl_text}</pre>
+            </div>
+            <div className="p-4">
+              <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">{t("story_sync_jira_col")}</p>
+              <pre className="text-xs text-[var(--ink-mid)] whitespace-pre-wrap font-mono leading-relaxed max-h-64 overflow-y-auto">{confluenceSync.confluence_text}</pre>
+            </div>
+          </div>
+          {confluenceSync.changed && (
+            <div className="px-4 py-3 border-t border-[var(--paper-rule)] flex justify-end">
+              <button
+                onClick={() => { void handlePublishConfluence(); setShowConfluenceSync(false); }}
+                disabled={publishingConfluence || !confluenceSpaceKey.trim()}
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--navy)] hover:bg-[rgba(74,85,104,.9)] disabled:opacity-50 text-white rounded-sm text-xs font-medium transition-colors"
+              >
+                <Upload size={12} />
+                HeyKarl → Confluence überschreiben
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1529,14 +1692,6 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
 // Features Section
 // ---------------------------------------------------------------------------
 
-const FEATURE_STATUS_LABELS: Record<FeatureStatus, string> = {
-  draft: "Entwurf",
-  in_progress: "In Arbeit",
-  testing: "Test",
-  done: "Fertig",
-  archived: "Archiviert",
-};
-
 const FEATURE_STATUS_COLORS: Record<FeatureStatus, string> = {
   draft: "bg-[var(--paper-warm)] text-[var(--ink-mid)]",
   in_progress: "bg-[rgba(122,100,80,.1)] text-[var(--brown)]",
@@ -1544,14 +1699,6 @@ const FEATURE_STATUS_COLORS: Record<FeatureStatus, string> = {
   done: "bg-[rgba(82,107,94,.1)] text-[var(--green)]",
   archived: "bg-[var(--paper-rule2)] text-[var(--ink-faint)]",
 };
-
-const FEATURE_STATUS_OPTIONS: { value: FeatureStatus; label: string }[] = [
-  { value: "draft", label: "Entwurf" },
-  { value: "in_progress", label: "In Arbeit" },
-  { value: "testing", label: "Test" },
-  { value: "done", label: "Fertig" },
-  { value: "archived", label: "Archiviert" },
-];
 
 interface AIFeatureSuggestion {
   title: string;
@@ -1568,6 +1715,8 @@ function FeatureCard({
   deletingId,
   creatorName,
   editing,
+  featureStatusLabels,
+  priorityOptions,
 }: {
   feature: Feature;
   onEdit: (f: Feature) => void;
@@ -1575,6 +1724,8 @@ function FeatureCard({
   deletingId: string | null;
   creatorName?: string | null;
   editing: boolean;
+  featureStatusLabels: Record<FeatureStatus, string>;
+  priorityOptions: { value: StoryPriority; label: string }[];
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -1583,10 +1734,10 @@ function FeatureCard({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 mb-1">
             <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${FEATURE_STATUS_COLORS[feature.status]}`}>
-              {FEATURE_STATUS_LABELS[feature.status]}
+              {featureStatusLabels[feature.status]}
             </span>
             <span className={`text-xs font-medium ${PRIORITY_COLORS[feature.priority]}`}>
-              ● {PRIORITY_OPTIONS.find((p) => p.value === feature.priority)?.label}
+              ● {priorityOptions.find((p) => p.value === feature.priority)?.label}
             </span>
             {feature.story_points !== null && (
               <span className="px-1.5 py-0.5 rounded-sm bg-[var(--paper-warm)] text-[var(--ink-faint)] text-xs">{feature.story_points} SP</span>
@@ -1644,9 +1795,11 @@ function FeatureCard({
 function SuggestedFeatureCard({
   suggestion,
   onAdd,
+  priorityOptions,
 }: {
   suggestion: AIFeatureSuggestion;
   onAdd: (s: AIFeatureSuggestion) => Promise<void>;
+  priorityOptions: { value: StoryPriority; label: string }[];
 }) {
   const [adding, setAdding] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -1675,7 +1828,7 @@ function SuggestedFeatureCard({
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
           <span className={`text-xs font-medium ${PRIORITY_COLORS[suggestion.priority ?? "medium"]}`}>
-            ● {PRIORITY_OPTIONS.find((p) => p.value === (suggestion.priority ?? "medium"))?.label}
+            ● {priorityOptions.find((p) => p.value === (suggestion.priority ?? "medium"))?.label}
           </span>
           {suggestion.story_points != null && (
             <span className="px-1.5 py-0.5 rounded-sm bg-[var(--paper-warm)] text-[var(--ink-faint)] text-xs">{suggestion.story_points} SP</span>
@@ -1726,11 +1879,35 @@ function SuggestedFeatureCard({
 }
 
 function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: string; editing: boolean }) {
+  const { t } = useT();
   const membersMap = useMembersMap(orgId);
   const { data: features, mutate } = useSWR<Feature[]>(
     `/api/v1/features?org_id=${orgId}&story_id=${storyId}`,
     fetcher
   );
+
+  const FEATURE_STATUS_LABELS: Record<FeatureStatus, string> = {
+    draft: t("story_features_status_draft"),
+    in_progress: t("story_features_status_in_progress"),
+    testing: t("story_features_status_testing"),
+    done: t("story_features_status_done"),
+    archived: t("story_features_status_archived"),
+  };
+
+  const FEATURE_STATUS_OPTIONS: { value: FeatureStatus; label: string }[] = [
+    { value: "draft", label: t("story_features_status_draft") },
+    { value: "in_progress", label: t("story_features_status_in_progress") },
+    { value: "testing", label: t("story_features_status_testing") },
+    { value: "done", label: t("story_features_status_done") },
+    { value: "archived", label: t("story_features_status_archived") },
+  ];
+
+  const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
+    { value: "low", label: t("story_priority_low") },
+    { value: "medium", label: t("story_priority_medium") },
+    { value: "high", label: t("story_priority_high") },
+    { value: "critical", label: t("story_priority_critical") },
+  ];
 
   // Add form
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1867,7 +2044,7 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Package size={16} className="text-[var(--accent-red)]" />
-            <h2 className="text-base font-semibold text-[var(--ink)]">Features</h2>
+            <h2 className="text-base font-semibold text-[var(--ink)]">{t("story_features_title")}</h2>
             <span className="text-xs text-[var(--ink-faint)] bg-[var(--paper-warm)] px-2 py-0.5 rounded-full">{features?.length ?? 0}</span>
           </div>
           {editing && !showAddForm && (
@@ -1875,7 +2052,7 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
               onClick={() => setShowAddForm(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-xs font-medium transition-colors"
             >
-              <Plus size={12} /> Feature hinzufügen
+              <Plus size={12} /> {t("story_features_add")}
             </button>
           )}
         </div>
@@ -1888,13 +2065,13 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
               autoFocus
               value={addTitle}
               onChange={(e) => setAddTitle(e.target.value)}
-              placeholder="Feature-Titel"
+              placeholder={t("story_features_field_title")}
               className={inputCls}
             />
             <textarea
               value={addDesc}
               onChange={(e) => setAddDesc(e.target.value)}
-              placeholder="Beschreibung (optional)"
+              placeholder={t("story_features_field_desc")}
               rows={2}
               className={`${inputCls} resize-none`}
             />
@@ -1905,7 +2082,7 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
               <input
                 type="number" min={0} max={100}
                 value={addPoints} onChange={(e) => setAddPoints(e.target.value)}
-                placeholder="Story Points"
+                placeholder={t("story_features_field_points")}
                 className={inputCls}
               />
             </div>
@@ -1916,13 +2093,13 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors"
               >
                 {addSaving && <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />}
-                Speichern
+                {t("story_detail_save")}
               </button>
               <button
                 onClick={() => { setShowAddForm(false); setAddTitle(""); setAddDesc(""); }}
                 className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm transition-colors"
               >
-                Abbrechen
+                {t("story_detail_cancel")}
               </button>
             </div>
           </div>
@@ -1934,7 +2111,7 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
         ) : features.length === 0 && !showAddForm ? (
           <div className="text-center py-10 text-[var(--ink-faint)]">
             <Package size={32} className="mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Noch keine Features.</p>
+            <p className="text-sm">{t("story_features_empty")}</p>
             <p className="text-xs mt-1">Features manuell hinzufügen oder Vorschläge generieren.</p>
           </div>
         ) : (
@@ -1943,8 +2120,8 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
               editingId === f.id ? (
                 <div key={f.id} className="border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm p-3 bg-[rgba(var(--accent-red-rgb),.08)] space-y-3">
                   <p className="text-xs font-semibold text-[var(--accent-red)] uppercase tracking-wide">Feature bearbeiten</p>
-                  <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={inputCls} placeholder="Titel" />
-                  <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={2} className={`${inputCls} resize-none`} placeholder="Beschreibung" />
+                  <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={inputCls} placeholder={t("story_features_field_title")} />
+                  <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={2} className={`${inputCls} resize-none`} placeholder={t("story_features_field_desc")} />
                   <div className="grid grid-cols-3 gap-2">
                     <select value={editStatus} onChange={(e) => setEditStatus(e.target.value as FeatureStatus)} className={inputCls}>
                       {FEATURE_STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -1961,15 +2138,25 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium"
                     >
                       {editSaving && <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />}
-                      Speichern
+                      {t("story_detail_save")}
                     </button>
                     <button onClick={() => setEditingId(null)} className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm">
-                      Abbrechen
+                      {t("story_detail_cancel")}
                     </button>
                   </div>
                 </div>
               ) : (
-                <FeatureCard key={f.id} feature={f} onEdit={startEdit} onDelete={handleDelete} deletingId={deletingId} creatorName={membersMap[f.created_by_id]} editing={editing} />
+                <FeatureCard
+                  key={f.id}
+                  feature={f}
+                  onEdit={startEdit}
+                  onDelete={handleDelete}
+                  deletingId={deletingId}
+                  creatorName={membersMap[f.created_by_id]}
+                  editing={editing}
+                  featureStatusLabels={FEATURE_STATUS_LABELS}
+                  priorityOptions={PRIORITY_OPTIONS}
+                />
               )
             )}
           </div>
@@ -2009,7 +2196,7 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
               {aiSuggestions.length} Vorschläge
             </p>
             {aiSuggestions.map((s, i) => (
-              <SuggestedFeatureCard key={i} suggestion={s} onAdd={handleAddSuggestion} />
+              <SuggestedFeatureCard key={i} suggestion={s} onAdd={handleAddSuggestion} priorityOptions={PRIORITY_OPTIONS} />
             ))}
           </div>
         )}
@@ -2019,10 +2206,146 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
 }
 
 // ---------------------------------------------------------------------------
+// Story Process Section
+// ---------------------------------------------------------------------------
+
+function StoryProcessSection({ storyId, orgId }: { storyId: string; orgId: string }) {
+  const { t } = useT();
+  const { data: changes, mutate } = useSWR<StoryProcessChange[]>(
+    `/api/v1/user-stories/${storyId}/process-changes`,
+    fetcher,
+  );
+  const { data: processes } = useSWR<Process[]>(
+    `/api/v1/processes?org_id=${orgId}`,
+    fetcher,
+  );
+
+  const [adding, setAdding] = useState(false);
+  const [processId, setProcessId] = useState("");
+  const [sectionAnchor, setSectionAnchor] = useState("");
+  const [deltaText, setDeltaText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const inputClass = "w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]";
+
+  const handleAdd = async () => {
+    if (!processId) return;
+    setSaving(true);
+    try {
+      await apiRequest(`/api/v1/user-stories/${storyId}/process-changes`, {
+        method: "POST",
+        body: JSON.stringify({ process_id: processId, section_anchor: sectionAnchor || null, delta_text: deltaText || null }),
+      });
+      await mutate();
+      setAdding(false);
+      setProcessId(""); setSectionAnchor(""); setDeltaText("");
+    } catch { /* ignore */ }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (changeId: string) => {
+    try {
+      await apiRequest(`/api/v1/user-stories/${storyId}/process-changes/${changeId}`, { method: "DELETE" });
+      await mutate();
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--ink)]">{t("process_section_title")}</h3>
+            <p className="text-xs text-[var(--ink-faint)] mt-0.5">{t("process_section_desc")}</p>
+          </div>
+          {!adding && (
+            <button onClick={() => setAdding(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[var(--accent-red)] text-white rounded-sm hover:opacity-90">
+              <Plus size={12} /> {t("process_add")}
+            </button>
+          )}
+        </div>
+
+        {adding && (
+          <div className="px-4 sm:px-6 py-4 space-y-3 border-b border-[var(--paper-rule)] bg-[var(--paper-warm)]">
+            <div>
+              <label className="text-xs font-medium text-[var(--ink-mid)] block mb-1">{t("process_select_placeholder")}</label>
+              <select value={processId} onChange={(e) => setProcessId(e.target.value)} className={inputClass}>
+                <option value="">{t("process_select_placeholder")}</option>
+                {(processes ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-[var(--ink-mid)] block mb-1">{t("process_section_anchor_label")}</label>
+              <input value={sectionAnchor} onChange={(e) => setSectionAnchor(e.target.value)}
+                placeholder={t("process_section_anchor_placeholder")} className={inputClass} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-[var(--ink-mid)] block mb-1">{t("process_delta_label")}</label>
+              <textarea value={deltaText} onChange={(e) => setDeltaText(e.target.value)}
+                placeholder={t("process_delta_placeholder")} rows={3} className={inputClass} />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => void handleAdd()} disabled={!processId || saving}
+                className="px-3 py-1.5 text-xs font-medium bg-[var(--accent-red)] text-white rounded-sm disabled:opacity-50">
+                {saving ? "…" : t("process_save")}
+              </button>
+              <button onClick={() => setAdding(false)}
+                className="px-3 py-1.5 text-xs font-medium border border-[var(--ink-faintest)] text-[var(--ink-mid)] rounded-sm">
+                {t("process_cancel")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="divide-y divide-[var(--paper-rule)]">
+          {(changes ?? []).length === 0 && !adding && (
+            <div className="px-4 sm:px-6 py-4 flex items-start gap-2.5 bg-amber-50 border-b border-amber-200">
+              <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800">{t("process_no_changes")}</p>
+            </div>
+          )}
+          {(changes ?? []).map((c) => (
+            <div key={c.id} className="px-4 sm:px-6 py-3 space-y-1.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-[var(--ink)] truncate">{c.process.name}</span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${c.status === "pending" ? "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]" : "bg-[rgba(82,107,94,.1)] text-[var(--green)]"}`}>
+                      {t(c.status === "pending" ? "process_status_pending" : "process_status_released")}
+                    </span>
+                  </div>
+                  {c.section_anchor && <p className="text-xs text-[var(--ink-faint)] mt-0.5">Abschnitt: {c.section_anchor}</p>}
+                  {c.delta_text && <p className="text-xs text-[var(--ink-mid)] mt-1 line-clamp-2">{c.delta_text}</p>}
+                </div>
+                {c.status === "pending" && (
+                  <button onClick={() => void handleDelete(c.id)}
+                    className="text-[var(--ink-faint)] hover:text-[var(--accent-red)] shrink-0 mt-0.5">
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+              {!c.section_anchor && (
+                <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-sm px-2 py-1">
+                  <AlertTriangle size={11} className="shrink-0" />
+                  {t("process_warn_no_anchor")}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Page
 // ---------------------------------------------------------------------------
 
-type ActiveTab = "story" | "dod" | "tests" | "features" | "docs" | "prompt";
+type ActiveTab = "story" | "dod" | "tests" | "features" | "docs" | "prompt" | "processes";
 
 type DemoRole = "user" | "ba" | "architect" | "developer" | "tester" | "release";
 
@@ -2036,12 +2359,12 @@ const DEMO_ROLES: { id: DemoRole; label: string; description: string; color: str
 ];
 
 const ROLE_TABS: Record<DemoRole, ActiveTab[]> = {
-  user:      ["story", "dod", "tests", "features", "docs"],
-  ba:        ["story", "dod", "tests", "features", "docs"],
-  architect: ["story", "dod", "features", "docs", "prompt"],
-  developer: ["story", "dod", "tests", "features", "prompt"],
+  user:      ["story", "dod", "tests", "features", "docs", "processes"],
+  ba:        ["story", "dod", "tests", "features", "docs", "processes"],
+  architect: ["story", "dod", "features", "docs", "prompt", "processes"],
+  developer: ["story", "dod", "tests", "features", "prompt", "processes"],
   tester:    ["story", "tests"],
-  release:   ["story", "tests", "features", "docs"],
+  release:   ["story", "tests", "features", "docs", "processes"],
 };
 
 export default function StoryDetailPage({
@@ -2049,6 +2372,7 @@ export default function StoryDetailPage({
 }: {
   params: Promise<{ org: string; id: string }>;
 }) {
+  const { t } = useT();
   const resolvedParams = use(params);
   const router = useRouter();
   const { user: currentUser } = useAuth();
@@ -2064,6 +2388,23 @@ export default function StoryDetailPage({
   const [score, setScore] = useState<{ level: "low" | "medium" | "high"; confidence: number; clarity: number; complexity: number; risk: number; domain: string } | null>(null);
   const [isScoring, setIsScoring] = useState(false);
 
+  const STATUS_OPTIONS: { value: StoryStatus; label: string }[] = [
+    { value: "draft", label: t("story_status_draft") },
+    { value: "in_review", label: t("story_status_in_review") },
+    { value: "ready", label: t("story_status_ready") },
+    { value: "in_progress", label: t("story_status_in_progress") },
+    { value: "testing", label: t("story_status_testing") },
+    { value: "done", label: t("story_status_done") },
+    { value: "archived", label: t("story_status_archived") },
+  ];
+
+  const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
+    { value: "low", label: t("story_priority_low") },
+    { value: "medium", label: t("story_priority_medium") },
+    { value: "high", label: t("story_priority_high") },
+    { value: "critical", label: t("story_priority_critical") },
+  ];
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [acceptanceCriteria, setAcceptanceCriteria] = useState("");
@@ -2073,7 +2414,23 @@ export default function StoryDetailPage({
   const [dorPassed, setDorPassed] = useState(false);
   const [epicId, setEpicId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [jiraTicketKey, setJiraTicketKey] = useState("");
   const [initialized, setInitialized] = useState(false);
+  const [pushingToJira, setPushingToJira] = useState(false);
+  const [jiraError, setJiraError] = useState<string | null>(null);
+  const [showSyncPanel, setShowSyncPanel] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncApplying, setSyncApplying] = useState(false);
+  const [syncItems, setSyncItems] = useState<SyncItem[] | null>(null);
+  const [syncSelected, setSyncSelected] = useState<Set<string>>(new Set());
+  const [showJiraCreate, setShowJiraCreate] = useState(false);
+  const [jiraProjectKey, setJiraProjectKey] = useState("");
+  const [jiraIssueType, setJiraIssueType] = useState("");
+  const [jiraIssueTypes, setJiraIssueTypes] = useState<string[]>([]);
+  const [loadingIssueTypes, setLoadingIssueTypes] = useState(false);
+  const [jiraWithLinked, setJiraWithLinked] = useState(true);
+  const [creatingJira, setCreatingJira] = useState(false);
+  const [jiraCreatedSummary, setJiraCreatedSummary] = useState<{ key: string; type: string; title?: string; url: string }[] | null>(null);
 
   const { data: story, isLoading, mutate } = useSWR<UserStory>(
     `/api/v1/user-stories/${resolvedParams.id}`,
@@ -2090,6 +2447,7 @@ export default function StoryDetailPage({
           setDorPassed(data.dor_passed);
           setEpicId(data.epic_id);
           setProjectId(data.project_id);
+          setJiraTicketKey(data.jira_ticket_key ?? "");
           setInitialized(true);
           // Restore persisted score panel if score was previously saved
           if (data.quality_score !== null && data.quality_score !== undefined) {
@@ -2136,6 +2494,7 @@ export default function StoryDetailPage({
       setDorPassed(story.dor_passed);
       setEpicId(story.epic_id);
       setProjectId(story.project_id);
+      setJiraTicketKey(story.jira_ticket_key ?? "");
     }
     setEditing(false);
     setFieldErrors({});
@@ -2144,7 +2503,7 @@ export default function StoryDetailPage({
   async function handleSave() {
     if (!story) return;
     if (!title.trim()) {
-      setFieldErrors({ title: "Bitte gib einen Titel ein." });
+      setFieldErrors({ title: t("story_detail_error_title") });
       return;
     }
     setSaving(true);
@@ -2162,6 +2521,8 @@ export default function StoryDetailPage({
       if (dorPassed !== story.dor_passed) patch.dor_passed = dorPassed;
       if (epicId !== story.epic_id) patch.epic_id = epicId;
       if (projectId !== story.project_id) patch.project_id = projectId;
+      const normalizedJiraKey = jiraTicketKey.trim().toUpperCase() || null;
+      if (normalizedJiraKey !== story.jira_ticket_key) patch.jira_ticket_key = normalizedJiraKey;
 
       const saved = await apiRequest<UserStory>(`/api/v1/user-stories/${resolvedParams.id}`, {
         method: "PATCH",
@@ -2172,20 +2533,20 @@ export default function StoryDetailPage({
       setTimeout(() => setDocsRefreshTrigger((t) => t + 1), 2000);
     } catch (err: unknown) {
       const msg = (err as { error?: string })?.error;
-      setFieldErrors({ general: msg ?? "Fehler beim Speichern." });
+      setFieldErrors({ general: msg ?? t("story_detail_error_save") });
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete() {
-    if (!confirm("User Story wirklich löschen? Alle Testfälle und Features werden ebenfalls gelöscht.")) return;
+    if (!confirm(t("story_detail_delete_confirm"))) return;
     setDeleting(true);
     try {
       await apiRequest(`/api/v1/user-stories/${resolvedParams.id}`, { method: "DELETE" });
       router.push(`/${resolvedParams.org}/stories`);
     } catch {
-      setFieldErrors({ general: "Fehler beim Löschen." });
+      setFieldErrors({ general: t("story_detail_delete_error") });
     } finally {
       setDeleting(false);
     }
@@ -2218,6 +2579,134 @@ export default function StoryDetailPage({
     }
   }
 
+  async function handleSyncPreview() {
+    if (!story) return;
+    setSyncLoading(true);
+    setJiraError(null);
+    setSyncItems(null);
+    try {
+      const res = await apiRequest<{ items: SyncItem[]; in_sync: boolean }>(`/api/v1/jira/sync-preview`, {
+        method: "POST",
+        body: JSON.stringify({ story_id: resolvedParams.id, org_id: story.organization_id, apply_ids: [] }),
+      });
+      setSyncItems(res.items);
+      // Pre-select all changed items
+      setSyncSelected(new Set(res.items.map((i) => i.item_id)));
+      setShowSyncPanel(true);
+    } catch (err: unknown) {
+      setJiraError((err as { error?: string })?.error ?? "Sync-Fehler.");
+    } finally {
+      setSyncLoading(false);
+    }
+  }
+
+  async function handleSyncApply() {
+    if (!story || !syncItems) return;
+    setSyncApplying(true);
+    try {
+      await apiRequest(`/api/v1/jira/sync-apply`, {
+        method: "POST",
+        body: JSON.stringify({
+          story_id: resolvedParams.id,
+          org_id: story.organization_id,
+          apply_ids: Array.from(syncSelected),
+        }),
+      });
+      await mutate();
+      setShowSyncPanel(false);
+      setSyncItems(null);
+    } catch (err: unknown) {
+      setJiraError((err as { error?: string })?.error ?? "Fehler beim Übernehmen.");
+    } finally {
+      setSyncApplying(false);
+    }
+  }
+
+  async function handleCreateJiraTicket() {
+    if (!story || !jiraProjectKey.trim()) return;
+    setCreatingJira(true);
+    setJiraError(null);
+    setJiraCreatedSummary(null);
+    try {
+      if (jiraWithLinked) {
+        // Full push: story + features + test cases + DoD
+        const result = await apiRequest<{
+          main_key: string; main_url: string;
+          created: { type: string; key: string; title?: string; url: string }[];
+          errors: string[];
+        }>(`/api/v1/jira/push-story`, {
+          method: "POST",
+          body: JSON.stringify({
+            story_id: resolvedParams.id,
+            project_key: jiraProjectKey.trim().toUpperCase(),
+            issue_type: jiraIssueType || "Story",
+            org_id: story.organization_id,
+          }),
+        });
+        await mutate();
+        setJiraTicketKey(result.main_key);
+        setJiraCreatedSummary(result.created);
+        setShowJiraCreate(false);
+        setJiraProjectKey("");
+        if (result.errors.length > 0) {
+          setJiraError(`Teilweise fehlgeschlagen: ${result.errors.join("; ")}`);
+        }
+      } else {
+        // Simple push: story only
+        const result = await apiRequest<{ ticket_key: string; ticket_url?: string }>(`/api/v1/jira/create`, {
+          method: "POST",
+          body: JSON.stringify({
+            project_key: jiraProjectKey.trim().toUpperCase(),
+            summary: story.title,
+            description: [
+              story.description ?? "",
+              story.acceptance_criteria ? `\n\n**Akzeptanzkriterien:**\n${story.acceptance_criteria}` : "",
+            ].join("").trim(),
+            issue_type: jiraIssueType || "Story",
+            org_id: story.organization_id,
+          }),
+        });
+        const saved = await apiRequest<UserStory>(`/api/v1/user-stories/${resolvedParams.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ jira_ticket_key: result.ticket_key, jira_ticket_url: result.ticket_url ?? null }),
+        });
+        mutate(saved, false);
+        setJiraTicketKey(result.ticket_key);
+        setShowJiraCreate(false);
+        setJiraProjectKey("");
+      }
+    } catch (err: unknown) {
+      setJiraError((err as { error?: string })?.error ?? "Fehler beim Erstellen des Jira-Tickets.");
+    } finally {
+      setCreatingJira(false);
+    }
+  }
+
+  async function handlePushToJira() {
+    if (!story?.jira_ticket_key) return;
+    setPushingToJira(true);
+    setJiraError(null);
+    try {
+      await apiRequest(`/api/v1/jira/write`, {
+        method: "POST",
+        body: JSON.stringify({
+          ticket_key: story.jira_ticket_key,
+          ticket_id: "",
+          summary: story.title,
+          description: [
+            story.description ?? "",
+            story.acceptance_criteria ? `\n\n**Akzeptanzkriterien:**\n${story.acceptance_criteria}` : "",
+          ].join("").trim(),
+          org_id: story.organization_id,
+        }),
+      });
+    } catch (err: unknown) {
+      setJiraError((err as { error?: string })?.error ?? "Fehler beim Übertragen nach Jira.");
+    } finally {
+      setPushingToJira(false);
+    }
+  }
+
   if (isLoading || !story) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -2227,16 +2716,17 @@ export default function StoryDetailPage({
   }
 
   const ALL_TABS: { id: ActiveTab; label: string }[] = [
-    { id: "story",    label: "Story" },
-    { id: "features", label: "Features" },
-    { id: "tests",    label: "Testfälle" },
-    { id: "dod",      label: "Definition of Done" },
-    { id: "docs",     label: "Dokumentation" },
-    { id: "prompt",   label: "KI-Prompt" },
+    { id: "story",     label: t("story_detail_tab_story") },
+    { id: "features",  label: t("story_detail_tab_features") },
+    { id: "tests",     label: t("story_detail_tab_tests") },
+    { id: "dod",       label: t("story_detail_tab_dod") },
+    { id: "docs",      label: t("story_detail_tab_docs") },
+    { id: "prompt",    label: t("story_detail_tab_prompt") },
+    { id: "processes", label: t("process_tab") },
   ];
 
   const visibleTabIds = ROLE_TABS[demoRole];
-  const tabs = ALL_TABS.filter((t) => visibleTabIds.includes(t.id));
+  const tabs = ALL_TABS.filter((tab) => visibleTabIds.includes(tab.id));
 
   function handleRoleChange(role: DemoRole) {
     setDemoRole(role);
@@ -2313,7 +2803,7 @@ export default function StoryDetailPage({
               className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
             >
               <GitBranch size={16} />
-              Aufteilen
+              {t("story_detail_split")}
             </button>
           )}
           {editing ? (
@@ -2340,14 +2830,14 @@ export default function StoryDetailPage({
                 ) : (
                   <Save size={16} />
                 )}
-                Speichern
+                {saving ? t("story_detail_saving") : t("story_detail_save")}
               </button>
               <button
                 onClick={handleCancelEdit}
                 className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
               >
                 <X size={16} />
-                Abbrechen
+                {t("story_detail_cancel")}
               </button>
             </>
           ) : (
@@ -2364,12 +2854,48 @@ export default function StoryDetailPage({
                 )}
                 Prüfen
               </button>
+              {story.jira_ticket_key ? (
+                <>
+                  <button
+                    onClick={() => void handleSyncPreview()}
+                    disabled={syncLoading}
+                    className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] disabled:opacity-50 rounded-sm text-sm font-medium transition-colors"
+                  >
+                    {syncLoading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-[var(--ink-mid)] border-t-transparent" />
+                    ) : (
+                      <RefreshCw size={16} />
+                    )}
+                    {t("story_detail_jira_sync")}
+                  </button>
+                  <button
+                    onClick={() => void handlePushToJira()}
+                    disabled={pushingToJira}
+                    className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] disabled:opacity-50 rounded-sm text-sm font-medium transition-colors"
+                  >
+                    {pushingToJira ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-[var(--ink-mid)] border-t-transparent" />
+                    ) : (
+                      <Upload size={16} />
+                    )}
+                    {t("story_detail_jira_push")}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setShowJiraCreate((v) => !v)}
+                  className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
+                >
+                  <Upload size={16} />
+                  {t("story_detail_jira_create")}
+                </button>
+              )}
               <button
                 onClick={() => setEditing(true)}
                 className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
               >
                 <Pencil size={16} />
-                Bearbeiten
+                {t("story_detail_edit")}
               </button>
               <button
                 onClick={() => void handleDelete()}
@@ -2381,7 +2907,7 @@ export default function StoryDetailPage({
                 ) : (
                   <Trash2 size={16} />
                 )}
-                Löschen
+                {t("story_detail_delete")}
               </button>
             </>
           )}
@@ -2393,6 +2919,213 @@ export default function StoryDetailPage({
         <div className="flex items-center gap-2 px-4 py-2.5 bg-[rgba(122,100,80,.1)] border border-[rgba(122,100,80,.3)] rounded-sm text-[var(--brown)] text-sm">
           <GitBranch size={15} className="shrink-0" />
           Diese Story wurde aufgeteilt. Die Sub-Stories findest du in der Story-Liste.
+        </div>
+      )}
+
+      {jiraError && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm text-[var(--accent-red)] text-sm">
+          <span>{jiraError}</span>
+          <button onClick={() => setJiraError(null)} className="shrink-0 text-[var(--accent-red)] hover:opacity-70 leading-none">×</button>
+        </div>
+      )}
+
+      {showJiraCreate && !story.jira_ticket_key && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm flex-wrap">
+          <Upload size={15} className="text-[var(--ink-faint)] shrink-0" />
+          <span className="text-sm text-[var(--ink-mid)] shrink-0">{t("story_detail_jira_project")}:</span>
+          <input
+            type="text"
+            value={jiraProjectKey}
+            onChange={(e) => {
+              const val = e.target.value.toUpperCase();
+              setJiraProjectKey(val);
+              setJiraIssueTypes([]);
+              setJiraIssueType("");
+            }}
+            onBlur={async () => {
+              if (!jiraProjectKey.trim() || !story) return;
+              setLoadingIssueTypes(true);
+              try {
+                const res = await apiRequest<{ issue_types: string[] }>(
+                  `/api/v1/jira/issue-types?project_key=${jiraProjectKey.trim()}&org_id=${story.organization_id}`
+                );
+                setJiraIssueTypes(res.issue_types);
+                // Auto-select: prefer "Story", fall back to first available
+                const preferred = res.issue_types.find((type) => type === "Story") ?? res.issue_types[0] ?? "";
+                setJiraIssueType(preferred);
+              } catch { /* ignore */ } finally { setLoadingIssueTypes(false); }
+            }}
+            onKeyDown={(e) => { if (e.key === "Escape") setShowJiraCreate(false); }}
+            placeholder="z.B. HW"
+            autoFocus
+            className="w-24 px-3 py-1.5 text-sm font-mono border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)]"
+          />
+          {loadingIssueTypes ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[var(--ink-mid)] border-t-transparent" />
+          ) : jiraIssueType ? (
+            <span className="flex items-center gap-1.5">
+              <span className="px-2 py-1 text-xs bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-[var(--ink-mid)]">
+                {jiraIssueType}
+              </span>
+              {jiraIssueTypes.length > 1 && (
+                <select
+                  value={jiraIssueType}
+                  onChange={(e) => setJiraIssueType(e.target.value)}
+                  className="text-xs text-[var(--ink-faint)] bg-transparent border-none outline-none cursor-pointer hover:text-[var(--ink-mid)]"
+                  title={t("story_detail_jira_type")}
+                >
+                  {jiraIssueTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                </select>
+              )}
+            </span>
+          ) : null}
+          <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={jiraWithLinked}
+              onChange={(e) => setJiraWithLinked(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-[var(--ink-faintest)] text-[var(--accent-red)]"
+            />
+            <span className="text-xs text-[var(--ink-mid)]">{t("story_detail_jira_with_linked")}</span>
+          </label>
+          <button
+            onClick={() => void handleCreateJiraTicket()}
+            disabled={!jiraProjectKey.trim() || creatingJira}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 text-white rounded-sm text-sm font-medium transition-colors"
+          >
+            {creatingJira ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" /> : <Upload size={14} />}
+            {creatingJira ? t("story_detail_jira_creating") : t("story_detail_jira_create_button")}
+          </button>
+          <button
+            onClick={() => { setShowJiraCreate(false); setJiraProjectKey(""); setJiraCreatedSummary(null); }}
+            className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-sm font-medium transition-colors"
+          >
+            {t("story_detail_cancel")}
+          </button>
+        </div>
+      )}
+
+      {jiraCreatedSummary && (
+        <div className="px-4 py-3 bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">Jira-Tickets erstellt</p>
+            <button onClick={() => setJiraCreatedSummary(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink-mid)] text-sm leading-none">×</button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {jiraCreatedSummary.map((item) => (
+              <a
+                key={item.key}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-2 py-1 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-xs hover:border-[var(--btn-primary)] hover:text-[var(--btn-primary)] transition-colors"
+              >
+                <span className="font-mono font-medium">{item.key}</span>
+                <span className="text-[var(--ink-faint)]">
+                  {item.type === "story" ? t("story_sync_story") : item.type === "feature" ? t("story_sync_feature") : item.type === "testcase" ? t("story_sync_testcase") : "DoD"}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Jira Sync panel */}
+      {showSyncPanel && syncItems !== null && (
+        <div className="bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--paper-rule)] bg-[var(--paper-warm)]">
+            <div className="flex items-center gap-2">
+              <RefreshCw size={15} className="text-[var(--ink-faint)]" />
+              <span className="text-sm font-semibold text-[var(--ink)]">{t("story_sync_title")}</span>
+              {syncItems.length > 0 && (
+                <span className="px-1.5 py-0.5 bg-[rgba(var(--accent-red-rgb),.1)] text-[var(--accent-red)] text-xs rounded-sm font-medium">
+                  {syncItems.length} Änderung{syncItems.length !== 1 ? "en" : ""}
+                </span>
+              )}
+            </div>
+            <button onClick={() => { setShowSyncPanel(false); setSyncItems(null); }} className="text-[var(--ink-faint)] hover:text-[var(--ink-mid)]"><X size={16} /></button>
+          </div>
+
+          {syncItems.length === 0 ? (
+            <div className="px-4 py-8 text-center text-sm text-[var(--ink-faint)]">
+              {t("story_sync_no_diff")}
+            </div>
+          ) : (
+            <>
+              <div className="divide-y divide-[var(--paper-rule)]">
+                {syncItems.map((item) => {
+                  const checked = syncSelected.has(item.item_id);
+                  const label = item.item_type === "story" ? t("story_sync_story") : item.item_type === "feature" ? t("story_sync_feature") : t("story_sync_testcase");
+                  return (
+                    <div key={item.item_id} className={`px-4 py-3 transition-colors ${checked ? "bg-[rgba(var(--btn-primary-rgb),.04)]" : ""}`}>
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const s = new Set(syncSelected);
+                            e.target.checked ? s.add(item.item_id) : s.delete(item.item_id);
+                            setSyncSelected(s);
+                          }}
+                          className="mt-0.5 w-4 h-4 rounded border-[var(--ink-faintest)] text-[var(--accent-red)] shrink-0"
+                        />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">{label}</span>
+                            <a href={item.jira_url} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-[var(--btn-primary)] hover:underline">{item.jira_key} ↗</a>
+                          </div>
+                          {item.title_changed && (
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="p-2 bg-[rgba(var(--accent-red-rgb),.06)] rounded-sm border border-[rgba(var(--accent-red-rgb),.15)]">
+                                <p className="font-medium text-[var(--accent-red)] mb-1">{t("story_sync_heykarl_col")}</p>
+                                <p className="text-[var(--ink-mid)] line-through opacity-60">{item.heykarl_title}</p>
+                              </div>
+                              <div className="p-2 bg-[rgba(82,107,94,.06)] rounded-sm border border-[rgba(82,107,94,.2)]">
+                                <p className="font-medium text-[var(--green)] mb-1">{t("story_sync_jira_col")}</p>
+                                <p className="text-[var(--ink-mid)]">{item.jira_title}</p>
+                              </div>
+                            </div>
+                          )}
+                          {item.description_changed && item.jira_description && (
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="p-2 bg-[rgba(var(--accent-red-rgb),.06)] rounded-sm border border-[rgba(var(--accent-red-rgb),.15)]">
+                                <p className="font-medium text-[var(--accent-red)] mb-1">{t("story_sync_heykarl_col")} Beschreibung</p>
+                                <p className="text-[var(--ink-mid)] line-through opacity-60 line-clamp-3">{item.heykarl_description || "—"}</p>
+                              </div>
+                              <div className="p-2 bg-[rgba(82,107,94,.06)] rounded-sm border border-[rgba(82,107,94,.2)]">
+                                <p className="font-medium text-[var(--green)] mb-1">{t("story_sync_jira_col")} Beschreibung</p>
+                                <p className="text-[var(--ink-mid)] line-clamp-3">{item.jira_description}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--paper-rule)] bg-[var(--paper-warm)]">
+                <div className="flex items-center gap-3 text-xs text-[var(--ink-faint)]">
+                  <button onClick={() => setSyncSelected(new Set(syncItems.map(i => i.item_id)))} className="hover:text-[var(--ink-mid)]">{t("story_sync_select_all")}</button>
+                  <span>·</span>
+                  <button onClick={() => setSyncSelected(new Set())} className="hover:text-[var(--ink-mid)]">{t("story_sync_select_none")}</button>
+                  <span className="text-[var(--ink-faintest)]">|</span>
+                  <span>{syncSelected.size} von {syncItems.length} ausgewählt</span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => { setShowSyncPanel(false); setSyncItems(null); }} className="px-3 py-1.5 text-sm border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm transition-colors">{t("story_detail_cancel")}</button>
+                  <button
+                    onClick={() => void handleSyncApply()}
+                    disabled={syncSelected.size === 0 || syncApplying}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 text-white rounded-sm transition-colors"
+                  >
+                    {syncApplying ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" /> : <CheckCircle size={14} />}
+                    {syncApplying ? t("story_sync_applying") : t("story_sync_apply")}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -2514,7 +3247,7 @@ export default function StoryDetailPage({
           <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-5">
             <DroppableField
               id="title"
-              label="Titel"
+              label={t("story_detail_field_title")}
               value={title}
               onChange={(v) => { setTitle(v); setFieldErrors((e) => ({ ...e, title: undefined })); }}
               placeholder="Titel der User Story"
@@ -2525,7 +3258,7 @@ export default function StoryDetailPage({
 
             <DroppableField
               id="description"
-              label="Beschreibung"
+              label={t("story_detail_field_desc")}
               value={description}
               onChange={setDescription}
               placeholder="Als [Rolle] möchte ich [Funktion], damit [Nutzen]"
@@ -2537,7 +3270,7 @@ export default function StoryDetailPage({
 
             <DroppableField
               id="acceptance_criteria"
-              label="Akzeptanzkriterien"
+              label={t("story_detail_field_criteria")}
               value={acceptanceCriteria}
               onChange={setAcceptanceCriteria}
               placeholder={"1. Gegeben...\n2. Wenn...\n3. Dann..."}
@@ -2548,10 +3281,32 @@ export default function StoryDetailPage({
             />
 
             {!editing && (
-              <StoryAssignmentView
-                story={story}
-                orgId={story.organization_id}
-              />
+              <>
+                <StoryAssignmentView
+                  story={story}
+                  orgId={story.organization_id}
+                />
+                {story.jira_ticket_key && (
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <Upload size={13} className="text-[var(--ink-faint)] shrink-0" />
+                    <span className="text-[var(--ink-faint)] text-xs">Jira:</span>
+                    {story.jira_ticket_url ? (
+                      <a
+                        href={story.jira_ticket_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs px-1.5 py-0.5 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-[var(--btn-primary)] hover:underline"
+                      >
+                        {story.jira_ticket_key} ↗
+                      </a>
+                    ) : (
+                      <span className="font-mono text-xs px-1.5 py-0.5 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-[var(--ink-mid)]">
+                        {story.jira_ticket_key}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
             {editing && (
@@ -2559,7 +3314,7 @@ export default function StoryDetailPage({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="status" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                    Status
+                    {t("story_detail_field_status")}
                   </label>
                   <select
                     id="status"
@@ -2577,7 +3332,7 @@ export default function StoryDetailPage({
 
                 <div>
                   <label htmlFor="priority" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                    Priorität
+                    {t("story_detail_field_priority")}
                   </label>
                   <select
                     id="priority"
@@ -2595,7 +3350,7 @@ export default function StoryDetailPage({
 
                 <div>
                   <label htmlFor="story_points" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                    Story Points
+                    {t("story_detail_field_points")}
                   </label>
                   <input
                     id="story_points"
@@ -2633,6 +3388,20 @@ export default function StoryDetailPage({
                 value={projectId}
                 onChange={setProjectId}
               />
+
+              <div>
+                <label htmlFor="jira_ticket_key" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
+                  {t("story_detail_field_jira")}
+                </label>
+                <input
+                  id="jira_ticket_key"
+                  type="text"
+                  value={jiraTicketKey}
+                  onChange={(e) => setJiraTicketKey(e.target.value)}
+                  placeholder="z.B. PROJ-123"
+                  className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
+                />
+              </div>
               </>
             )}
 
@@ -2685,6 +3454,11 @@ export default function StoryDetailPage({
       {/* KI-Prompt tab */}
       {activeTab === "prompt" && (
         <StoryPromptSection story={story} orgId={story.organization_id} />
+      )}
+
+      {/* Processes tab */}
+      {activeTab === "processes" && (
+        <StoryProcessSection storyId={resolvedParams.id} orgId={story.organization_id} />
       )}
     </div>
   );

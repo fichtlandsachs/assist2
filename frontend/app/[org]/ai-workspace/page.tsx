@@ -80,6 +80,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
   const [streaming, setStreaming] = useState(false);
   const [storyData, setStoryData] = useState<StoryData | null>(null);
   const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [saveProjectId, setSaveProjectId] = useState<string | null>(null);
   const [jiraPanel, setJiraPanel] = useState<JiraStoryPanel | null>(null);
@@ -242,6 +243,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
     if (messages.length < 2) return;
 
     setExtracting(true);
+    setExtractError(null);
     try {
       const token = getAccessToken();
       const headers = {
@@ -275,6 +277,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
       setStoryData(data);
     } catch (err) {
       console.error("Extract story error:", err);
+      setExtractError("Extraktion fehlgeschlagen. Bitte erneut versuchen.");
     } finally {
       setExtracting(false);
     }
@@ -592,30 +595,22 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                   }}
                 />
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 rounded-sm transition-colors"
-                    style={{
-                      background: "transparent",
-                      border: "0.5px solid var(--paper-rule)",
-                      color: "var(--ink-faint)",
-                    }}
                     title="Bild hochladen"
                   >
                     <ImagePlus size={14} />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant={recording ? "orange" : "ghost"}
+                    size="icon-sm"
                     onClick={toggleRecording}
-                    className="p-2 rounded-sm transition-colors"
-                    style={{
-                      background: recording ? "rgba(192,57,43,.1)" : "transparent",
-                      border: `0.5px solid ${recording ? "var(--accent-red)" : "var(--paper-rule)"}`,
-                      color: recording ? "var(--accent-red)" : "var(--ink-faint)",
-                    }}
                     title={recording ? "Aufnahme stoppen" : "Sprachaufnahme starten"}
                   >
                     {recording ? <MicOff size={14} /> : <Mic size={14} />}
-                  </button>
+                  </Button>
                   <Button
                     onClick={sendMessage}
                     disabled={(!input.trim() && pendingImages.length === 0) || streaming}
@@ -741,7 +736,15 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-                  {!storyData && (
+                  {extractError && (
+                    <p
+                      className="text-center mt-4 px-2 py-2 rounded-sm"
+                      style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--accent-red)", background: "rgba(192,57,43,.07)", border: "0.5px solid rgba(192,57,43,.2)" }}
+                    >
+                      {extractError}
+                    </p>
+                  )}
+                  {!storyData && !extractError && (
                     <p
                       className="text-center opacity-40 mt-8"
                       style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--ink-mid)" }}

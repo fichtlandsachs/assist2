@@ -18,6 +18,17 @@ from app.models.calendar_event import CalendarEvent, EventStatus
 from app.models.test_case import TestCase, TestResult
 from app.models.pdf_settings import PdfSettings
 from app.models.document_chunk import DocumentChunk
+from app.models.process import Process
+from app.models.story_process_change import StoryProcessChange, ProcessChangeStatus
+from app.models.story_version import StoryVersion
+from app.models.rule_set import RuleSet
+from app.models.rule_definition import RuleDefinition
+from app.models.scoring_profile import ScoringProfile
+from app.models.evaluation_step_result import EvaluationStepResult
+from app.models.evaluation_result_v2 import EvaluationResultV2
+from app.models.review_task import ReviewTask
+from app.models.review_decision import ReviewDecision
+from app.models.audit_log import AuditLog
 
 __all__ = [
     "User",
@@ -59,4 +70,16 @@ __all__ = [
     "TestResult",
     "PdfSettings",
     "DocumentChunk",
+    "Process",
+    "StoryProcessChange",
+    "ProcessChangeStatus",
+    "StoryVersion",
+    "RuleSet",
+    "RuleDefinition",
+    "ScoringProfile",
+    "EvaluationStepResult",
+    "EvaluationResultV2",
+    "ReviewTask",
+    "ReviewDecision",
+    "AuditLog",
 ]

@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from app.models.epic import Epic
     from app.models.feature import Feature
     from app.models.project import Project
+    from app.models.story_process_change import StoryProcessChange
+    from app.models.story_version import StoryVersion
 
 
 class StoryStatus(str, enum.Enum):
@@ -62,11 +64,26 @@ class UserStory(Base):
     definition_of_done: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON array
     doc_additional_info: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     doc_workarounds: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    jira_ticket_key: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    jira_ticket_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    current_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("story_versions.id", use_alter=True,
+                   name="fk_stories_current_version"),
+        nullable=True,
+    )
 
     project: Mapped[Optional["Project"]] = relationship("Project", back_populates="stories")
     epic: Mapped[Optional["Epic"]] = relationship("Epic", back_populates="stories", foreign_keys=[epic_id])
     sub_stories: Mapped[list["UserStory"]] = relationship("UserStory", foreign_keys="UserStory.parent_story_id", passive_deletes=True)
     features: Mapped[list["Feature"]] = relationship("Feature", back_populates="story", passive_deletes=True)
+    process_changes: Mapped[list["StoryProcessChange"]] = relationship("StoryProcessChange", back_populates="story", passive_deletes=True)
+    versions: Mapped[list["StoryVersion"]] = relationship(
+        "StoryVersion",
+        back_populates="story",
+        foreign_keys="StoryVersion.story_id",
+        order_by="StoryVersion.version_number",
+        passive_deletes=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

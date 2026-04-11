@@ -1,4 +1,4 @@
-import type { ComponentStatus, OrgMetrics, ConfigMap } from "@/types";
+import type { ComponentStatus, OrgMetrics, ConfigMap, OrgIntegrationSettings } from "@/types";
 import { getSession, clearSession } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -35,7 +35,8 @@ export async function fetchComponentStatus(): Promise<ComponentStatus[]> {
 }
 
 export async function fetchOrganizations(): Promise<OrgMetrics[]> {
-  return adminFetch<OrgMetrics[]>("/api/v1/superadmin/organizations");
+  const data = await adminFetch<{ items: OrgMetrics[] }>("/api/v1/superadmin/organizations?page_size=100");
+  return data.items;
 }
 
 export async function fetchConfig(): Promise<ConfigMap> {
@@ -46,5 +47,20 @@ export async function patchConfig(key: string, value: string | null): Promise<vo
   await adminFetch<void>("/api/v1/superadmin/config/", {
     method: "PATCH",
     body: JSON.stringify({ key, value }),
+  });
+}
+
+export async function fetchOrgIntegrations(orgId: string): Promise<OrgIntegrationSettings> {
+  return adminFetch<OrgIntegrationSettings>(`/api/v1/superadmin/organizations/${orgId}/integrations`);
+}
+
+export async function patchOrgIntegration(
+  orgId: string,
+  type: "jira" | "confluence" | "github" | "atlassian",
+  data: Record<string, unknown>,
+): Promise<void> {
+  await adminFetch<void>(`/api/v1/superadmin/organizations/${orgId}/integrations/${type}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
   });
 }

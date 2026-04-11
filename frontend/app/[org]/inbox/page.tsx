@@ -6,16 +6,17 @@ import { apiRequest, fetcher, getAccessToken } from "@/lib/api/client";
 import useSWR from "swr";
 import type { MailConnection, Message } from "@/types";
 import { RefreshCw, Mail, Archive, Eye, Search, ChevronRight, Inbox } from "lucide-react";
+import { useT } from "@/lib/i18n/context";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Strip Re:/AW:/Fwd: prefixes to get the base subject for threading */
-function normalizeSubject(subject: string | null): string {
-  if (!subject) return "(Kein Betreff)";
+function normalizeSubject(subject: string | null, fallback: string): string {
+  if (!subject) return fallback;
   return subject
     .replace(/^(re|aw|fwd|fw|wg|sv):\s*/gi, "")
     .replace(/^(re|aw|fwd|fw|wg|sv):\s*/gi, "") // double pass
-    .trim() || "(Kein Betreff)";
+    .trim() || fallback;
 }
 
 function formatDate(dateStr: string | null): string {
@@ -50,12 +51,15 @@ interface ThreadGroup {
 export default function InboxPage({ params }: { params: Promise<{ org: string }> }) {
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
+  const { t } = useT();
   const [selectedThreadKey, setSelectedThreadKey] = useState<string | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [search, setSearch] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [reclustering, setReclustering] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const noSubjectLabel = t("inbox_no_subject");
 
   const { data: connections } = useSWR<MailConnection[]>(
     org ? `/api/v1/inbox/connections?org_id=${org.id}` : null,
@@ -82,11 +86,11 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
 
     for (const msg of src) {
       // Prefer AI topic_cluster, fall back to normalised subject
-      const key = msg.topic_cluster ?? normalizeSubject(msg.subject);
+      const key = msg.topic_cluster ?? normalizeSubject(msg.subject, noSubjectLabel);
       if (!groups[key]) {
         groups[key] = {
           key,
-          subject: msg.topic_cluster ?? msg.subject ?? "(Kein Betreff)",
+          subject: msg.topic_cluster ?? msg.subject ?? noSubjectLabel,
           messages: [],
           unreadCount: 0,
           latestDate: null,
@@ -121,7 +125,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
         );
       })
       .sort((a, b) => (b.latestDate ?? "").localeCompare(a.latestDate ?? ""));
-  }, [allMessages, search]);
+  }, [allMessages, search, noSubjectLabel]);
 
   const selectedThread = threads.find((t) => t.key === selectedThreadKey) ?? null;
 
@@ -179,7 +183,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
     }
   }
 
-  const totalUnread = threads.reduce((n, t) => n + t.unreadCount, 0);
+  const totalUnread = threads.reduce((n, th) => n + th.unreadCount, 0);
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] gap-0 -m-4 md:-m-6">
@@ -187,7 +191,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
       <div className="flex items-center gap-3 px-4 md:px-6 py-3 bg-[var(--card)] border-b border-[var(--paper-rule)] shrink-0">
         <div className="flex items-center gap-2 flex-1">
           <Inbox size={18} className="text-[var(--accent-red)] shrink-0" />
-          <h1 className="text-base font-semibold text-[var(--ink)]">Posteingang</h1>
+          <h1 className="text-base font-semibold text-[var(--ink)]">{t("nav_inbox")}</h1>
           {totalUnread > 0 && (
             <span className="px-2 py-0.5 bg-[var(--btn-primary)] text-white text-xs font-semibold rounded-full">{totalUnread}</span>
           )}
@@ -197,18 +201,18 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Suchen…"
+            placeholder={t("inbox_search_placeholder")}
             className="w-full pl-8 pr-3 py-1.5 text-sm border border-[var(--paper-rule)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--card)]"
           />
         </div>
         <button
           onClick={() => void handleRecluster()}
           disabled={reclustering}
-          title="Themen neu gruppieren (KI)"
+          title={t("inbox_recluster_title")}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[var(--paper-rule)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={reclustering ? "animate-spin text-[var(--accent-red)]" : ""} />
-          <span className="hidden sm:inline">{reclustering ? "Gruppiere…" : "Neu gruppieren"}</span>
+          <span className="hidden sm:inline">{reclustering ? t("inbox_reclustering") : t("inbox_recluster")}</span>
         </button>
         <button
           onClick={() => void handleSyncAll()}
@@ -216,7 +220,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[var(--paper-rule)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
-          <span className="hidden sm:inline">Aktualisieren</span>
+          <span className="hidden sm:inline">{t("inbox_refresh")}</span>
         </button>
       </div>
 
@@ -231,9 +235,9 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
           ) : threads.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
               <Mail size={36} className="text-[var(--ink-faintest)] mb-3" />
-              <p className="text-sm text-[var(--ink-faint)] font-medium">Keine Nachrichten</p>
+              <p className="text-sm text-[var(--ink-faint)] font-medium">{t("inbox_empty_title")}</p>
               <p className="text-xs text-[var(--ink-faint)] mt-1">
-                {search ? "Keine Treffer für deine Suche." : "Klicke auf Aktualisieren, um E-Mails zu laden."}
+                {search ? t("inbox_empty_search") : t("inbox_empty_hint")}
               </p>
             </div>
           ) : (
@@ -249,7 +253,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm truncate ${hasUnread ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--ink-mid)]"}`}>
-                        {normalizeSubject(thread.subject)}
+                        {normalizeSubject(thread.subject, noSubjectLabel)}
                       </p>
                       <p className="text-xs text-[var(--ink-faint)] truncate mt-0.5">
                         {thread.senders.slice(0, 2).join(", ")}
@@ -281,15 +285,15 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
           {!selectedThread ? (
             <div className="flex flex-col items-center justify-center h-full py-12 text-center px-4">
               <ChevronRight size={32} className="text-[var(--ink-faintest)] mb-2" />
-              <p className="text-sm text-[var(--ink-faint)]">Thema wählen</p>
+              <p className="text-sm text-[var(--ink-faint)]">{t("inbox_select_thread")}</p>
             </div>
           ) : (
             <>
               <div className="px-3 py-2.5 border-b border-[var(--paper-rule)] bg-[var(--card)]">
                 <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide truncate">
-                  {normalizeSubject(selectedThread.subject)}
+                  {normalizeSubject(selectedThread.subject, noSubjectLabel)}
                 </p>
-                <p className="text-xs text-[var(--ink-faint)] mt-0.5">{selectedThread.messages.length} Nachrichten</p>
+                <p className="text-xs text-[var(--ink-faint)] mt-0.5">{selectedThread.messages.length} {t("inbox_messages_count")}</p>
               </div>
               {selectedThread.messages.map((msg) => {
                 const conn = connectionMap[msg.connection_id];
@@ -325,7 +329,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <Mail size={40} className="text-[var(--ink-faintest)] mb-3" />
               <p className="text-sm font-medium text-[var(--ink-faint)]">
-                {selectedThread ? "Nachricht auswählen" : "Thema auswählen"}
+                {selectedThread ? t("inbox_select_message") : t("inbox_select_thread")}
               </p>
             </div>
           ) : (
@@ -334,11 +338,11 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
               <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--paper-rule)]">
                 <div className="flex-1 min-w-0">
                   <h2 className="text-base font-semibold text-[var(--ink)] break-words">
-                    {selectedMessage.subject ?? "(Kein Betreff)"}
+                    {selectedMessage.subject ?? noSubjectLabel}
                   </h2>
                   <div className="mt-2 space-y-1">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-medium text-[var(--ink-faint)] w-16 shrink-0">Von</span>
+                      <span className="text-xs font-medium text-[var(--ink-faint)] w-16 shrink-0">{t("inbox_from")}</span>
                       <span className="text-sm text-[var(--ink-mid)]">
                         {selectedMessage.sender_name
                           ? `${selectedMessage.sender_name} <${selectedMessage.sender_email}>`
@@ -347,7 +351,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                     </div>
                     {connectionMap[selectedMessage.connection_id] && (
                       <div className="flex items-baseline gap-2">
-                        <span className="text-xs font-medium text-[var(--ink-faint)] w-16 shrink-0">Konto</span>
+                        <span className="text-xs font-medium text-[var(--ink-faint)] w-16 shrink-0">{t("inbox_account")}</span>
                         <span className="text-sm text-[var(--ink-mid)]">
                           {connectionMap[selectedMessage.connection_id].display_name ?? connectionMap[selectedMessage.connection_id].email_address}
                         </span>
@@ -355,7 +359,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                     )}
                     {connectionMap[selectedMessage.connection_id] && (
                       <div className="flex items-center gap-2 mt-2">
-                        <label className="text-xs text-[var(--ink-faint)] whitespace-nowrap">Sync-Intervall:</label>
+                        <label className="text-xs text-[var(--ink-faint)] whitespace-nowrap">{t("inbox_sync_interval")}:</label>
                         <select
                           defaultValue={connectionMap[selectedMessage.connection_id].sync_interval_minutes ?? 15}
                           onChange={async (e) => {
@@ -373,16 +377,16 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                           }}
                           className="text-xs border border-[var(--paper-rule)] rounded-sm px-2 py-1 bg-[var(--card)] text-[var(--ink-mid)]"
                         >
-                          <option value={5}>5 Minuten</option>
-                          <option value={15}>15 Minuten</option>
-                          <option value={30}>30 Minuten</option>
-                          <option value={60}>60 Minuten</option>
+                          <option value={5}>5 {t("cal_minutes")}</option>
+                          <option value={15}>15 {t("cal_minutes")}</option>
+                          <option value={30}>30 {t("cal_minutes")}</option>
+                          <option value={60}>60 {t("cal_minutes")}</option>
                         </select>
                       </div>
                     )}
                     {selectedMessage.received_at && (
                       <div className="flex items-baseline gap-2">
-                        <span className="text-xs font-medium text-[var(--ink-faint)] w-16 shrink-0">Datum</span>
+                        <span className="text-xs font-medium text-[var(--ink-faint)] w-16 shrink-0">{t("inbox_date")}</span>
                         <span className="text-xs text-[var(--ink-faint)]">{formatDateFull(selectedMessage.received_at)}</span>
                       </div>
                     )}
@@ -396,7 +400,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                       disabled={!!actionLoading}
                       className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--paper-rule)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-xs font-medium transition-colors disabled:opacity-50"
                     >
-                      <Eye size={12} /> Als gelesen
+                      <Eye size={12} /> {t("inbox_mark_read")}
                     </button>
                   )}
                   <button
@@ -404,7 +408,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                     disabled={!!actionLoading}
                     className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--paper-rule)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-xs font-medium transition-colors disabled:opacity-50"
                   >
-                    <Archive size={12} /> Archivieren
+                    <Archive size={12} /> {t("inbox_archive")}
                   </button>
                 </div>
               </div>
@@ -416,7 +420,7 @@ export default function InboxPage({ params }: { params: Promise<{ org: string }>
                 ) : selectedMessage.snippet ? (
                   <p>{selectedMessage.snippet}</p>
                 ) : (
-                  <p className="text-[var(--ink-faint)] italic">Kein Nachrichteninhalt verfügbar.</p>
+                  <p className="text-[var(--ink-faint)] italic">{t("inbox_no_body")}</p>
                 )}
               </div>
             </div>

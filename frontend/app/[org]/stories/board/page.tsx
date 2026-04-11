@@ -10,16 +10,9 @@ import { Plus, AlertTriangle } from "lucide-react";
 import { StoryCard } from "@/components/stories/StoryCard";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { useSearchParams } from "next/navigation";
+import { useT } from "@/lib/i18n/context";
 
-const COLUMNS: { status: StoryStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
-  { status: "draft",       label: "Entwurf",        color: "bg-[var(--paper-warm)] text-[var(--ink-mid)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",   dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
-  { status: "in_review",   label: "Überarbeitung",   color: "bg-[rgba(var(--btn-primary-rgb),.08)] text-[var(--btn-primary)] border-[rgba(var(--accent-red-rgb),.3)]", dot: "bg-[var(--btn-primary)]",  dropHighlight: "ring-2 ring-[var(--btn-primary)] bg-[rgba(var(--btn-primary-rgb),.08)]" },
-  { status: "ready",       label: "Bereit",          color: "bg-[rgba(74,85,104,.06)] text-[var(--navy)] border-[var(--paper-rule)]",            dot: "bg-[var(--navy)]",   dropHighlight: "ring-2 ring-[var(--navy)] bg-[rgba(74,85,104,.06)]" },
-  { status: "in_progress", label: "In Arbeit",       color: "bg-[rgba(122,100,80,.1)] text-[var(--brown)] border-[var(--paper-rule)]",            dot: "bg-[var(--brown)]",   dropHighlight: "ring-2 ring-[var(--brown)] bg-[rgba(122,100,80,.1)]" },
-  { status: "testing",     label: "Test",            color: "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] border-[var(--paper-rule)]",           dot: "bg-[var(--accent-red)]",   dropHighlight: "ring-2 ring-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)]" },
-  { status: "done",        label: "Fertig",          color: "bg-[rgba(82,107,94,.1)] text-[var(--green)] border-[var(--paper-rule)]",            dot: "bg-[var(--green)]",   dropHighlight: "ring-2 ring-[var(--green)] bg-[rgba(82,107,94,.1)]" },
-  { status: "archived",    label: "Archiviert",      color: "bg-[var(--paper-warm)] text-[var(--ink-faint)] border-[var(--paper-rule)]",                       dot: "bg-[var(--ink-faintest)]",   dropHighlight: "ring-2 ring-[var(--ink-faintest)] bg-[var(--paper-warm)]" },
-];
+type ColumnDef = { status: StoryStatus; label: string; color: string; dot: string; dropHighlight: string };
 
 function getQualityScore(story: UserStory): number | null {
   return story.quality_score ?? null;
@@ -36,6 +29,17 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
     searchParams.get("project_id") ?? null
   );
   const dragCounters = useRef<Record<string, number>>({});
+  const { t } = useT();
+
+  const COLUMNS: ColumnDef[] = [
+    { status: "draft",       label: t("story_status_draft"),       color: "bg-[var(--paper-warm)] text-[var(--ink-mid)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",   dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
+    { status: "in_review",   label: t("story_status_in_review"),   color: "bg-[rgba(var(--btn-primary-rgb),.08)] text-[var(--btn-primary)] border-[rgba(var(--accent-red-rgb),.3)]", dot: "bg-[var(--btn-primary)]",  dropHighlight: "ring-2 ring-[var(--btn-primary)] bg-[rgba(var(--btn-primary-rgb),.08)]" },
+    { status: "ready",       label: t("story_status_ready"),       color: "bg-[rgba(74,85,104,.06)] text-[var(--navy)] border-[var(--paper-rule)]",            dot: "bg-[var(--navy)]",   dropHighlight: "ring-2 ring-[var(--navy)] bg-[rgba(74,85,104,.06)]" },
+    { status: "in_progress", label: t("story_status_in_progress"), color: "bg-[rgba(122,100,80,.1)] text-[var(--brown)] border-[var(--paper-rule)]",            dot: "bg-[var(--brown)]",   dropHighlight: "ring-2 ring-[var(--brown)] bg-[rgba(122,100,80,.1)]" },
+    { status: "testing",     label: t("story_status_testing"),     color: "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] border-[var(--paper-rule)]",           dot: "bg-[var(--accent-red)]",   dropHighlight: "ring-2 ring-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)]" },
+    { status: "done",        label: t("story_status_done"),        color: "bg-[rgba(82,107,94,.1)] text-[var(--green)] border-[var(--paper-rule)]",            dot: "bg-[var(--green)]",   dropHighlight: "ring-2 ring-[var(--green)] bg-[rgba(82,107,94,.1)]" },
+    { status: "archived",    label: t("story_status_archived"),    color: "bg-[var(--paper-warm)] text-[var(--ink-faint)] border-[var(--paper-rule)]",                       dot: "bg-[var(--ink-faintest)]",   dropHighlight: "ring-2 ring-[var(--ink-faintest)] bg-[var(--paper-warm)]" },
+  ];
 
   const { data: stories, isLoading, error, mutate } = useSWR<UserStory[]>(
     org ? `/api/v1/user-stories?org_id=${org.id}${projectFilter ? `&project_id=${projectFilter}` : ""}` : null,
@@ -62,7 +66,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
     if (GATED.has(newStatus) && story) {
       const score = getQualityScore(story);
       if (score !== null && score < 80) {
-        setBlockedMsg(`Quality-Score ${score}/100 zu niedrig (Min. 80). Story zuerst verbessern.`);
+        setBlockedMsg(t("story_board_quality_blocked"));
         setTimeout(() => setBlockedMsg(null), 4000);
         return;
       }
@@ -126,7 +130,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">User Stories</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">{t("story_board_title")}</h1>
           {total > 0 && (
             <p className="text-[var(--ink-faint)] mt-0.5 text-sm">{total} {total === 1 ? "Story" : "Stories"}</p>
           )}
@@ -142,7 +146,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
             className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
-            Neue Story
+            {t("nav_new_story")}
           </Link>
         </div>
       </div>
@@ -155,21 +159,21 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
 
       {error && (
         <div className="bg-[rgba(var(--accent-red-rgb),.08)] border border-[var(--paper-rule)] rounded-sm p-4 text-[var(--accent-red)] text-sm">
-          Fehler beim Laden der Stories.
+          {t("error_load")}
         </div>
       )}
 
       {!isLoading && !error && stories && stories.length === 0 && (
         <div className="text-center py-16 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
           <div className="text-4xl mb-4">📋</div>
-          <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Noch keine User Stories</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">{t("story_board_empty")}</h3>
           <p className="text-[var(--ink-faint)] mb-6 text-sm">Erstelle deine erste User Story.</p>
           <Link
             href={`/${resolvedParams.org}/stories/new`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
-            Erste Story erstellen
+            {t("nav_new_story")}
           </Link>
         </div>
       )}
@@ -202,7 +206,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
                     <div className="border-2 border-dashed border-current rounded-sm h-12 opacity-40" />
                   )}
                   {colStories.length === 0 && !isOver && (
-                    <p className="text-xs text-[var(--ink-faint)] text-center py-8">Keine Stories</p>
+                    <p className="text-xs text-[var(--ink-faint)] text-center py-8">{t("story_board_empty")}</p>
                   )}
                   {colStories.map((story) => (
                     <StoryCard

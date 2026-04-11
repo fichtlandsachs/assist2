@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api/client";
 import { Sparkles, Plus, Trash2, ChevronDown, ChevronUp, GitBranch, ArrowRight, Layers } from "lucide-react";
+import { useT } from "@/lib/i18n/context";
 
 interface SplitItem {
   title: string;
@@ -140,6 +141,7 @@ function StoryCard({
 }
 
 export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStoryPanelProps) {
+  const { t } = useT();
   const router = useRouter();
   const [stories, setStories] = useState<SplitItem[]>([BLANK_ITEM(), BLANK_ITEM()]);
   const [epicTitle, setEpicTitle] = useState("");
@@ -164,7 +166,7 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
       })));
       setContinueWithIndex(0);
     } catch (err: unknown) {
-      setError((err as { error?: string })?.error ?? "Fehler beim Generieren der Vorschläge.");
+      setError((err as { error?: string })?.error ?? t("ai_suggest_error"));
     } finally {
       setAiLoading(false);
     }
@@ -197,7 +199,7 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
       );
       router.push(`/${orgSlug}/stories/${res.continue_with_id}`);
     } catch (err: unknown) {
-      setError((err as { error?: string })?.error ?? "Fehler beim Speichern.");
+      setError((err as { error?: string })?.error ?? t("error_save"));
       setSaving(false);
     }
   }
@@ -226,7 +228,7 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
             <GitBranch size={16} className="text-[var(--accent-red)]" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-[var(--ink)]">Story aufteilen</h2>
+            <h2 className="text-base font-semibold text-[var(--ink)]">{t("story_detail_split")}</h2>
             <p className="text-xs text-[var(--ink-faint)]">Teile diese Story in unabhängige Sub-Stories auf und gruppiere sie optional unter einem Epic.</p>
           </div>
         </div>
@@ -246,7 +248,7 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
           </button>
           <button type="button" onClick={onClose}
             className="px-3 py-1.5 text-[var(--ink-faint)] hover:text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-lg text-xs transition-colors">
-            Abbrechen
+            {t("common_cancel")}
           </button>
         </div>
       </div>
@@ -257,7 +259,7 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
           <div className="flex items-center gap-2 shrink-0">
             <Layers size={15} className="text-[var(--ink-faint)]" />
             <label className="text-sm font-medium text-[var(--ink-mid)]">Epic</label>
-            <span className="text-xs text-[var(--ink-faint)] font-normal">(optional)</span>
+            <span className="text-xs text-[var(--ink-faint)] font-normal">({t("common_optional")})</span>
           </div>
           <input
             type="text"
@@ -337,11 +339,11 @@ export function SplitStoryPanel({ storyId, orgId, orgSlug, onClose }: SplitStory
             ) : (
               <GitBranch size={15} />
             )}
-            {saving ? "Speichern…" : `${stories.filter((s) => s.title.trim()).length} Stories speichern & weiter`}
+            {saving ? t("common_saving") : `${stories.filter((s) => s.title.trim()).length} Stories ${t("common_save")} & weiter`}
           </button>
           <button type="button" onClick={onClose}
             className="px-5 py-2.5 border border-[var(--paper-rule)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-lg text-sm font-medium transition-colors">
-            Abbrechen
+            {t("common_cancel")}
           </button>
         </div>
       </div>

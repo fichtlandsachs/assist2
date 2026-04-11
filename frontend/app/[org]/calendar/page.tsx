@@ -6,9 +6,10 @@ import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
 import type { CalendarConnection, CalendarEvent, CalendarProvider } from "@/types";
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from "lucide-react";
+import { useT } from "@/lib/i18n/context";
 
-const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-const MONTHS = [
+const WEEKDAYS_DE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+const MONTHS_DE = [
   "Januar", "Februar", "März", "April", "Mai", "Juni",
   "Juli", "August", "September", "Oktober", "November", "Dezember",
 ];
@@ -54,6 +55,7 @@ function colorForEvent(event: CalendarEvent): string {
 export default function CalendarPage({ params }: { params: Promise<{ org: string }> }) {
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
+  const { t } = useT();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -165,8 +167,8 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Kalender</h1>
-          <p className="text-[var(--ink-faint)] mt-1 text-sm">Termine und Ereignisse</p>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">{t("nav_calendar")}</h1>
+          <p className="text-[var(--ink-faint)] mt-1 text-sm">{t("cal_subtitle")}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -174,14 +176,14 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
             className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-sm font-medium transition-colors"
           >
             <Calendar size={15} />
-            Kalender verbinden
+            {t("cal_connect_button")}
           </button>
           <button
             onClick={() => setShowCreateForm(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
-            Termin erstellen
+            {t("cal_create_button")}
           </button>
         </div>
       </div>
@@ -197,7 +199,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
             <ChevronLeft size={18} />
           </button>
           <h2 className="text-lg font-semibold text-[var(--ink)]">
-            {MONTHS[viewMonth]} {viewYear}
+            {MONTHS_DE[viewMonth]} {viewYear}
           </h2>
           <button
             onClick={nextMonth}
@@ -209,7 +211,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
 
         {/* Day headers */}
         <div className="grid grid-cols-7 border-b border-[var(--paper-rule)]">
-          {WEEKDAYS.map((d) => (
+          {WEEKDAYS_DE.map((d) => (
             <div key={d} className="text-center text-xs font-semibold text-[var(--ink-faint)] py-2 uppercase tracking-wide">
               {d}
             </div>
@@ -255,7 +257,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                           </div>
                         ))}
                         {dayEvents.length > 3 && (
-                          <p className="text-xs text-[var(--ink-faint)]">+{dayEvents.length - 3} mehr</p>
+                          <p className="text-xs text-[var(--ink-faint)]">+{dayEvents.length - 3} {t("cal_more")}</p>
                         )}
                       </div>
                     </>
@@ -279,7 +281,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
             </button>
           </div>
           {eventsForDay(selectedDay).length === 0 ? (
-            <p className="text-sm text-[var(--ink-faint)]">Keine Termine an diesem Tag.</p>
+            <p className="text-sm text-[var(--ink-faint)]">{t("cal_no_events")}</p>
           ) : (
             <div className="space-y-2">
               {eventsForDay(selectedDay).map((ev) => (
@@ -304,7 +306,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
       {/* Connected Calendars */}
       {connections && connections.length > 0 && (
         <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4">
-          <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Verbundene Kalender</h3>
+          <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">{t("cal_connected_heading")}</h3>
           <div className="space-y-3">
             {connections.map((conn) => (
               <div key={conn.id} className="flex flex-col gap-1 pb-3 border-b border-[var(--paper-rule)] last:border-0 last:pb-0">
@@ -320,7 +322,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                 )}
                 {/* Sync Interval */}
                 <div className="flex items-center gap-2 mt-2 pl-4">
-                  <label className="text-xs text-[var(--ink-faint)] whitespace-nowrap">Sync-Intervall:</label>
+                  <label className="text-xs text-[var(--ink-faint)] whitespace-nowrap">{t("cal_sync_interval")}:</label>
                   <select
                     defaultValue={conn.sync_interval_minutes ?? 30}
                     onChange={async (e) => {
@@ -332,10 +334,10 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                     }}
                     className="text-xs border border-[var(--paper-rule)] rounded-sm px-2 py-1 bg-[var(--card)] text-[var(--ink-mid)]"
                   >
-                    <option value={15}>15 Minuten</option>
-                    <option value={30}>30 Minuten</option>
-                    <option value={60}>60 Minuten</option>
-                    <option value={120}>2 Stunden</option>
+                    <option value={15}>15 {t("cal_minutes")}</option>
+                    <option value={30}>30 {t("cal_minutes")}</option>
+                    <option value={60}>60 {t("cal_minutes")}</option>
+                    <option value={120}>2 {t("cal_hours")}</option>
                   </select>
                 </div>
               </div>
@@ -349,7 +351,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] w-full max-w-md">
             <div className="flex items-center justify-between p-4 border-b border-[var(--paper-rule)]">
-              <h3 className="text-base font-semibold text-[var(--ink)]">Termin erstellen</h3>
+              <h3 className="text-base font-semibold text-[var(--ink)]">{t("cal_create_button")}</h3>
               <button onClick={() => setShowCreateForm(false)} className="p-1 rounded-sm hover:bg-[var(--paper-warm)] text-[var(--ink-faint)]">
                 <X size={18} />
               </button>
@@ -357,20 +359,20 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
             <form onSubmit={(e) => void handleCreateEvent(e)} className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                  Titel <span className="text-[var(--accent-red)]">*</span>
+                  {t("cal_field_title")} <span className="text-[var(--accent-red)]">*</span>
                 </label>
                 <input
                   type="text"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="Termin Titel"
+                  placeholder={t("cal_field_title_placeholder")}
                   className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                  Datum <span className="text-[var(--accent-red)]">*</span>
+                  {t("cal_field_date")} <span className="text-[var(--accent-red)]">*</span>
                 </label>
                 <input
                   type="date"
@@ -382,7 +384,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">Startzeit</label>
+                  <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">{t("cal_field_start_time")}</label>
                   <input
                     type="time"
                     value={formTime}
@@ -391,7 +393,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">Endzeit</label>
+                  <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">{t("cal_field_end_time")}</label>
                   <input
                     type="time"
                     value={formEndTime}
@@ -401,11 +403,11 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">Beschreibung</label>
+                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">{t("cal_field_description")}</label>
                 <textarea
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="Optionale Beschreibung..."
+                  placeholder={t("cal_field_description_placeholder")}
                   rows={3}
                   className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)] resize-none"
                 />
@@ -419,14 +421,14 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                   {saving ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                   ) : null}
-                  Erstellen
+                  {t("common_create")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
                   className="px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-sm font-medium transition-colors"
                 >
-                  Abbrechen
+                  {t("common_cancel")}
                 </button>
               </div>
             </form>
@@ -439,14 +441,14 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] w-full max-w-md">
             <div className="flex items-center justify-between p-4 border-b border-[var(--paper-rule)]">
-              <h3 className="text-base font-semibold text-[var(--ink)]">Kalender verbinden</h3>
+              <h3 className="text-base font-semibold text-[var(--ink)]">{t("cal_connect_button")}</h3>
               <button onClick={() => setShowConnectModal(false)} className="p-1 rounded-sm hover:bg-[var(--paper-warm)] text-[var(--ink-faint)]">
                 <X size={18} />
               </button>
             </div>
             <form onSubmit={(e) => void handleConnect(e)} className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">Anbieter</label>
+                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">{t("settings_calendar_provider")}</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -474,7 +476,7 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
               </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                  E-Mail-Adresse <span className="text-[var(--accent-red)]">*</span>
+                  {t("settings_calendar_email")} <span className="text-[var(--accent-red)]">*</span>
                 </label>
                 <input
                   type="email"
@@ -494,14 +496,14 @@ export default function CalendarPage({ params }: { params: Promise<{ org: string
                   {connecting ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                   ) : null}
-                  Verbinden
+                  {t("cal_connect_submit")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowConnectModal(false)}
                   className="px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-sm font-medium transition-colors"
                 >
-                  Abbrechen
+                  {t("common_cancel")}
                 </button>
               </div>
             </form>

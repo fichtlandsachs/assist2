@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
-import type { Epic, EpicStatus, UserStory, StoryStatus } from "@/types";
+import type { Epic, EpicStatus, UserStory, StoryStatus, EpicProcessSummary } from "@/types";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { useOrg } from "@/lib/hooks/useOrg";
 import Link from "next/link";
@@ -17,13 +17,7 @@ import {
   GitBranch,
   Plus,
 } from "lucide-react";
-
-const STATUS_OPTIONS: { value: EpicStatus; label: string }[] = [
-  { value: "planning",    label: "Planung" },
-  { value: "in_progress", label: "In Arbeit" },
-  { value: "done",        label: "Fertig" },
-  { value: "archived",    label: "Archiviert" },
-];
+import { useT } from "@/lib/i18n/context";
 
 const STATUS_COLORS: Record<EpicStatus, string> = {
   planning:    "bg-[var(--paper-warm)] text-[var(--ink-mid)]",
@@ -40,16 +34,6 @@ const STORY_STATUS_COLORS: Record<StoryStatus, string> = {
   testing:     "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)]",
   done:        "bg-[rgba(82,107,94,.1)] text-[var(--green)]",
   archived:    "bg-[var(--paper-rule2)] text-[var(--ink-faint)]",
-};
-
-const STORY_STATUS_LABELS: Record<StoryStatus, string> = {
-  draft:       "Entwurf",
-  in_review:   "Überarbeitung",
-  ready:       "Bereit",
-  in_progress: "In Arbeit",
-  testing:     "Test",
-  done:        "Fertig",
-  archived:    "Archiviert",
 };
 
 function FieldError({ msg }: { msg?: string }) {
@@ -118,9 +102,27 @@ export default function EpicDetailPage({
 }: {
   params: Promise<{ org: string; id: string }>;
 }) {
+  const { t } = useT();
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
   const router = useRouter();
+
+  const STATUS_OPTIONS: { value: EpicStatus; label: string }[] = [
+    { value: "planning",    label: t("epic_status_planning") },
+    { value: "in_progress", label: t("epic_status_in_progress") },
+    { value: "done",        label: t("epic_status_done") },
+    { value: "archived",    label: t("epic_status_archived") },
+  ];
+
+  const STORY_STATUS_LABELS: Record<StoryStatus, string> = {
+    draft:       t("story_status_draft"),
+    in_review:   t("story_status_in_review"),
+    ready:       t("story_status_ready"),
+    in_progress: t("story_status_in_progress"),
+    testing:     t("story_status_testing"),
+    done:        t("story_status_done"),
+    archived:    t("story_status_archived"),
+  };
 
   const { data: epic, mutate } = useSWR<Epic>(
     `/api/v1/epics/${resolvedParams.id}`,
@@ -174,7 +176,7 @@ export default function EpicDetailPage({
 
   async function handleSave() {
     if (!title.trim()) {
-      setFieldErrors({ title: "Bitte gib einen Titel ein." });
+      setFieldErrors({ title: t("epic_detail_error_title") });
       return;
     }
     setSaving(true);
@@ -196,7 +198,7 @@ export default function EpicDetailPage({
       setEditing(false);
     } catch (err: unknown) {
       const msg = (err as { error?: string })?.error;
-      setFieldErrors({ general: msg ?? "Fehler beim Speichern." });
+      setFieldErrors({ general: msg ?? t("epic_detail_error_save") });
     } finally {
       setSaving(false);
     }
@@ -256,7 +258,7 @@ export default function EpicDetailPage({
                 ) : (
                   <Save size={15} />
                 )}
-                Speichern
+                {t("common_save")}
               </button>
               <button
                 onClick={handleCancel}
@@ -271,7 +273,7 @@ export default function EpicDetailPage({
               className="flex items-center gap-2 px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
             >
               <Pencil size={15} />
-              Bearbeiten
+              {t("common_edit")}
             </button>
           )}
         </div>
@@ -285,17 +287,17 @@ export default function EpicDetailPage({
           <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 space-y-5">
             <EditableField
               id="epic-title"
-              label="Titel"
+              label={t("epic_detail_title_label")}
               value={title}
               onChange={(v) => { setTitle(v); setFieldErrors((e) => ({ ...e, title: undefined })); }}
-              placeholder="Epic-Titel"
+              placeholder={t("epic_detail_title_placeholder")}
               editing={editing}
               error={fieldErrors.title}
             />
 
             <EditableField
               id="epic-description"
-              label="Beschreibung"
+              label={t("epic_detail_desc_label")}
               value={description}
               onChange={setDescription}
               placeholder="Beschreibung des Epics…"
@@ -364,13 +366,13 @@ export default function EpicDetailPage({
                     ) : (
                       <Trash2 size={15} />
                     )}
-                    Ja, löschen
+                    {t("common_yes_delete")}
                   </button>
                   <button
                     onClick={() => setConfirmDelete(false)}
                     className="px-4 py-2 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] rounded-sm text-sm font-medium transition-colors"
                   >
-                    Abbrechen
+                    {t("common_cancel")}
                   </button>
                 </div>
               </div>
@@ -473,6 +475,82 @@ export default function EpicDetailPage({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Process changes summary */}
+      <EpicProcessSection epicId={resolvedParams.id} orgId={org?.id ?? ""} />
+    </div>
+  );
+}
+
+function EpicProcessSection({ epicId, orgId }: { epicId: string; orgId: string }) {
+  const { t } = useT();
+  const { data: summaries, mutate } = useSWR<EpicProcessSummary[]>(
+    epicId ? `/api/v1/epics/${epicId}/process-changes` : null,
+    fetcher,
+  );
+  const [publishing, setPublishing] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  if (!summaries || summaries.length === 0) return null;
+
+  const handlePublish = async () => {
+    setPublishing(true); setMsg(null);
+    try {
+      await apiRequest(`/api/v1/epics/${epicId}/process-changes/publish?org_id=${orgId}`, { method: "POST" });
+      setMsg(t("process_publish_success"));
+      await mutate();
+    } catch {
+      setMsg(t("process_publish_error"));
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 md:mt-6 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
+        <div>
+          <h2 className="text-base font-semibold text-[var(--ink)]">{t("process_epic_title")}</h2>
+          <p className="text-xs text-[var(--ink-faint)] mt-0.5">{t("process_epic_desc")}</p>
+        </div>
+        <button
+          onClick={() => void handlePublish()}
+          disabled={publishing}
+          className="flex items-center gap-2 px-3 py-1.5 bg-[var(--accent-red)] text-white rounded-sm text-xs font-medium disabled:opacity-50"
+        >
+          {publishing ? t("process_publishing") : t("process_publish")}
+        </button>
+      </div>
+
+      {msg && (
+        <p className={`px-4 sm:px-6 py-2 text-xs ${msg.includes("Fehler") || msg.includes("Error") ? "text-[var(--accent-red)]" : "text-[var(--green)]"}`}>
+          {msg}
+        </p>
+      )}
+
+      <div className="divide-y divide-[var(--paper-rule)]">
+        {summaries.map((s) => (
+          <div key={s.process.id} className="px-4 sm:px-6 py-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-[var(--ink)]">{s.process.name}</span>
+              <span className="text-xs px-2 py-0.5 bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] rounded-sm font-medium">
+                {s.pending_count} {t("process_pending_count")}
+              </span>
+            </div>
+            {s.process.confluence_page_id && (
+              <p className="text-xs text-[var(--ink-faint)] mb-2">Page ID: {s.process.confluence_page_id}</p>
+            )}
+            <div className="space-y-1.5">
+              {s.changes.map((c) => (
+                <div key={c.id} className="text-xs text-[var(--ink-mid)] pl-3 border-l-2 border-[var(--paper-rule)]">
+                  {c.section_anchor && <span className="font-medium text-[var(--ink)]">{c.section_anchor}: </span>}
+                  {c.delta_text ?? "—"}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

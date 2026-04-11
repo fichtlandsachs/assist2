@@ -12,6 +12,7 @@ from app.config import get_settings
 logger = logging.getLogger(__name__)
 
 _JIRA_BASE = "https://api.atlassian.com/ex/jira/{cloud_id}/rest/api/3"
+_JIRA_BASIC_BASE = "{base_url}/rest/api/3"
 _TIMEOUT = httpx.Timeout(15.0)
 
 _USERSTORY_SYSTEM = (
@@ -111,8 +112,20 @@ class JiraService:
             "Content-Type": "application/json",
         }
 
+    def _basic_headers(self, user: str, api_token: str) -> dict:
+        import base64
+        creds = base64.b64encode(f"{user}:{api_token}".encode()).decode()
+        return {
+            "Authorization": f"Basic {creds}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+
     def _base(self, cloud_id: str) -> str:
         return _JIRA_BASE.format(cloud_id=cloud_id)
+
+    def _basic_base(self, base_url: str) -> str:
+        return _JIRA_BASIC_BASE.format(base_url=base_url.rstrip("/"))
 
     async def search_tickets(
         self,
@@ -203,6 +216,203 @@ class JiraService:
             )
         if resp.status_code not in (200, 204):
             logger.error("Jira write failed %s: %s", resp.status_code, resp.text)
+            resp.raise_for_status()
+
+    async def create_ticket(
+        self,
+        access_token: str,
+        cloud_id: str,
+        project_key: str,
+        summary: str,
+        description_md: str,
+        issue_type: str = "Story",
+    ) -> dict:
+        """Create a new Jira issue and return {key, id}."""
+        adf = markdown_to_adf(description_md)
+        payload = {
+            "fields": {
+                "project": {"key": project_key.upper()},
+                "summary": summary,
+                "description": adf,
+                "issuetype": {"name": issue_type},
+            }
+        }
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.post(
+                f"{self._base(cloud_id)}/issue",
+                headers=self._headers(access_token),
+                content=json.dumps(payload),
+            )
+        if resp.status_code not in (200, 201):
+            logger.error("Jira create failed %s: %s", resp.status_code, resp.text)
+            resp.raise_for_status()
+        data = resp.json()
+        return {"key": data["key"], "id": data["id"]}
+
+    async def get_issue_types_basic(
+        self,
+        base_url: str,
+        user: str,
+        api_token: str,
+        project_key: str,
+    ) -> list[str]:
+        """Return issue type names available for a project (basic auth)."""
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.get(
+                f"{self._basic_base(base_url)}/project/{project_key.upper()}",
+                headers=self._basic_headers(user, api_token),
+                params={"expand": "issueTypes"},
+            )
+        if not resp.is_success:
+            return []
+        data = resp.json()
+        types = [it["name"] for it in data.get("issueTypes", []) if not it.get("subtask")]
+        # Put "Story" first if present
+        if "Story" in types:
+            types = ["Story"] + [t for t in types if t != "Story"]
+        return types
+
+    async def add_remote_link_basic(
+        self,
+        base_url: str,
+        user: str,
+        api_token: str,
+        issue_key: str,
+        link_url: str,
+        link_title: str,
+    ) -> None:
+        """Add a remote (external) link to a Jira issue (basic auth)."""
+        payload = {
+            "object": {
+                "url": link_url,
+                "title": link_title,
+            }
+        }
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.post(
+                f"{self._basic_base(base_url)}/issue/{issue_key}/remotelink",
+                headers=self._basic_headers(user, api_token),
+                content=json.dumps(payload),
+            )
+        if resp.status_code not in (200, 201):
+            logger.warning("Jira remote link failed %s: %s %s", issue_key, resp.status_code, resp.text)
+
+    async def link_issues_basic(
+        self,
+        base_url: str,
+        user: str,
+        api_token: str,
+        from_key: str,
+        to_key: str,
+        link_type: str = "relates to",
+    ) -> None:
+        """Create a Jira issue link between two tickets (basic auth)."""
+        payload = {
+            "type": {"name": link_type},
+            "inwardIssue": {"key": to_key},
+            "outwardIssue": {"key": from_key},
+        }
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.post(
+                f"{self._basic_base(base_url)}/issueLink",
+                headers=self._basic_headers(user, api_token),
+                content=json.dumps(payload),
+            )
+        if resp.status_code not in (200, 201):
+            logger.warning("Jira link failed %s→%s: %s %s", from_key, to_key, resp.status_code, resp.text)
+
+    async def get_ticket_basic(
+        self,
+        base_url: str,
+        user: str,
+        api_token: str,
+        key: str,
+    ) -> dict:
+        """Fetch a single Jira ticket via basic auth. Returns {key, summary, description}."""
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.get(
+                f"{self._basic_base(base_url)}/issue/{key.upper()}",
+                headers=self._basic_headers(user, api_token),
+                params={"fields": "summary,description"},
+            )
+        if resp.status_code == 404:
+            return {}
+        resp.raise_for_status()
+        data = resp.json()
+        fields = data.get("fields", {})
+        raw_desc = fields.get("description")
+        description = adf_to_text(raw_desc).strip() if isinstance(raw_desc, dict) else (raw_desc or "")
+        return {
+            "key": key.upper(),
+            "summary": fields.get("summary", ""),
+            "description": description,
+        }
+
+    async def create_ticket_basic(
+        self,
+        base_url: str,
+        user: str,
+        api_token: str,
+        project_key: str,
+        summary: str,
+        description_md: str,
+        issue_type: str = "Story",
+    ) -> dict:
+        """Create a Jira issue using basic auth (API token). Returns {key, id}."""
+        adf = markdown_to_adf(description_md)
+        payload = {
+            "fields": {
+                "project": {"key": project_key.upper()},
+                "summary": summary,
+                "description": adf,
+                "issuetype": {"name": issue_type},
+            }
+        }
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.post(
+                f"{self._basic_base(base_url)}/issue",
+                headers=self._basic_headers(user, api_token),
+                content=json.dumps(payload),
+            )
+        if resp.status_code not in (200, 201):
+            logger.error("Jira basic create failed %s: %s", resp.status_code, resp.text)
+            # Surface the actual Jira error messages to the caller
+            try:
+                errors = resp.json()
+                msgs = list(errors.get("errors", {}).values()) + errors.get("errorMessages", [])
+                if msgs:
+                    raise ValueError("; ".join(str(m) for m in msgs))
+            except (ValueError, KeyError):
+                raise
+            except Exception:
+                pass
+            resp.raise_for_status()
+        data = resp.json()
+        return {"key": data["key"], "id": data["id"]}
+
+    async def write_ticket_basic(
+        self,
+        base_url: str,
+        user: str,
+        api_token: str,
+        key: str,
+        summary: str,
+        description_md: str,
+    ) -> None:
+        """Write summary + user story (Markdown → ADF) back to Jira using basic auth."""
+        adf = markdown_to_adf(description_md)
+        body: dict = {"fields": {"description": adf}}
+        if summary:
+            body["fields"]["summary"] = summary
+
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.put(
+                f"{self._basic_base(base_url)}/issue/{key}",
+                headers=self._basic_headers(user, api_token),
+                content=json.dumps(body),
+            )
+        if resp.status_code not in (200, 204):
+            logger.error("Jira basic write failed %s: %s", resp.status_code, resp.text)
             resp.raise_for_status()
 
     async def generate_user_story(

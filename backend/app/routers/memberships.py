@@ -1,9 +1,12 @@
+import secrets
 import uuid
 from typing import List
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.database import get_db
 from app.deps import get_current_user, require_permission
 from app.models.membership import MembershipRole
@@ -170,3 +173,22 @@ async def assign_role(
         if m.id == membership_id:
             return _membership_to_read(m)
     raise Exception("Membership not found after role assignment")
+
+
+@router.post(
+    "/organizations/{org_id}/invite-link",
+    summary="Generate a shareable invite link (24h)",
+)
+async def generate_invite_link(
+    org_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("membership:invite")),
+) -> dict:
+    """Generate a 24-hour invite link for the organization."""
+    settings = get_settings()
+    token = secrets.token_urlsafe(32)
+    redis_client: aioredis.Redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+    await redis_client.setex(f"invite:{token}", 86400, str(org_id))
+    await redis_client.aclose()
+    url = f"{settings.APP_BASE_URL}/invite/{token}"
+    return {"token": token, "url": url}

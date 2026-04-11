@@ -8,17 +8,12 @@ import type { Epic, EpicStatus } from "@/types";
 import Link from "next/link";
 import { Plus, ExternalLink } from "lucide-react";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
-
-const COLUMNS: { status: EpicStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
-  { status: "planning",    label: "Planung",    color: "bg-[var(--paper-warm)] text-[var(--ink-mid)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",  dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
-  { status: "in_progress", label: "In Arbeit",  color: "bg-[rgba(122,100,80,.1)] text-[var(--brown)] border-[rgba(122,100,80,.3)]",  dot: "bg-[var(--brown)]",  dropHighlight: "ring-2 ring-[var(--brown)] bg-[rgba(122,100,80,.1)]" },
-  { status: "done",        label: "Fertig",     color: "bg-[rgba(82,107,94,.1)] text-[var(--green)] border-[rgba(82,107,94,.3)]",  dot: "bg-[var(--green)]",  dropHighlight: "ring-2 ring-[var(--green)] bg-[rgba(82,107,94,.1)]" },
-  { status: "archived",    label: "Archiviert", color: "bg-[var(--paper-warm)] text-[var(--ink-faint)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",  dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
-];
+import { useT } from "@/lib/i18n/context";
 
 function EpicCard({ epic, org, dragging, onDragStart, onDragEnd }: {
   epic: Epic; org: string; dragging: boolean; onDragStart: (id: string) => void; onDragEnd: () => void;
 }) {
+  const { t } = useT();
   const href = `/${org}/stories/epics/${epic.id}`;
   return (
     <div
@@ -40,7 +35,7 @@ function EpicCard({ epic, org, dragging, onDragStart, onDragEnd }: {
           href={href}
           onClick={(e) => e.stopPropagation()}
           className="shrink-0 p-0.5 text-[var(--ink-faintest)] hover:text-[var(--accent-red)] opacity-0 group-hover:opacity-100 transition-all"
-          title="Detail öffnen"
+          title={t("epic_detail_open")}
           draggable={false}
         >
           <ExternalLink size={13} />
@@ -52,6 +47,7 @@ function EpicCard({ epic, org, dragging, onDragStart, onDragEnd }: {
 }
 
 export default function EpicsBoardPage({ params }: { params: Promise<{ org: string }> }) {
+  const { t } = useT();
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -61,6 +57,13 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
   const [newTitle, setNewTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+
+  const COLUMNS: { status: EpicStatus; label: string; color: string; dot: string; dropHighlight: string }[] = [
+    { status: "planning",    label: t("epic_status_planning"),    color: "bg-[var(--paper-warm)] text-[var(--ink-mid)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",  dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
+    { status: "in_progress", label: t("epic_status_in_progress"), color: "bg-[rgba(122,100,80,.1)] text-[var(--brown)] border-[rgba(122,100,80,.3)]",  dot: "bg-[var(--brown)]",  dropHighlight: "ring-2 ring-[var(--brown)] bg-[rgba(122,100,80,.1)]" },
+    { status: "done",        label: t("epic_status_done"),        color: "bg-[rgba(82,107,94,.1)] text-[var(--green)] border-[rgba(82,107,94,.3)]",  dot: "bg-[var(--green)]",  dropHighlight: "ring-2 ring-[var(--green)] bg-[rgba(82,107,94,.1)]" },
+    { status: "archived",    label: t("epic_status_archived"),    color: "bg-[var(--paper-warm)] text-[var(--ink-faint)] border-[var(--paper-rule)]",                        dot: "bg-[var(--ink-faintest)]",  dropHighlight: "ring-2 ring-[var(--ink-faint)] bg-[var(--paper-warm)]" },
+  ];
 
   const { data: epics, isLoading, error, mutate } = useSWR<Epic[]>(
     org ? `/api/v1/epics?org_id=${org.id}${projectFilter ? `&project_id=${projectFilter}` : ""}` : null,
@@ -108,8 +111,8 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
     <div className="flex flex-col h-full space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Epics</h1>
-          {total > 0 && <p className="text-[var(--ink-faint)] mt-0.5 text-sm">{total} Epics</p>}
+          <h1 className="text-2xl font-bold text-[var(--ink)]">{t("epic_board_title")}</h1>
+          {total > 0 && <p className="text-[var(--ink-faint)] mt-0.5 text-sm">{total} {t("epic_board_title")}</p>}
         </div>
         <div className="flex items-center gap-3">
           {org && (
@@ -118,36 +121,36 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
             </div>
           )}
           <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors">
-            <Plus size={16} /> Neues Epic
+            <Plus size={16} /> {t("epic_board_new")}
           </button>
         </div>
       </div>
 
       {showNewForm && (
         <form onSubmit={(e) => void handleCreate(e)} className="bg-[var(--card)] rounded-sm border border-[rgba(var(--accent-red-rgb),.3)] p-4 flex gap-3">
-          <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Epic-Titel" className="flex-1 px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--card)]" />
-          <button type="submit" disabled={saving || !newTitle.trim()} className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] disabled:bg-[var(--ink-faintest)] text-white rounded-sm text-xs font-medium transition-colors"><Plus size={12} /> Erstellen</button>
-          <button type="button" onClick={() => setShowNewForm(false)} className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors">Abbrechen</button>
+          <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={t("epic_detail_title_placeholder")} className="flex-1 px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] bg-[var(--card)]" />
+          <button type="submit" disabled={saving || !newTitle.trim()} className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] disabled:bg-[var(--ink-faintest)] text-white rounded-sm text-xs font-medium transition-colors"><Plus size={12} /> {t("common_create")}</button>
+          <button type="button" onClick={() => setShowNewForm(false)} className="px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors">{t("common_cancel")}</button>
         </form>
       )}
 
       {isLoading && <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-red)]" /></div>}
-      {error && <div className="bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm p-4 text-[var(--accent-red)] text-sm">Fehler beim Laden.</div>}
+      {error && <div className="bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm p-4 text-[var(--accent-red)] text-sm">{t("epic_board_error")}</div>}
 
       {!isLoading && !error && epics && epics.length === 0 && !showNewForm && (
         <div className="text-center py-16 bg-[var(--card)] rounded-sm border border-[var(--paper-rule)]">
           {projectFilter ? (
             <>
-              <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Keine Epics für dieses Projekt</h3>
-              <p className="text-[var(--ink-faint)] text-sm">Dem ausgewählten Projekt sind noch keine Epics zugeordnet.</p>
+              <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">{t("epic_board_empty_project")}</h3>
+              <p className="text-[var(--ink-faint)] text-sm">{t("epic_board_empty_project_msg")}</p>
             </>
           ) : (
             <>
               <div className="text-4xl mb-4">🗺️</div>
-              <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">Noch keine Epics</h3>
-              <p className="text-[var(--ink-faint)] mb-6 text-sm">Epics bündeln verwandte User Stories.</p>
+              <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">{t("epic_board_empty")}</h3>
+              <p className="text-[var(--ink-faint)] mb-6 text-sm">{t("epic_board_empty_msg")}</p>
               <button onClick={() => setShowNewForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] hover:bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium transition-colors">
-                <Plus size={16} /> Erstes Epic erstellen
+                <Plus size={16} /> {t("epic_board_create_first")}
               </button>
             </>
           )}
@@ -176,7 +179,7 @@ export default function EpicsBoardPage({ params }: { params: Promise<{ org: stri
                   className={`flex-1 rounded-b-sm border border-[var(--paper-rule)] p-2 space-y-2 min-h-[120px] transition-all ${isOver ? col.dropHighlight : "bg-[var(--card)]"}`}
                 >
                   {isOver && dragId && <div className="border-2 border-dashed border-current rounded-sm h-12 opacity-40" />}
-                  {colItems.length === 0 && !isOver && <p className="text-xs text-[var(--ink-faint)] text-center py-8">Keine Epics</p>}
+                  {colItems.length === 0 && !isOver && <p className="text-xs text-[var(--ink-faint)] text-center py-8">{t("epic_board_empty")}</p>}
                   {colItems.map((ep) => (
                     <EpicCard key={ep.id} epic={ep} org={resolvedParams.org} dragging={dragId === ep.id}
                       onDragStart={(id) => { setDragId(id); dragCounters.current = {}; }}

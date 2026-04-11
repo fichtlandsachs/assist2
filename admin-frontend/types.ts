@@ -35,3 +35,30 @@ export interface ConfigEntry {
 }
 
 export type ConfigMap = Record<string, ConfigEntry>;
+
+export interface OrgJiraSettings {
+  base_url: string;
+  user: string;
+  api_token_set: boolean;
+}
+
+export interface OrgConfluenceSettings {
+  base_url: string;
+  user: string;
+  api_token_set: boolean;
+  default_space_key: string;
+  default_parent_page_id: string;
+}
+
+export interface OrgSSOSettings {
+  enabled: boolean;
+  client_id: string;
+  client_secret_set: boolean;
+}
+
+export interface OrgIntegrationSettings {
+  jira: OrgJiraSettings;
+  confluence: OrgConfluenceSettings;
+  github: OrgSSOSettings;
+  atlassian: OrgSSOSettings;
+}

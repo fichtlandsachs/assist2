@@ -1,20 +1,26 @@
 from __future__ import annotations
 import enum
 import uuid
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, JSON, Numeric, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.evaluation_step_result import EvaluationStepResult
+    from app.models.evaluation_result_v2 import EvaluationResultV2
 
 
 class EvaluationStatus(str, enum.Enum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
+    PAUSED = "PAUSED"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
 
 
 class AmpelStatus(str, enum.Enum):
@@ -58,4 +64,33 @@ class EvaluationRun(Base):
     )
     deleted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+    # v2 columns (all nullable for backward compat)
+    story_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("story_versions.id", ondelete="RESTRICT"), nullable=True, index=True
+    )
+    rule_set_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("rule_sets.id", ondelete="RESTRICT"), nullable=True
+    )
+    rule_set_snapshot: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    scoring_profile_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("scoring_profiles.id", ondelete="SET NULL"), nullable=True
+    )
+    scoring_profile_snapshot: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    langgraph_thread_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    trigger_type: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
+    parent_run_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("evaluation_runs.id", ondelete="SET NULL"), nullable=True
+    )
+    retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    paused_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    step_results: Mapped[list["EvaluationStepResult"]] = relationship(
+        "EvaluationStepResult", back_populates="run",
+        cascade="all, delete-orphan", order_by="EvaluationStepResult.created_at"
+    )
+    result_v2: Mapped[Optional["EvaluationResultV2"]] = relationship(
+        "EvaluationResultV2", back_populates="run", uselist=False,
+        cascade="all, delete-orphan"
     )

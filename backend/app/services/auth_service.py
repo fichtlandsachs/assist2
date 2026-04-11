@@ -101,6 +101,7 @@ class AuthService:
             display_name=data.display_name,
         )
 
+        locale = data.locale if data.locale in ("de", "en") else "de"
         user = User(
             email=data.email.lower(),
             display_name=data.display_name,
@@ -108,6 +109,7 @@ class AuthService:
             password_hash=_hash_password(data.password),
             is_active=True,
             email_verified=False,
+            locale=locale,
         )
         db.add(user)
         await db.commit()

@@ -4,10 +4,12 @@ export const dynamic = "force-dynamic";
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/context";
+import { useT } from "@/lib/i18n/context";
 import type { ApiError } from "@/types";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { t } = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -22,9 +24,9 @@ export default function LoginPage() {
     } catch (err) {
       const apiErr = err as ApiError & { status?: number };
       if (apiErr?.code === "HTTP_401" || apiErr?.status === 401) {
-        setError("Ungültige Zugangsdaten. Falls du dein Passwort noch nicht zurückgesetzt hast, besuche: authentik.heykarl.app");
+        setError(t("auth_login_invalid"));
       } else {
-        setError(apiErr?.error ?? "Login fehlgeschlagen. Bitte versuche es erneut.");
+        setError(apiErr?.error ?? t("auth_login_error"));
       }
     } finally {
       setIsSubmitting(false);
@@ -54,7 +56,7 @@ export default function LoginPage() {
             <img src="/karl-9.png" alt="Karl" className="w-full h-full object-contain" />
           </div>
           <div className="absolute -bottom-4 -right-4 bg-white border-2 border-[var(--ink)] px-4 py-2 rounded-2xl shadow-[4px_4px_0_rgba(0,0,0,1)] rotate-2">
-            <span className="text-[13px] font-bold text-[var(--ink)]">Hi, ich bin Karl! 👋</span>
+            <span className="text-[13px] font-bold text-[var(--ink)]">{t("auth_brand_greeting")} 👋</span>
           </div>
           <div className="absolute -top-3 -left-3 flex items-center gap-1.5 bg-emerald-500 text-white px-2.5 py-1 rounded-full border-2 border-[var(--ink)] shadow-[2px_2px_0_rgba(0,0,0,1)] text-[9px] font-bold uppercase tracking-widest">
             <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
@@ -67,17 +69,17 @@ export default function LoginPage() {
           <h1 className="text-6xl font-black text-[var(--ink)] leading-none">Karl</h1>
           <p className="text-[11px] font-bold tracking-[0.3em] text-[var(--ink-faint)] uppercase">Workspace Platform</p>
           <p className="text-[15px] text-[var(--ink-mid)] leading-relaxed">
-            Dein KI-gestützter Assistent für agile Entwicklung — von der User Story bis zum Deployment.
+            {t("auth_brand_desc")}
           </p>
         </div>
 
         {/* Feature dots */}
         <div className="flex flex-col gap-2.5 w-full max-w-xs">
           {[
-            "KI-generierte User Stories",
-            "Agile Workflows & Epics",
-            "Jira & Atlassian Integration",
-            "Echtzeit-Collaboration",
+            t("auth_brand_feature_1"),
+            t("auth_brand_feature_2"),
+            t("auth_brand_feature_3"),
+            t("auth_brand_feature_4"),
           ].map((feat) => (
             <div key={feat} className="flex items-center gap-2.5">
               <div className="w-2 h-2 bg-rose-500 rounded-full border-2 border-rose-700 shrink-0" />
@@ -104,8 +106,8 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-6">
           {/* Heading */}
           <div>
-            <h2 className="text-3xl font-black text-[var(--ink)]">Anmelden</h2>
-            <p className="text-[12px] text-[var(--ink-faint)] mt-1">Willkommen zurück!</p>
+            <h2 className="text-3xl font-black text-[var(--ink)]">{t("auth_login_title")}</h2>
+            <p className="text-[12px] text-[var(--ink-faint)] mt-1">{t("auth_login_welcome")}</p>
           </div>
 
           {/* Form card */}
@@ -119,7 +121,7 @@ export default function LoginPage() {
 
               <div className="space-y-1.5">
                 <label htmlFor="email" className="block text-[10px] font-bold tracking-[0.15em] text-[var(--ink-faint)] uppercase">
-                  E-Mail
+                  {t("auth_login_email")}
                 </label>
                 <input
                   id="email"
@@ -135,7 +137,7 @@ export default function LoginPage() {
 
               <div className="space-y-1.5">
                 <label htmlFor="password" className="block text-[10px] font-bold tracking-[0.15em] text-[var(--ink-faint)] uppercase">
-                  Passwort
+                  {t("auth_login_password")}
                 </label>
                 <input
                   id="password"
@@ -154,16 +156,16 @@ export default function LoginPage() {
                 disabled={isSubmitting}
                 className="w-full py-3.5 bg-slate-900 text-white text-[14px] font-bold rounded-xl border-2 border-[var(--ink)] shadow-[4px_4px_0_rgba(0,0,0,1)] hover:shadow-[2px_2px_0_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Anmelden…" : "Anmelden →"}
+                {isSubmitting ? t("auth_login_loading") : t("auth_login_button")}
               </button>
             </form>
 
           </div>
 
           <p className="text-center text-[12px] text-[var(--ink-faint)]">
-            Noch kein Konto?{" "}
+            {t("auth_login_no_account")}{" "}
             <Link href="/register" className="text-rose-500 font-bold hover:underline underline-offset-2">
-              Registrieren
+              {t("auth_login_register_link")}
             </Link>
           </p>
         </div>

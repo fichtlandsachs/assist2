@@ -253,7 +253,7 @@ async def compact_chat(
             base_url=f"{settings.LITELLM_URL}/v1",
         )
         resp = await oai.chat.completions.create(
-            model="claude-haiku-4-5",
+            model="ionos-quality",
             max_tokens=1024,
             messages=[
                 {"role": "system", "content": system},
@@ -299,7 +299,7 @@ async def extract_story(
             base_url=f"{settings.LITELLM_URL}/v1",
         )
         resp = await oai.chat.completions.create(
-            model="claude-sonnet-4-6",
+            model="ionos-quality",
             max_tokens=2048,
             messages=[
                 {"role": "system", "content": EXTRACT_SYSTEM_PROMPT},

@@ -72,6 +72,8 @@ def get_confluence_settings(org: Organization) -> dict:
         "base_url": cfg.get("base_url", ""),
         "user": cfg.get("user", ""),
         "api_token_set": bool(cfg.get("api_token_enc")),
+        "default_space_key": cfg.get("default_space_key", ""),
+        "default_parent_page_id": cfg.get("default_parent_page_id", ""),
     }
 
 
@@ -80,11 +82,17 @@ def set_confluence_settings(
     base_url: str,
     user: str,
     api_token: str | None = None,
+    default_space_key: str | None = None,
+    default_parent_page_id: str | None = None,
 ) -> None:
     cfg = _get_section(org, "confluence")
     cfg["base_url"] = base_url
     cfg["user"] = user
     cfg["api_token_enc"] = _maybe_encrypt(cfg.get("api_token_enc"), api_token)
+    if default_space_key is not None:
+        cfg["default_space_key"] = default_space_key.strip()
+    if default_parent_page_id is not None:
+        cfg["default_parent_page_id"] = default_parent_page_id.strip()
     _set_section(org, "confluence", cfg)
 
 
@@ -142,9 +150,59 @@ def get_ai_client_settings(org: Organization) -> dict:
     }
 
 
+# ── GitHub (per-org) ──────────────────────────────────────────────────────────
+
+def get_github_settings(org: Organization) -> dict:
+    cfg = _get_section(org, "github")
+    return {
+        "enabled": cfg.get("enabled", False),
+        "client_id": cfg.get("client_id", ""),
+        "client_secret_set": bool(cfg.get("client_secret_enc")),
+    }
+
+
+def set_github_settings(
+    org: Organization,
+    enabled: bool,
+    client_id: str,
+    client_secret: str | None = None,
+) -> None:
+    cfg = _get_section(org, "github")
+    cfg["enabled"] = enabled
+    cfg["client_id"] = client_id
+    cfg["client_secret_enc"] = _maybe_encrypt(cfg.get("client_secret_enc"), client_secret)
+    _set_section(org, "github", cfg)
+
+
+# ── Atlassian (per-org) ───────────────────────────────────────────────────────
+
+def get_atlassian_settings(org: Organization) -> dict:
+    cfg = _get_section(org, "atlassian")
+    return {
+        "enabled": cfg.get("enabled", False),
+        "client_id": cfg.get("client_id", ""),
+        "client_secret_set": bool(cfg.get("client_secret_enc")),
+    }
+
+
+def set_atlassian_settings(
+    org: Organization,
+    enabled: bool,
+    client_id: str,
+    client_secret: str | None = None,
+) -> None:
+    cfg = _get_section(org, "atlassian")
+    cfg["enabled"] = enabled
+    cfg["client_id"] = client_id
+    cfg["client_secret_enc"] = _maybe_encrypt(cfg.get("client_secret_enc"), client_secret)
+    _set_section(org, "atlassian", cfg)
+
+
 def get_all_settings(org: Organization) -> dict[str, Any]:
     return {
         "jira": get_jira_settings(org),
         "confluence": get_confluence_settings(org),
+        "github": get_github_settings(org),
+        "atlassian": get_atlassian_settings(org),
         "ai": get_ai_settings(org),
     }

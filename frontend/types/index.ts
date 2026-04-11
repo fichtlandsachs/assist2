@@ -203,6 +203,37 @@ export type StoryPriority = "low" | "medium" | "high" | "critical";
 export type EpicStatus = "planning" | "in_progress" | "done" | "archived";
 export type FeatureStatus = "draft" | "in_progress" | "testing" | "done" | "archived";
 
+// ─── Process Registry ────────────────────────────────────────────
+export interface Process {
+  id: string;
+  organization_id: string;
+  name: string;
+  confluence_page_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ProcessChangeStatus = "pending" | "released";
+
+export interface StoryProcessChange {
+  id: string;
+  story_id: string;
+  process_id: string;
+  section_anchor: string | null;
+  delta_text: string | null;
+  status: ProcessChangeStatus;
+  released_at: string | null;
+  created_at: string;
+  updated_at: string;
+  process: Process;
+}
+
+export interface EpicProcessSummary {
+  process: Process;
+  pending_count: number;
+  changes: StoryProcessChange[];
+}
+
 export interface Epic {
   id: string;
   organization_id: string;
@@ -235,6 +266,8 @@ export interface UserStory {
   definition_of_done: string | null;
   doc_additional_info: string | null;
   doc_workarounds: string | null;
+  jira_ticket_key: string | null;
+  jira_ticket_url: string | null;
   created_at: string;
   updated_at: string;
 }

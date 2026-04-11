@@ -9,6 +9,15 @@ http:
       tls:
         certResolver: letsencrypt
 
+    # ── Frontend: superadmin panel ────────────────────────────────────────
+    karl-superadmin:
+      rule: "Host(`heykarl.app`) && PathPrefix(`/superadmin`)"
+      entryPoints: [websecure]
+      service: karl-frontend-svc
+      priority: 600
+      tls:
+        certResolver: letsencrypt
+
     # ── Frontend: explicit app routes ──────────────────────────────────────
     karl-frontend-routes:
       rule: "Host(`heykarl.app`) && (PathPrefix(`/_next`) || PathPrefix(`/login`) || PathPrefix(`/register`) || PathPrefix(`/setup`) || PathPrefix(`/karl-`) || Path(`/site.webmanifest`) || Path(`/favicon.ico`))"
@@ -44,7 +53,71 @@ http:
       tls:
         certResolver: letsencrypt
 
+    # ── Whisper ASR ───────────────────────────────────────────────────────
+    whisper:
+      rule: "Host(`admin.heykarl.app`) && PathPrefix(`/whisper`)"
+      entryPoints: [websecure]
+      service: whisper-svc
+      middlewares: [whisper-strip]
+      priority: 100
+      tls:
+        certResolver: letsencrypt
+
+    # ── pgAdmin ───────────────────────────────────────────────────────────
+    pgadmin:
+      rule: "Host(`admin.heykarl.app`) && PathPrefix(`/pgadmin`)"
+      entryPoints: [websecure]
+      service: pgadmin-svc
+      priority: 100
+      tls:
+        certResolver: letsencrypt
+
+    # ── Redis Commander ───────────────────────────────────────────────────
+    redis-commander:
+      rule: "Host(`admin.heykarl.app`) && PathPrefix(`/redis`)"
+      entryPoints: [websecure]
+      service: redis-commander-svc
+      priority: 100
+      tls:
+        certResolver: letsencrypt
+
+    # ── phpMyAdmin: redirect bare path to trailing-slash ─────────────────
+    phpmyadmin-redirect:
+      rule: "Host(`admin.heykarl.app`) && Path(`/phpmyadmin`)"
+      entryPoints: [websecure]
+      service: phpmyadmin-svc
+      middlewares: [phpmyadmin-slash]
+      priority: 110
+      tls:
+        certResolver: letsencrypt
+
+    # ── phpMyAdmin ────────────────────────────────────────────────────────
+    phpmyadmin:
+      rule: "Host(`admin.heykarl.app`) && PathPrefix(`/phpmyadmin/`)"
+      entryPoints: [websecure]
+      service: phpmyadmin-svc
+      middlewares: [phpmyadmin-strip]
+      priority: 100
+      tls:
+        certResolver: letsencrypt
+
   middlewares:
+    whisper-strip:
+      stripPrefix:
+        prefixes:
+          - /whisper
+
+    phpmyadmin-strip:
+      stripPrefix:
+        prefixes:
+          - /phpmyadmin
+
+    phpmyadmin-slash:
+      redirectRegex:
+        regex: "^https://admin\\.heykarl\\.app/phpmyadmin$"
+        replacement: "https://admin.heykarl.app/phpmyadmin/"
+        permanent: false
+
     # forward-auth middleware (used by traefik dashboard and other fichtlworks services)
     authentik:
       forwardAuth:
@@ -83,3 +156,23 @@ http:
       loadBalancer:
         servers:
           - url: "http://assist2-authentik-server:9000"
+
+    whisper-svc:
+      loadBalancer:
+        servers:
+          - url: "http://assist2-whisper:9000"
+
+    phpmyadmin-svc:
+      loadBalancer:
+        servers:
+          - url: "http://assist2-phpmyadmin:80"
+
+    pgadmin-svc:
+      loadBalancer:
+        servers:
+          - url: "http://assist2-pgadmin:80"
+
+    redis-commander-svc:
+      loadBalancer:
+        servers:
+          - url: "http://assist2-redis-commander:8081"
