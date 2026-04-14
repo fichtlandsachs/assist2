@@ -666,16 +666,14 @@ services:
       start_period: 30s
 
   vscode:
-    image: lscr.io/linuxserver/code-server:latest
+    image: gitpod/openvscode-server:latest
     pull_policy: never
     container_name: heykarl-vscode
     restart: unless-stopped
+    user: root
+    entrypoint: ["/bin/sh", "-c", "mkdir -p /config && echo \"$VSCODE_TOKEN\" > /tmp/vscode-token && exec /home/.openvscode-server/bin/openvscode-server --host 0.0.0.0 --server-base-path /code --connection-token-file /tmp/vscode-token --user-data-dir /config /opt"]
     environment:
-      PUID: 0
-      PGID: 0
-      PASSWORD: ${VSCODE_PASSWORD}
-      SUBFOLDER: /code/
-      DEFAULT_WORKSPACE: /opt
+      VSCODE_TOKEN: ${VSCODE_TOKEN}
     volumes:
       - /opt:/opt
       - heykarl_vscode_config:/config
@@ -686,4 +684,5 @@ services:
       - "traefik.http.routers.vscode.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/code`)"
       - "traefik.http.routers.vscode.entrypoints=websecure"
       - "traefik.http.routers.vscode.tls.certresolver=letsencrypt"
-      - "traefik.http.services.vscode.loadbalancer.server.port=8443"
+      - "traefik.http.services.vscode.loadbalancer.server.port=3000"
+      - "traefik.docker.network=assist-proxy"

@@ -20,7 +20,7 @@ http:
 
     # ── Frontend: explicit app routes ──────────────────────────────────────
     karl-frontend-routes:
-      rule: "Host(`heykarl.app`) && (PathPrefix(`/_next`) || PathPrefix(`/login`) || PathPrefix(`/register`) || PathPrefix(`/setup`) || PathPrefix(`/karl-`) || Path(`/site.webmanifest`) || Path(`/favicon.ico`))"
+      rule: "Host(`heykarl.app`) && (PathPrefix(`/_next`) || PathPrefix(`/login`) || PathPrefix(`/register`) || PathPrefix(`/setup`) || PathPrefix(`/demo`) || PathPrefix(`/karl-`) || Path(`/site.webmanifest`) || Path(`/favicon.ico`))"
       entryPoints: [websecure]
       service: karl-frontend-svc
       priority: 500
@@ -68,6 +68,15 @@ http:
       rule: "Host(`admin.heykarl.app`) && PathPrefix(`/pgadmin`)"
       entryPoints: [websecure]
       service: pgadmin-svc
+      priority: 100
+      tls:
+        certResolver: letsencrypt
+
+    # ── VS Code Server ────────────────────────────────────────────────────
+    vscode:
+      rule: "Host(`admin.heykarl.app`) && PathPrefix(`/code`)"
+      entryPoints: [websecure]
+      service: vscode-svc
       priority: 100
       tls:
         certResolver: letsencrypt
@@ -121,7 +130,7 @@ http:
     # forward-auth middleware (used by traefik dashboard and other fichtlworks services)
     authentik:
       forwardAuth:
-        address: "http://assist2-authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+        address: "http://heykarl-authentik-server:9000/outpost.goauthentik.io/auth/traefik"
         trustForwardHeader: true
         authResponseHeaders:
           - X-authentik-username
@@ -140,12 +149,12 @@ http:
     karl-frontend-svc:
       loadBalancer:
         servers:
-          - url: "http://assist2-frontend:3000"
+          - url: "http://heykarl-frontend:3000"
 
     karl-backend-svc:
       loadBalancer:
         servers:
-          - url: "http://assist2-backend:8000"
+          - url: "http://heykarl-backend:8000"
 
     ghost-svc:
       loadBalancer:
@@ -155,24 +164,29 @@ http:
     authentik-outpost-svc:
       loadBalancer:
         servers:
-          - url: "http://assist2-authentik-server:9000"
+          - url: "http://heykarl-authentik-server:9000"
 
     whisper-svc:
       loadBalancer:
         servers:
-          - url: "http://assist2-whisper:9000"
+          - url: "http://heykarl-whisper:9000"
 
     phpmyadmin-svc:
       loadBalancer:
         servers:
-          - url: "http://assist2-phpmyadmin:80"
+          - url: "http://heykarl-phpmyadmin:80"
 
     pgadmin-svc:
       loadBalancer:
         servers:
-          - url: "http://assist2-pgadmin:80"
+          - url: "http://heykarl-pgadmin:80"
 
     redis-commander-svc:
       loadBalancer:
         servers:
-          - url: "http://assist2-redis-commander:8081"
+          - url: "http://heykarl-redis-commander:8081"
+
+    vscode-svc:
+      loadBalancer:
+        servers:
+          - url: "http://heykarl-vscode:3000"
