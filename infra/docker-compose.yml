@@ -671,9 +671,7 @@ services:
     container_name: heykarl-vscode
     restart: unless-stopped
     user: root
-    entrypoint: ["/bin/sh", "-c", "mkdir -p /config && echo \"$VSCODE_TOKEN\" > /tmp/vscode-token && exec /home/.openvscode-server/bin/openvscode-server --host 0.0.0.0 --server-base-path /code --connection-token-file /tmp/vscode-token --user-data-dir /config /opt"]
-    environment:
-      VSCODE_TOKEN: ${VSCODE_TOKEN}
+    entrypoint: ["/home/.openvscode-server/bin/openvscode-server", "--host", "0.0.0.0", "--server-base-path", "/code", "--without-connection-token", "--user-data-dir", "/config", "/opt"]
     volumes:
       - /opt:/opt
       - heykarl_vscode_config:/config

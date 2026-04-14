@@ -53,6 +53,15 @@ http:
       tls:
         certResolver: letsencrypt
 
+    # ── Authentik outpost callbacks auf admin.heykarl.app ────────────────
+    authentik-outpost-admin:
+      rule: "Host(`admin.heykarl.app`) && PathPrefix(`/outpost.goauthentik.io/`)"
+      entryPoints: [websecure]
+      service: authentik-outpost-svc
+      priority: 200
+      tls:
+        certResolver: letsencrypt
+
     # ── Whisper ASR ───────────────────────────────────────────────────────
     whisper:
       rule: "Host(`admin.heykarl.app`) && PathPrefix(`/whisper`)"
@@ -77,6 +86,7 @@ http:
       rule: "Host(`admin.heykarl.app`) && PathPrefix(`/code`)"
       entryPoints: [websecure]
       service: vscode-svc
+      middlewares: [authentik]
       priority: 100
       tls:
         certResolver: letsencrypt
