@@ -2365,6 +2365,123 @@ function StoryProcessSection({ storyId, orgId }: { storyId: string; orgId: strin
 }
 
 // ---------------------------------------------------------------------------
+// Jira helpers & section
+// ---------------------------------------------------------------------------
+
+function formatJiraDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function formatRelativeTime(iso: string | null): string {
+  if (!iso) return "nie";
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "gerade eben";
+  if (minutes < 60) return `vor ${minutes} Min.`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `vor ${hours} Std.`;
+  return `vor ${Math.floor(hours / 24)} Tagen`;
+}
+
+function JiraSection({
+  story,
+  onSynced,
+}: {
+  story: UserStory;
+  onSynced: () => void;
+}) {
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      await apiRequest(`/api/v1/user-stories/${story.id}/jira-sync`, { method: "POST" });
+      onSynced();
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  let linkedKeys: string[] = [];
+  try {
+    if (story.jira_linked_issue_keys) {
+      const parsed = JSON.parse(story.jira_linked_issue_keys);
+      if (Array.isArray(parsed)) {
+        linkedKeys = parsed.filter((k): k is string => typeof k === "string");
+      }
+    }
+  } catch {
+    linkedKeys = [];
+  }
+
+  return (
+    <div className="border rounded-lg p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+          <GitBranch className="w-4 h-4" />
+          Jira
+        </h3>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3 h-3 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Sync läuft..." : "Jetzt sync."}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        <div>
+          <span className="text-gray-500 text-xs">Erstellt von</span>
+          <p className="font-medium">{story.jira_creator || "—"}</p>
+        </div>
+        <div>
+          <span className="text-gray-500 text-xs">Erstellt am</span>
+          <p className="font-medium">{formatJiraDate(story.jira_created_at)}</p>
+        </div>
+        <div>
+          <span className="text-gray-500 text-xs">Reporter</span>
+          <p className="font-medium">{story.jira_reporter || "—"}</p>
+        </div>
+        <div>
+          <span className="text-gray-500 text-xs">Zuletzt geändert</span>
+          <p className="font-medium">{formatJiraDate(story.jira_updated_at)}</p>
+        </div>
+        <div className="col-span-2">
+          <span className="text-gray-500 text-xs">Status (Jira)</span>
+          <p className="font-medium">{story.jira_status || "—"}</p>
+        </div>
+        {linkedKeys.length > 0 && (
+          <div className="col-span-2">
+            <span className="text-gray-500 text-xs">Verknüpft mit</span>
+            <div className="flex gap-1 flex-wrap mt-1">
+              {linkedKeys.map((key) => (
+                <span
+                  key={key}
+                  className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-mono"
+                >
+                  {key}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <p className="text-xs text-gray-400">
+        Zuletzt synchronisiert: {formatRelativeTime(story.jira_last_synced_at)}
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Page
 // ---------------------------------------------------------------------------
 
@@ -3340,6 +3457,12 @@ export default function StoryDetailPage({
                       </span>
                     )}
                   </div>
+                )}
+                {story.jira_ticket_key && (
+                  <JiraSection
+                    story={story}
+                    onSynced={() => mutate()}
+                  />
                 )}
               </>
             )}
