@@ -1,4 +1,6 @@
 """Superadmin global config endpoints — GET and PATCH /api/v1/superadmin/config/."""
+import asyncio
+import smtplib
 from datetime import datetime, timezone
 from typing import Any
 
@@ -12,6 +14,7 @@ from app.database import get_db
 from app.models.global_config import ALLOWED_KEYS, SECRET_KEYS, GlobalConfig
 from app.models.user import User
 from app.routers.superadmin import get_admin_user
+from app.services.system_settings_service import get_runtime_settings, invalidate_settings_cache
 
 router = APIRouter(prefix="/api/v1/superadmin/config", tags=["SuperadminConfig"])
 
@@ -79,4 +82,42 @@ async def patch_config(
         row.updated_by_id = admin.id
 
     await db.commit()
+    invalidate_settings_cache()
     return Response(status_code=204)
+
+
+@router.post("/test-smtp")
+async def test_smtp(
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Send a test email using the current (effective) SMTP settings."""
+    s = await get_runtime_settings(db)
+
+    if not s.SMTP_USER or not s.SMTP_PASS:
+        raise HTTPException(status_code=400, detail="SMTP-Zugangsdaten fehlen (smtp.user / smtp.pass).")
+
+    def _send() -> None:
+        from email.mime.text import MIMEText
+        msg = MIMEText("Dies ist eine Test-E-Mail von heykarl.app — SMTP-Konfiguration erfolgreich.", "plain", "utf-8")
+        msg["Subject"] = "heykarl.app SMTP-Test"
+        msg["From"] = s.SMTP_FROM
+        msg["To"] = s.CONTACT_EMAIL_TO
+
+        if s.SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(s.SMTP_HOST, s.SMTP_PORT, timeout=10) as conn:
+                conn.login(s.SMTP_USER, s.SMTP_PASS)
+                conn.sendmail(s.SMTP_FROM, [s.CONTACT_EMAIL_TO], msg.as_string())
+        else:
+            with smtplib.SMTP(s.SMTP_HOST, s.SMTP_PORT, timeout=10) as conn:
+                conn.ehlo()
+                conn.starttls()
+                conn.login(s.SMTP_USER, s.SMTP_PASS)
+                conn.sendmail(s.SMTP_FROM, [s.CONTACT_EMAIL_TO], msg.as_string())
+
+    try:
+        await asyncio.get_event_loop().run_in_executor(None, _send)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"SMTP-Fehler: {exc}")
+
+    return {"ok": True, "sent_to": s.CONTACT_EMAIL_TO}

@@ -226,7 +226,6 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
 
         # Insert new chunks with embeddings
         for i, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
-            embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
             chunk = DocumentChunk(
                 org_id=org_uuid,
                 source_ref=href,
@@ -236,7 +235,7 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
                 file_hash=file_hash,
                 chunk_index=i,
                 chunk_text=chunk_text,
-                embedding=embedding_str,
+                embedding=embedding,
             )
             db.add(chunk)
 
@@ -298,8 +297,13 @@ async def _index_story_knowledge_async(story_id: str, org_id: str, org_slug: str
     # Build raw chunks
     raw_chunks: list[str] = []
 
-    # Story chunk
-    parts = [story.title or ""]
+    # Story chunk — include status and priority so RAG context carries them
+    status_label = {
+        "draft": "Entwurf", "in_review": "In Review", "ready": "Bereit",
+        "in_progress": "In Bearbeitung", "testing": "Testing",
+        "done": "Abgeschlossen", "archived": "Archiviert",
+    }.get(str(story.status.value if hasattr(story.status, "value") else story.status), str(story.status))
+    parts = [f"{story.title or ''} [Status: {status_label}]"]
     if story.description:
         parts.append(story.description)
     if story.acceptance_criteria:
@@ -366,7 +370,6 @@ async def _index_story_knowledge_async(story_id: str, org_id: str, org_slug: str
 
     # Insert new chunks
     for i, (chunk_text, embedding) in enumerate(zip(raw_chunks, embeddings)):
-        embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
         chunk = DocumentChunk(
             org_id=org_uuid,
             source_ref=source_ref,
@@ -376,7 +379,7 @@ async def _index_story_knowledge_async(story_id: str, org_id: str, org_slug: str
             file_hash=_sha256(chunk_text.encode()),
             chunk_index=i,
             chunk_text=chunk_text,
-            embedding=embedding_str,
+            embedding=embedding,
         )
         db.add(chunk)
 
@@ -468,7 +471,6 @@ async def _index_jira_ticket_async(ticket_key: str, org_id: str, db: AsyncSessio
         )
     )
 
-    embedding_str = "[" + ",".join(str(x) for x in embeddings[0]) + "]"
     chunk = DocumentChunk(
         org_id=org_uuid,
         source_ref=source_ref,
@@ -478,7 +480,7 @@ async def _index_jira_ticket_async(ticket_key: str, org_id: str, db: AsyncSessio
         file_hash=_sha256(chunk_text.encode()),
         chunk_index=0,
         chunk_text=chunk_text,
-        embedding=embedding_str,
+        embedding=embeddings[0],
     )
     db.add(chunk)
     try:
@@ -606,7 +608,6 @@ async def _index_confluence_space_async(org_id: str, db: AsyncSession) -> None:
                 )
 
                 for i, (chunk_text_item, embedding) in enumerate(zip(raw_chunks, embeddings)):
-                    embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
                     chunk = DocumentChunk(
                         org_id=org_uuid,
                         source_ref=source_ref,
@@ -616,7 +617,7 @@ async def _index_confluence_space_async(org_id: str, db: AsyncSession) -> None:
                         file_hash=_sha256(chunk_text_item.encode()),
                         chunk_index=i,
                         chunk_text=chunk_text_item,
-                        embedding=embedding_str,
+                        embedding=embedding,
                     )
                     db.add(chunk)
 
@@ -677,7 +678,6 @@ async def _index_user_action_async(
         logger.warning("index_user_action: embedding failed: %s", e)
         return
 
-    embedding_str = "[" + ",".join(str(x) for x in embeddings[0]) + "]"
     chunk = DocumentChunk(
         org_id=org_uuid,
         source_ref=source_ref,
@@ -687,7 +687,7 @@ async def _index_user_action_async(
         file_hash=_sha256(chunk_text.encode()),
         chunk_index=0,
         chunk_text=chunk_text,
-        embedding=embedding_str,
+        embedding=embeddings[0],
     )
     db.add(chunk)
     try:

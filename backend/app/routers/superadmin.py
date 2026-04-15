@@ -56,63 +56,63 @@ COMPONENTS = [
     {
         "name": "Authentik",
         "label": "Identity Provider",
-        "internal_url": "http://assist2-authentik-server:9000",
+        "internal_url": "http://heykarl-authentik-server:9000",
         "health_path": "/-/health/ready/",
         "admin_url": "https://authentik.heykarl.app/if/admin/",
     },
     {
         "name": "n8n",
         "label": "Workflow Engine",
-        "internal_url": "http://assist2-n8n:5678",
+        "internal_url": "http://heykarl-n8n:5678",
         "health_path": "/healthz",
         "admin_url": "https://admin.heykarl.app/n8n/",
     },
     {
         "name": "LiteLLM",
         "label": "AI Proxy",
-        "internal_url": "http://assist2-litellm:4000",
+        "internal_url": "http://heykarl-litellm:4000",
         "health_path": "/health/liveliness",
         "admin_url": "https://admin.heykarl.app/litellm/ui",
     },
     {
         "name": "Nextcloud",
         "label": "Dateiverwaltung",
-        "internal_url": "http://assist2-nextcloud",
+        "internal_url": "http://heykarl-nextcloud",
         "health_path": "/status.php",
         "admin_url": "https://admin.heykarl.app/nextcloud",
     },
     {
         "name": "Stirling PDF",
         "label": "PDF-Tools",
-        "internal_url": "http://assist2-stirling-pdf:8080",
+        "internal_url": "http://heykarl-stirling-pdf:8080",
         "health_path": "/",
         "admin_url": "https://admin.heykarl.app/pdf",
     },
     {
         "name": "Whisper",
         "label": "Transkription",
-        "internal_url": "http://assist2-whisper:9000",
+        "internal_url": "http://heykarl-whisper:9000",
         "health_path": "/",
         "admin_url": "https://admin.heykarl.app/whisper",
     },
     {
         "name": "pgAdmin",
         "label": "PostgreSQL UI",
-        "internal_url": "http://assist2-pgadmin:80",
+        "internal_url": "http://heykarl-pgadmin:80",
         "health_path": "/pgadmin/misc/ping",
         "admin_url": "https://admin.heykarl.app/pgadmin",
     },
     {
         "name": "phpMyAdmin",
         "label": "MariaDB UI",
-        "internal_url": "http://assist2-phpmyadmin:80",
+        "internal_url": "http://heykarl-phpmyadmin:80",
         "health_path": "/",
         "admin_url": "https://admin.heykarl.app/phpmyadmin",
     },
     {
         "name": "Redis Commander",
         "label": "Redis UI",
-        "internal_url": "http://assist2-redis-commander:8081",
+        "internal_url": "http://heykarl-redis-commander:8081",
         "health_path": "/redis/",
         "admin_url": "https://admin.heykarl.app/redis",
     },
@@ -123,7 +123,7 @@ COMPONENTS = [
 async def get_component_status(
     _: User = Depends(get_admin_user),
 ) -> list[dict]:
-    """Check reachability of all internal Assist2 components."""
+    """Check reachability of all internal Karl components."""
     results = []
     async with httpx.AsyncClient(timeout=5.0) as client:
         for comp in COMPONENTS:

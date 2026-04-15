@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     litellm_base_url: str = "http://litellm:4000"
-    litellm_api_key: str = "sk-assist2"
+    litellm_api_key: str = "sk-heykarl"
     backend_base_url: str = "http://backend:8000"
     langgraph_api_key: str = "dev-langgraph-secret"
     log_level: str = "INFO"

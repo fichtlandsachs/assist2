@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ForbiddenException, UnauthorizedException
 from app.core.permissions import get_user_permissions
-from app.core.security import validate_authentik_token
+from app.core.security import decode_token, validate_authentik_token
 from app.database import get_db
 from app.models.user import User
 
@@ -20,10 +20,37 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """
-    Validate Authentik OIDC JWT, return the matching local User.
-    Falls back to email lookup for users not yet migrated (lazy migration).
+    Validate JWT (HS256 or Authentik OIDC), return the matching local User.
+    HS256 tokens carry sub=user_id (UUID). Authentik tokens carry sub=authentik_id.
     """
-    payload = await validate_authentik_token(credentials.credentials)
+    token = credentials.credentials
+
+    # Try HS256 first (issued by our own login endpoint)
+    try:
+        payload = decode_token(token)
+        if payload.get("type") == "access":
+            user_id: str | None = payload.get("sub")
+            if not user_id:
+                raise UnauthorizedException(detail="Invalid token claims")
+            result = await db.execute(
+                select(User).where(
+                    User.id == uuid.UUID(user_id),
+                    User.deleted_at.is_(None),
+                )
+            )
+            user = result.scalar_one_or_none()
+            if not user:
+                raise UnauthorizedException(detail="User not found")
+            if not user.is_active:
+                raise UnauthorizedException(detail="Account is disabled")
+            return user
+    except UnauthorizedException:
+        raise
+    except Exception:
+        pass  # Not an HS256 token — fall through to Authentik OIDC
+
+    # Fall back to Authentik OIDC validation
+    payload = await validate_authentik_token(token)
     authentik_id: str | None = payload.get("sub")
     email: str | None = payload.get("email")
 

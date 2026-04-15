@@ -9,22 +9,46 @@ from app.models.base import Base
 
 
 ALLOWED_KEYS: frozenset[str] = frozenset({
+    # LiteLLM
     "litellm.url",
     "litellm.api_key",
+    # Nextcloud
     "nextcloud.url",
     "nextcloud.admin_user",
     "nextcloud.admin_password",
+    # n8n
     "n8n.url",
     "n8n.api_key",
+    # OAuth SSO
     "atlassian.sso_enabled",
     "atlassian.client_id",
     "atlassian.client_secret",
     "github.sso_enabled",
     "github.client_id",
     "github.client_secret",
+    # AI providers
     "ai.anthropic_api_key",
     "ai.openai_api_key",
     "ai.ionos_api_key",
+    "ai.ionos_api_base",
+    "ai.provider_routing_suggest",
+    "ai.provider_routing_docs",
+    "ai.provider_routing_fallback",
+    "ai.feature_flags",
+    # SMTP / Contact
+    "smtp.host",
+    "smtp.port",
+    "smtp.user",
+    "smtp.pass",
+    "smtp.from",
+    "smtp.contact_to",
+    # Chat / Grounded policy
+    "chat.policy_mode",
+    "chat.min_evidence_count",
+    "chat.min_relevance_score",
+    "chat.fallback_message",
+    "chat.web_signal",
+    "chat.web_requires_signal",
 })
 
 SECRET_KEYS: frozenset[str] = frozenset({
@@ -36,6 +60,7 @@ SECRET_KEYS: frozenset[str] = frozenset({
     "ai.anthropic_api_key",
     "ai.openai_api_key",
     "ai.ionos_api_key",
+    "smtp.pass",
 })
 
 

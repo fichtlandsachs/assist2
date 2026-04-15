@@ -1,12 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getSession, logout } from "@/lib/auth";
+
+const NAV = [
+  {
+    label: "Komponenten",
+    href: "/dashboard",
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+      </svg>
+    ),
+  },
+  {
+    label: "Ressourcen",
+    href: "/resources",
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="20" height="4" rx="1"/>
+        <rect x="2" y="17" width="20" height="4" rx="1"/>
+        <circle cx="18" cy="5" r="1" fill="currentColor" stroke="none"/>
+        <circle cx="18" cy="12" r="1" fill="currentColor" stroke="none"/>
+        <circle cx="18" cy="19" r="1" fill="currentColor" stroke="none"/>
+      </svg>
+    ),
+  },
+  {
+    label: "Einstellungen",
+    href: "/settings/system",
+    matchPrefix: "/settings",
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    ),
+  },
+];
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -21,117 +58,76 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   if (!checked) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--paper)" }}>
-        <p className="text-sm" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-body)" }}>Lade…</p>
+        <div className="w-4 h-4 rounded-full border-2 border-[var(--accent-red)] border-t-transparent animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "var(--paper)" }}>
-      {/* Header */}
-      <header
-        className="flex items-center justify-between px-6 py-3 border-b-2 shrink-0"
-        style={{
-          borderColor: "rgba(35,31,31,0.1)",
-          background: "#FFFFFF",
-          boxShadow: "0 2px 0 rgba(0,0,0,0.04)",
-        }}
+    <div className="flex min-h-screen" style={{ background: "var(--paper)" }}>
+      {/* Karl sidebar */}
+      <aside
+        className="w-52 flex-shrink-0 border-r flex flex-col py-6 px-3"
+        style={{ borderColor: "var(--paper-rule)", background: "var(--paper-warm)" }}
       >
-        {/* Logo + wordmark */}
-        <div className="flex items-center gap-3">
+        {/* Logo */}
+        <div className="px-2 mb-6 flex items-center gap-2.5">
           <div
-            className="flex items-center justify-center w-8 h-8 rounded-lg border-2 font-bold text-sm select-none"
+            className="flex items-center justify-center w-7 h-7 rounded-lg border-2 font-bold text-xs select-none flex-shrink-0"
             style={{
               background: "#231F1F",
               borderColor: "#231F1F",
               color: "#FFFFFF",
               fontFamily: "var(--font-serif)",
-              boxShadow: "3px 3px 0 rgba(0,0,0,0.8)",
+              boxShadow: "2px 2px 0 rgba(0,0,0,0.8)",
               fontStyle: "italic",
             }}
           >
             K
           </div>
           <div>
-            <span
-              className="text-sm font-semibold tracking-tight"
-              style={{ fontFamily: "var(--font-serif)", color: "var(--ink)" }}
-            >
-              HeyKarl
-            </span>
-            <span
-              className="ml-1.5 text-xs px-1.5 py-0.5 rounded border"
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                letterSpacing: ".06em",
-                textTransform: "uppercase",
-                color: "var(--ink-faint)",
-                borderColor: "rgba(35,31,31,0.12)",
-                background: "var(--paper-warm)",
-              }}
-            >
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--ink-faint)", letterSpacing: "0.15em" }}>
               Admin
-            </span>
+            </p>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex items-center gap-1">
-          {[
-            { href: "/dashboard", label: "Komponenten" },
-            { href: "/resources", label: "Ressourcen" },
-            { href: "/settings/system", label: "Einstellungen" },
-          ].map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="px-3 py-1.5 text-xs rounded-lg border-2 transition-all"
-              style={{
-                fontFamily: "var(--font-mono)",
-                letterSpacing: ".03em",
-                color: "var(--ink-mid)",
-                borderColor: "transparent",
-                textDecoration: "none",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(35,31,31,0.12)";
-                (e.currentTarget as HTMLAnchorElement).style.background = "var(--paper-warm)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.borderColor = "transparent";
-                (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
-              }}
-            >
-              {label}
-            </Link>
-          ))}
+        <nav className="flex-1 space-y-0.5">
+          {NAV.map(({ label, href, matchPrefix, icon }) => {
+            const active = pathname === href || pathname.startsWith(matchPrefix ?? href + "/");
+            return (
+              <button
+                key={href}
+                onClick={() => router.push(href)}
+                className={`sidebar-nav-item w-full flex items-center gap-2.5 px-2 py-2 text-left${active ? " is-active" : ""}`}
+                style={{ color: active ? "var(--sidebar-text-active)" : "var(--sidebar-text)" }}
+              >
+                {icon}
+                {label}
+              </button>
+            );
+          })}
+        </nav>
 
+        {/* Footer */}
+        <div className="px-2 pt-4 border-t" style={{ borderColor: "var(--paper-rule)" }}>
           <button
             onClick={logout}
-            className="ml-2 px-3 py-1.5 text-xs rounded-lg border-2 transition-all"
-            style={{
-              fontFamily: "var(--font-mono)",
-              letterSpacing: ".03em",
-              color: "var(--ink-faint)",
-              borderColor: "rgba(35,31,31,0.1)",
-              background: "transparent",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "rgba(35,31,31,0.2)";
-              e.currentTarget.style.color = "var(--ink)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "rgba(35,31,31,0.1)";
-              e.currentTarget.style.color = "var(--ink-faint)";
-            }}
+            className="text-xs w-full text-left transition-colors"
+            style={{ color: "var(--ink-faint)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--ink)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ink-faint)")}
           >
             Abmelden
           </button>
-        </nav>
-      </header>
+        </div>
+      </aside>
 
-      <main className="flex-1 flex flex-col p-6 max-w-5xl mx-auto w-full">{children}</main>
+      {/* Content */}
+      <main className="flex-1 overflow-auto p-8">
+        {children}
+      </main>
     </div>
   );
 }

@@ -2,7 +2,6 @@
 export const dynamic = "force-dynamic";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
 import { useAuth } from "@/lib/auth/context";
 import { useT } from "@/lib/i18n/context";
 import type { ApiError } from "@/types";
@@ -82,7 +81,7 @@ export default function LoginPage() {
             t("auth_brand_feature_4"),
           ].map((feat) => (
             <div key={feat} className="flex items-center gap-2.5">
-              <div className="w-2 h-2 bg-rose-500 rounded-full border-2 border-rose-700 shrink-0" />
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: "var(--accent-red)", border: "2px solid var(--btn-primary-hover)" }} />
               <span className="text-[12px] font-bold text-[var(--ink-mid)]">{feat}</span>
             </div>
           ))}
@@ -90,7 +89,7 @@ export default function LoginPage() {
       </div>
 
       {/* Vertical divider */}
-      <div className="hidden lg:block w-px bg-slate-900/10 shrink-0" />
+      <div className="hidden lg:block w-px shrink-0" style={{ background: "var(--paper-rule)" }} />
 
       {/* Right form panel */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-16 relative">
@@ -114,7 +113,7 @@ export default function LoginPage() {
           <div className="bg-white border-2 border-[var(--ink)] rounded-2xl shadow-[8px_8px_0_rgba(0,0,0,1)] p-8 space-y-5">
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="text-[11px] rounded-xl px-3 py-2.5 border-2 border-rose-500 bg-rose-50 text-rose-700">
+                <div className="text-[11px] rounded-xl px-3 py-2.5 border-2" style={{ borderColor: "var(--accent-red)", background: "rgba(var(--accent-red-rgb),.06)", color: "var(--accent-red)" }}>
                   {error}
                 </div>
               )}
@@ -154,7 +153,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 bg-slate-900 text-white text-[14px] font-bold rounded-xl border-2 border-[var(--ink)] shadow-[4px_4px_0_rgba(0,0,0,1)] hover:shadow-[2px_2px_0_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="neo-btn neo-btn--default w-full py-3.5 text-[14px] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? t("auth_login_loading") : t("auth_login_button")}
               </button>
@@ -162,12 +161,6 @@ export default function LoginPage() {
 
           </div>
 
-          <p className="text-center text-[12px] text-[var(--ink-faint)]">
-            {t("auth_login_no_account")}{" "}
-            <Link href="/register" className="text-rose-500 font-bold hover:underline underline-offset-2">
-              {t("auth_login_register_link")}
-            </Link>
-          </p>
         </div>
       </div>
     </div>

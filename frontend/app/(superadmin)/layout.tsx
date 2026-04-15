@@ -3,13 +3,14 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/context";
-import { LayoutDashboard, Users, Building2 } from "lucide-react";
+import { LayoutDashboard, Users, Building2, Settings2 } from "lucide-react";
 import Link from "next/link";
 
 const NAV = [
   { label: "Dashboard",      href: "/superadmin",                Icon: LayoutDashboard },
   { label: "Benutzer",       href: "/superadmin/users",          Icon: Users },
   { label: "Organisationen", href: "/superadmin/organizations",  Icon: Building2 },
+  { label: "Einstellungen",  href: "/superadmin/settings",       Icon: Settings2 },
 ];
 
 export default function SuperadminLayout({ children }: { children: React.ReactNode }) {

@@ -892,49 +892,47 @@ function TestCasesSection({ storyId, storyStatus, editing, orgId }: { storyId: s
                     </div>
                   ) : (
                     <>
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TEST_RESULT_COLORS[tc.result]}`}>
-                              {TEST_RESULT_LABELS[tc.result]}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TEST_RESULT_COLORS[tc.result]}`}>
+                            {TEST_RESULT_LABELS[tc.result]}
+                          </span>
+                          {tc.is_ai_generated && (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-[rgba(var(--btn-primary-rgb),.08)] text-[var(--btn-primary)] rounded-sm text-xs font-medium">
+                              <Sparkles size={10} />Auto
                             </span>
-                            {tc.is_ai_generated && (
-                              <span className="flex items-center gap-1 px-1.5 py-0.5 bg-[rgba(var(--btn-primary-rgb),.08)] text-[var(--btn-primary)] rounded-sm text-xs font-medium">
-                                <Sparkles size={10} />Auto
-                              </span>
-                            )}
-                          </div>
-                          <h4 className="text-sm font-semibold text-[var(--ink)] break-words">{tc.title}</h4>
-                          <MemberTag name={membersMap[tc.created_by_id]} />
-                        </div>
-                        <div className="flex items-center gap-1 sm:shrink-0 flex-wrap">
-                          {TEST_RESULT_CYCLE.map((r) => (
-                            <button
-                              key={r}
-                              onClick={() => tc.result !== r ? void handleMark(tc.id, r) : undefined}
-                              disabled={markingId === tc.id}
-                              className={`px-2 py-1 rounded-sm text-xs font-medium transition-colors disabled:opacity-50 ${
-                                tc.result === r
-                                  ? TEST_RESULT_COLORS[r] + " ring-1 ring-current cursor-default"
-                                  : "bg-transparent text-[var(--ink-faint)] hover:bg-[var(--paper-warm)] hover:text-[var(--ink-mid)]"
-                              }`}
-                            >
-                              {TEST_RESULT_LABELS[r]}
-                            </button>
-                          ))}
-                          {!isLocked && editing && (
-                            <>
-                              <button onClick={() => startEdit(tc)}
-                                className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] rounded-sm transition-colors">
-                                <Pencil size={13} />
-                              </button>
-                              <button onClick={() => void handleDelete(tc.id)}
-                                className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] rounded-sm transition-colors">
-                                <Trash2 size={13} />
-                              </button>
-                            </>
                           )}
                         </div>
+                        {!isLocked && editing && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => startEdit(tc)}
+                              className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] rounded-sm transition-colors">
+                              <Pencil size={13} />
+                            </button>
+                            <button onClick={() => void handleDelete(tc.id)}
+                              className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent-red)] hover:bg-[rgba(var(--accent-red-rgb),.08)] rounded-sm transition-colors">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <h4 className="text-sm font-semibold text-[var(--ink)]">{tc.title}</h4>
+                      <MemberTag name={membersMap[tc.created_by_id]} />
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {TEST_RESULT_CYCLE.map((r) => (
+                          <button
+                            key={r}
+                            onClick={() => tc.result !== r ? void handleMark(tc.id, r) : undefined}
+                            disabled={markingId === tc.id}
+                            className={`px-2 py-1 rounded-sm text-xs font-medium transition-colors disabled:opacity-50 ${
+                              tc.result === r
+                                ? TEST_RESULT_COLORS[r] + " ring-1 ring-current cursor-default"
+                                : "bg-transparent text-[var(--ink-faint)] hover:bg-[var(--paper-warm)] hover:text-[var(--ink-mid)]"
+                            }`}
+                          >
+                            {TEST_RESULT_LABELS[r]}
+                          </button>
+                        ))}
                       </div>
                       {tc.steps && (
                         <div>
@@ -1270,7 +1268,8 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
       });
       mutate(updated, false);
     } catch (err: unknown) {
-      setConfluenceError((err as { error?: string })?.error ?? "Fehler beim Veröffentlichen.");
+      const e = err as { detail?: string; error?: string };
+      setConfluenceError(e?.detail ?? e?.error ?? "Fehler beim Veröffentlichen.");
     } finally {
       setPublishingConfluence(false);
     }
@@ -2385,6 +2384,7 @@ export default function StoryDetailPage({
   const [activeTab, setActiveTab] = useState<ActiveTab>("story");
   const [demoRole, setDemoRole] = useState<DemoRole>("user");
   const [showRolePicker, setShowRolePicker] = useState(false);
+  const rolePickerRef = useRef<HTMLDivElement>(null);
   const [score, setScore] = useState<{ level: "low" | "medium" | "high"; confidence: number; clarity: number; complexity: number; risk: number; domain: string } | null>(null);
   const [isScoring, setIsScoring] = useState(false);
 
@@ -2706,6 +2706,17 @@ export default function StoryDetailPage({
       setPushingToJira(false);
     }
   }
+
+  useEffect(() => {
+    if (!showRolePicker) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (rolePickerRef.current && !rolePickerRef.current.contains(e.target as Node)) {
+        setShowRolePicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showRolePicker]);
 
   if (isLoading || !story) {
     return (
@@ -3186,7 +3197,7 @@ export default function StoryDetailPage({
           </span>
           <span className="text-xs text-[var(--ink-faint)] hidden sm:inline truncate">{currentRole.description}</span>
         </div>
-        <div className="relative shrink-0">
+        <div ref={rolePickerRef} className="relative shrink-0">
           <button
             onClick={() => setShowRolePicker((v) => !v)}
             className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors"

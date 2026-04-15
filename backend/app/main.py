@@ -27,6 +27,8 @@ from app.routers.processes import router as processes_router
 from app.routers.rule_sets import router as rule_sets_router
 from app.routers.scoring_profiles import router as scoring_profiles_router
 from app.routers.story_versions import router as story_versions_router
+from app.routers.story_readiness import router as story_readiness_router
+from app.routers.billing import router as billing_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -130,3 +132,5 @@ app.include_router(processes_router, prefix="/api/v1", tags=["Processes"])
 app.include_router(rule_sets_router)
 app.include_router(scoring_profiles_router)
 app.include_router(story_versions_router)
+app.include_router(story_readiness_router, prefix="/api/v1", tags=["Story Readiness"])
+app.include_router(billing_router, prefix="/api/v1", tags=["Billing"])

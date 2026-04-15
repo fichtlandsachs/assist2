@@ -11,7 +11,7 @@ model_list:
   # fast/cheap tier — Llama 3.1 8B
   - model_name: ionos-fast
     litellm_params:
-      model: meta-llama/Meta-Llama-3.1-8B-Instruct
+      model: openai/meta-llama/Meta-Llama-3.1-8B-Instruct
       api_base: https://openai.inference.de-txl.ionos.com/v1
       api_key: os.environ/IONOS_API_KEY
       timeout: 30
@@ -20,7 +20,7 @@ model_list:
   # quality tier — Llama 3.3 70B
   - model_name: ionos-quality
     litellm_params:
-      model: meta-llama/Llama-3.3-70B-Instruct
+      model: openai/meta-llama/Llama-3.3-70B-Instruct
       api_base: https://openai.inference.de-txl.ionos.com/v1
       api_key: os.environ/IONOS_API_KEY
       timeout: 60
@@ -29,7 +29,7 @@ model_list:
   # reasoning tier — Mistral Small 24B
   - model_name: ionos-reasoning
     litellm_params:
-      model: mistralai/Mistral-Small-24B-Instruct
+      model: openai/mistralai/Mistral-Small-24B-Instruct
       api_base: https://openai.inference.de-txl.ionos.com/v1
       api_key: os.environ/IONOS_API_KEY
       timeout: 90
@@ -38,7 +38,7 @@ model_list:
   # embeddings — BAAI bge-m3 (multilingual, production-grade)
   - model_name: ionos-embed
     litellm_params:
-      model: BAAI/bge-m3
+      model: openai/BAAI/bge-m3
       api_base: https://openai.inference.de-txl.ionos.com/v1
       api_key: os.environ/IONOS_API_KEY
       timeout: 20
@@ -86,7 +86,7 @@ model_list:
   # ── Fallback group: ionos-fast → anthropic haiku ──────────────
   - model_name: fallback-eu
     litellm_params:
-      model: meta-llama/Meta-Llama-3.1-8B-Instruct
+      model: openai/meta-llama/Meta-Llama-3.1-8B-Instruct
       api_base: https://openai.inference.de-txl.ionos.com/v1
       api_key: os.environ/IONOS_API_KEY
       timeout: 30
@@ -99,13 +99,22 @@ router_settings:
   timeout: 90
   allowed_fails: 2
   cooldown_time: 60
+  fallbacks:
+    - ionos-reasoning: [ionos-quality, ionos-fast]
+    - ionos-quality: [ionos-fast]
 
 litellm_settings:
   add_function_to_prompt: false
   json_logs: true
   log_raw_request_response: false
-  success_callback: []
+  # Usage logging: POST token counts to backend after each successful call.
+  # The backend billing_service records these for pay-per-use billing.
+  success_callback: ["langfuse"]
   failure_callback: []
+  # LiteLLM → backend usage webhook (optional, enables accurate token costs)
+  # Set LITELLM_USAGE_WEBHOOK_URL=http://heykarl-backend:8000/api/v1/billing/litellm-usage
+  # in .env to activate server-side cost tracking with exact token counts.
+  spend_logs_url: os.environ/LITELLM_USAGE_WEBHOOK_URL
   cache: true
   cache_params:
     type: redis

@@ -2,6 +2,7 @@
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
+import { useAuth } from "@/lib/auth/context";
 import { API_BASE, getAccessToken } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ interface StoryData {
   title: string;
   story: string[];
   accept: string[];
+  dod?: string[];
   tests: string[];
   release: string[];
   features: { title: string; description: string | null }[];
@@ -68,13 +70,44 @@ function stripJiraPanel(text: string): string {
   return text.replace(/<<<USERSTORY_PANEL[\s\S]*?USERSTORY_PANEL>>>/g, "").trim();
 }
 
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-1 px-1">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="inline-block rounded-full"
+          style={{
+            width: 6,
+            height: 6,
+            background: "var(--ink-faint)",
+            animation: `typingDot 1.2s ease-in-out infinite`,
+            animationDelay: `${i * 0.2}s`,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function AiWorkspacePage({ params }: { params: Promise<{ org: string }> }) {
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
+  const { user } = useAuth();
   const [tab] = useState<WorkspaceTab>("story");
   const [messages, setMessages] = useState<Message[]>([]);
+  const greetingSet = useRef(false);
+  useEffect(() => {
+    if (greetingSet.current) return;
+    const name = user?.display_name?.split(" ")[0] ?? "";
+    const greeting = name ? `Hallo ${name}, wie kann ich dir heute helfen?` : "Wie kann ich dir heute helfen?";
+    setTimeout(() => {
+      setMessages([{ role: "assistant", content: greeting }]);
+      greetingSet.current = true;
+    }, 0);
+  }, [user]);
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<ChatMode>("chat");
   const [streaming, setStreaming] = useState(false);
@@ -205,6 +238,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let pendingDataLines: string[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -213,14 +247,19 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
         for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const chunk = line.slice(6);
-          if (chunk === "[DONE]" || chunk === "[ERROR]") continue;
-          setMessages(prev =>
-            prev.map((m, i) =>
-              i === assistantIdx ? { ...m, content: m.content + chunk } : m
-            )
-          );
+          if (line.startsWith("data: ")) {
+            pendingDataLines.push(line.slice(6));
+          } else if (line === "" && pendingDataLines.length > 0) {
+            // blank line = end of SSE event; join multi-line data with \n
+            const chunk = pendingDataLines.join("\n");
+            pendingDataLines = [];
+            if (chunk === "[DONE]" || chunk === "[ERROR]") continue;
+            setMessages(prev =>
+              prev.map((m, i) =>
+                i === assistantIdx ? { ...m, content: m.content + chunk } : m
+              )
+            );
+          }
         }
       }
     } catch (err) {
@@ -244,6 +283,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
 
     setExtracting(true);
     setExtractError(null);
+    setStoryData(null);
     try {
       const token = getAccessToken();
       const headers = {
@@ -313,6 +353,9 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
           title: storyData.title || storyData.story[0]?.slice(0, 80) || "Neue User Story",
           description: storyData.story.join("\n"),
           acceptance_criteria: storyData.accept.join("\n"),
+          definition_of_done: storyData.dod?.length
+            ? JSON.stringify(storyData.dod.map((text: string, i: number) => ({ id: i + 1, text, checked: false })))
+            : null,
           priority: "medium",
           project_id: saveProjectId || null,
         }),
@@ -521,16 +564,20 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                           }}
                         >{mode === "jira" ? stripJiraPanel(m.content) : m.content}</ReactMarkdown>
                         {streaming && i === messages.length - 1 && (
-                          <span className="inline-block w-1.5 h-3.5 ml-0.5 align-text-bottom animate-pulse"
-                            style={{ background: "var(--ink-faint)" }} />
+                          m.content ? (
+                            <span className="inline-block w-1.5 h-3.5 ml-0.5 align-text-bottom animate-pulse"
+                              style={{ background: "var(--ink-faint)" }} />
+                          ) : <TypingDots />
                         )}
                       </div>
                     ) : (
                       <>
                         {m.content}
                         {streaming && i === messages.length - 1 && (
-                          <span className="inline-block w-1.5 h-3.5 ml-0.5 align-text-bottom animate-pulse"
-                            style={{ background: "var(--ink-faint)" }} />
+                          m.content ? (
+                            <span className="inline-block w-1.5 h-3.5 ml-0.5 align-text-bottom animate-pulse"
+                              style={{ background: "var(--ink-faint)" }} />
+                          ) : <TypingDots />
                         )}
                       </>
                     )}
@@ -656,7 +703,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                   className="flex items-center justify-between px-4 py-2 border-b"
                   style={{ borderColor: "var(--paper-rule)" }}
                 >
-                  <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "13px", color: "var(--ink)" }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>
                     Jira Story
                   </span>
                   {jiraPanel && (
@@ -721,7 +768,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                   className="flex items-center justify-between px-4 py-2 border-b"
                   style={{ borderColor: "var(--paper-rule)" }}
                 >
-                  <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "13px", color: "var(--ink)" }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>
                     User Story
                   </span>
                   <Button
@@ -744,7 +791,19 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                       {extractError}
                     </p>
                   )}
-                  {!storyData && !extractError && (
+                  {!storyData && !extractError && extracting && (
+                    <div className="flex flex-col items-center gap-3 mt-8 opacity-70">
+                      <div className="flex gap-1.5 items-center">
+                        <span className="w-2 h-2 rounded-full bg-[var(--ink-faint)]" style={{ animation: "typingDot 1.2s infinite", animationDelay: "0ms" }} />
+                        <span className="w-2 h-2 rounded-full bg-[var(--ink-faint)]" style={{ animation: "typingDot 1.2s infinite", animationDelay: "200ms" }} />
+                        <span className="w-2 h-2 rounded-full bg-[var(--ink-faint)]" style={{ animation: "typingDot 1.2s infinite", animationDelay: "400ms" }} />
+                      </div>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--ink-faint)" }}>
+                        User Story wird aufbereitet …
+                      </p>
+                    </div>
+                  )}
+                  {!storyData && !extractError && !extracting && (
                     <p
                       className="text-center opacity-40 mt-8"
                       style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--ink-mid)" }}
@@ -756,7 +815,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                   {storyData && (
                     <>
                       {storyData.title && (
-                        <p style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "14px", color: "var(--ink)", marginBottom: "0.5em" }}>
+                        <p style={{ fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 600, color: "var(--ink)", marginBottom: "0.5em" }}>
                           {storyData.title}
                         </p>
                       )}

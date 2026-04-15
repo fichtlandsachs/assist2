@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     N8N_API_KEY: str = ""
 
     # LangGraph Service
-    LANGGRAPH_BASE_URL: str = "http://assist2-langgraph:8100"
+    LANGGRAPH_BASE_URL: str = "http://heykarl-langgraph:8100"
     LANGGRAPH_API_KEY: str = "dev-langgraph-secret"
     LANGGRAPH_TIMEOUT: int = 90
 
@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     GITHUB_SCOPES: str = "read:user user:email"
 
     # Authentik IdP
-    AUTHENTIK_URL: str = "http://assist2-authentik-server:9000"
+    AUTHENTIK_URL: str = "http://heykarl-authentik-server:9000"
     AUTHENTIK_API_TOKEN: str = ""
     AUTHENTIK_BACKEND_CLIENT_ID: str = ""
     AUTHENTIK_BACKEND_CLIENT_SECRET: str = ""
@@ -83,7 +83,7 @@ class Settings(BaseSettings):
     ATLASSIAN_SCOPES: str = "read:me read:jira-work write:jira-work read:jira-user offline_access"
 
     # Stirling PDF
-    STIRLING_PDF_URL: str = "http://assist2-stirling-pdf:8080"
+    STIRLING_PDF_URL: str = "http://heykarl-stirling-pdf:8080"
     STIRLING_PDF_USERNAME: str = "admin"
     STIRLING_PDF_PASSWORD: str = "stirling"
     PDF_TEMPLATES_PATH: str = "/app/pdf_templates"
@@ -94,16 +94,47 @@ class Settings(BaseSettings):
 
     # Nextcloud
     NEXTCLOUD_URL: str = "https://nextcloud.heykarl.app"  # Public URL (for frontend links)
-    NEXTCLOUD_INTERNAL_URL: str = "http://assist2-nextcloud"  # Internal URL (for backend WebDAV/OCS)
+    NEXTCLOUD_INTERNAL_URL: str = "http://heykarl-nextcloud"  # Internal URL (for backend WebDAV/OCS)
     NEXTCLOUD_ADMIN_USER: str = "admin"
     NEXTCLOUD_ADMIN_APP_PASSWORD: str = ""  # Nextcloud App Password für WebDAV + OCS
 
     # Whisper ASR
-    WHISPER_URL: str = "http://assist2-whisper:9000"
+    WHISPER_URL: str = "http://heykarl-whisper:9000"
 
     # LiteLLM (internal AI gateway)
-    LITELLM_URL: str = "http://assist2-litellm:4000"
+    LITELLM_URL: str = "http://heykarl-litellm:4000"
     LITELLM_API_KEY: str = ""
+
+    # ── Grounded Chat Policy ──────────────────────────────────────────────────
+    # Hard rule: web search only when [Web] signal present in user message
+    CHAT_WEB_SIGNAL: str = "[Web]"
+    CHAT_WEB_REQUIRES_SIGNAL: bool = True
+    # Minimum number of usable evidence items required before generating an answer
+    CHAT_MIN_EVIDENCE_COUNT: int = 1
+    # Minimum cosine similarity score for a chunk to be considered usable evidence
+    CHAT_MIN_RELEVANCE_SCORE: float = 0.50
+    # Policy mode for /ai/chat/grounded: strict_grounded | grounded_with_explicit_uncertainty
+    #   | draft_mode | block_on_insufficient_evidence
+    CHAT_POLICY_MODE: str = "strict_grounded"
+    # Fallback message when no internal evidence is found (must not be changed lightly)
+    CHAT_FALLBACK_MESSAGE: str = "Ich konnte in den Tickets und Confluence Artikeln nichts finden."
+
+    # ── Stripe ─────────────────────────────────────────────────────────────────
+    STRIPE_SECRET_KEY: str = ""             # sk_live_... or sk_test_...
+    STRIPE_PUBLISHABLE_KEY: str = ""        # pk_live_... or pk_test_...
+    STRIPE_WEBHOOK_SECRET: str = ""         # whsec_...
+
+    # ── PayPal ─────────────────────────────────────────────────────────────────
+    PAYPAL_CLIENT_ID: str = ""
+    PAYPAL_CLIENT_SECRET: str = ""
+    PAYPAL_WEBHOOK_ID: str = ""
+    PAYPAL_LIVE_MODE: bool = False          # False = sandbox
+
+    # ── Billing defaults ───────────────────────────────────────────────────────
+    # Set BILLING_ENABLED=false to disable the paywall (dev/self-hosted)
+    BILLING_ENABLED: bool = True
+    # Free trial duration in days (0 = no trial)
+    BILLING_TRIAL_DAYS: int = 14
 
     # Contact form / outbound SMTP
     SMTP_HOST: str = "smtp.hostinger.com"

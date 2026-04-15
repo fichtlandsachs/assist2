@@ -12,7 +12,7 @@ import useSWR from "swr";
 import type { User, UserStory, Process } from "@/types";
 import {
   Building2, Mail, CalendarDays, AlertCircle,
-  Layers, Cloud, CheckCircle, Trash2, Plus, Eye, EyeOff, RefreshCw, UserCircle2, Sparkles,
+  Layers, Cloud, CheckCircle, Trash2, Plus, Eye, EyeOff, RefreshCw, UserCircle2, Sparkles, CreditCard,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ function SectionMessage({ msg }: { msg: { type: "success" | "error"; text: strin
 
 // ── Tab definitions ────────────────────────────────────────────────────────
 
-const TAB_IDS = ["profile", "general", "email", "calendar", "jira", "confluence", "processes", "ai"] as const;
+const TAB_IDS = ["profile", "general", "email", "calendar", "jira", "confluence", "processes", "ai", "billing"] as const;
 type TabId = typeof TAB_IDS[number];
 
 // ── Section: Profile ───────────────────────────────────────────────────────
@@ -1285,6 +1285,7 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
     { id: "confluence" as const, label: t("settings_tab_confluence"), Icon: Cloud },
     { id: "processes" as const,  label: t("process_manage_title"),    Icon: Layers },
     { id: "ai" as const,         label: t("settings_tab_ai"),         Icon: Sparkles },
+    { id: "billing" as const,    label: "Abrechnung",                 Icon: CreditCard },
   ];
 
   const tabFromUrl = searchParams.get("tab") as TabId | null;
@@ -1393,7 +1394,29 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
               )}
             </>
           )}
+          {activeTab === "billing" && (
+            <BillingInline orgSlug={resolvedParams.org} orgId={org.id} />
+          )}
       </div>
+    </div>
+  );
+}
+
+// ── Billing Inline component ───────────────────────────────────────────────
+
+function BillingInline({ orgSlug, orgId }: { orgSlug: string; orgId: string }) {
+  const billingPath = `/${orgSlug}/settings/billing`;
+  // Use Link to navigate to the dedicated billing sub-page
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 py-12">
+      <p className="text-sm text-[var(--ink-faint)]">Abrechnung & Nutzung wird auf der nächsten Seite angezeigt.</p>
+      <a
+        href={billingPath}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-red)] text-white rounded-sm text-sm font-medium hover:bg-[var(--btn-primary-hover)] transition-colors"
+      >
+        <CreditCard size={15} />
+        Zur Abrechnung
+      </a>
     </div>
   );
 }

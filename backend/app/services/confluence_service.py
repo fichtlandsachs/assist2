@@ -561,7 +561,7 @@ REGELN:
     settings = get_settings()
     ai_client = openai_sdk.OpenAI(
         base_url=f"{settings.LITELLM_URL}/v1",
-        api_key=settings.LITELLM_API_KEY or "sk-assist2",
+        api_key=settings.LITELLM_API_KEY or "sk-heykarl",
         timeout=120,
         max_retries=0,
     )

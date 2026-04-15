@@ -26,6 +26,7 @@ class RagChunk:
     source_type:  str
     source_url:   str | None
     source_title: str | None
+    indexed_at:   str | None = None  # created_at from DB, ISO string
 
 
 @dataclass
@@ -92,6 +93,7 @@ async def retrieve(
                        source_type,
                        source_url,
                        source_title,
+                       created_at,
                        1 - (embedding <=> :embedding ::vector) AS score
                 FROM document_chunks
                 WHERE org_id = :org_id
@@ -111,6 +113,7 @@ async def retrieve(
                        source_type,
                        source_url,
                        source_title,
+                       created_at,
                        1 - (embedding <=> :embedding ::vector) AS score
                 FROM document_chunks
                 WHERE org_id = :org_id
@@ -141,6 +144,7 @@ async def retrieve(
                 source_type=top.source_type,
                 source_url=top.source_url,
                 source_title=top.source_title,
+                indexed_at=top.created_at.isoformat() if top.created_at else None,
             )],
         )
 
@@ -154,6 +158,7 @@ async def retrieve(
                 source_type=r.source_type,
                 source_url=r.source_url,
                 source_title=r.source_title,
+                indexed_at=r.created_at.isoformat() if r.created_at else None,
             )
             for r in qualifying[:MAX_CHUNKS]
         ]

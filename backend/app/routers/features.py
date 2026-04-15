@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.deps import get_current_user
+from app.core.billing_guard import require_active_subscription
 from app.models.feature import Feature
 from app.models.user import User
 from app.models.user_story import UserStory
@@ -56,6 +57,7 @@ async def create_feature(
     data: FeatureCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    _billing=Depends(require_active_subscription),
 ) -> FeatureRead:
     feature = Feature(
         organization_id=org_id,

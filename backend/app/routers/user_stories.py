@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal, get_db
 from app.deps import get_current_user
+from app.core.billing_guard import require_active_subscription
 from app.models.user import User
 from app.models.user_story import UserStory, StoryStatus
 from app.models.test_case import TestCase
@@ -178,6 +179,7 @@ async def create_user_story(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    _billing=Depends(require_active_subscription),
 ) -> UserStoryRead:
     """Create a new user story in the given organization."""
     story = UserStory(
@@ -186,6 +188,7 @@ async def create_user_story(
         title=data.title,
         description=data.description,
         acceptance_criteria=data.acceptance_criteria,
+        definition_of_done=data.definition_of_done,
         priority=data.priority,
         story_points=data.story_points,
         epic_id=data.epic_id,
@@ -199,6 +202,12 @@ async def create_user_story(
     )
     analyze_story_task.delay(str(story.id), str(org_id))
     embed_story_task.delay(str(story.id), str(org_id))
+    # Index into document_chunks so the chat RAG can find this story immediately
+    from app.models.organization import Organization as _Org
+    _org_res = await db.execute(select(_Org).where(_Org.id == org_id))
+    _org = _org_res.scalar_one_or_none()
+    _org_slug = _org.slug if _org else str(org_id)
+    index_story_knowledge.delay(str(story.id), str(org_id), _org_slug)
     return UserStoryRead.model_validate(story)
 
 
@@ -270,8 +279,11 @@ async def update_user_story(
     if data.status is not None and data.status == StoryStatus.done and old_status != StoryStatus.done:
         generate_story_pdf.delay(str(story.id), str(story.organization_id))
 
-    # Dispatch knowledge indexing when story reaches ready or done
-    if data.status is not None and data.status in (StoryStatus.ready, StoryStatus.done):
+    # Re-index story knowledge whenever content or status changes
+    _content_changed = any(
+        k in update_data for k in ("title", "description", "acceptance_criteria", "status")
+    )
+    if _content_changed:
         from app.models.organization import Organization
         org_result = await db.execute(
             select(Organization).where(Organization.id == story.organization_id)
@@ -965,7 +977,15 @@ async def publish_docs_to_confluence(
         )
         story.confluence_page_url = confluence_url
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Confluence-Fehler: {exc}") from exc
+        import httpx as _httpx
+        detail = str(exc)
+        if isinstance(exc, _httpx.HTTPStatusError):
+            try:
+                body = exc.response.json()
+                detail = body.get("message") or body.get("detail") or (body.get("errorMessages") or [detail])[0]
+            except Exception:
+                detail = f"HTTP {exc.response.status_code}: {exc.response.text[:300]}"
+        raise HTTPException(status_code=502, detail=f"Confluence-Fehler: {detail}") from exc
 
     # Link Confluence page to Jira ticket if we have credentials + ticket key
     if story.jira_ticket_key:

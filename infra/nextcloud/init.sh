@@ -9,10 +9,10 @@
 
 set -euo pipefail
 
-NC_EXEC="docker exec --user www-data assist2-nextcloud php /var/www/html/occ"
+NC_EXEC="docker exec --user www-data heykarl-nextcloud php /var/www/html/occ"
 
 echo "=== Warte bis Nextcloud bereit ist ==="
-until docker exec assist2-nextcloud curl -sf http://localhost/status.php | grep -q '"installed":true'; do
+until docker exec heykarl-nextcloud curl -sf http://localhost/status.php | grep -q '"installed":true'; do
   echo "Nextcloud nicht bereit, warte 5s..."
   sleep 5
 done

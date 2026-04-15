@@ -2,17 +2,18 @@
 import asyncio
 import logging
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, field_validator
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import get_settings
+from app.database import get_db
+from app.services.system_settings_service import RuntimeSettings, get_runtime_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Contact"])
-settings = get_settings()
 
 
 class DemoBookingRequest(BaseModel):
@@ -36,14 +37,7 @@ class DemoBookingRequest(BaseModel):
         return v.strip()
 
 
-def _send_email_sync(data: DemoBookingRequest) -> None:
-    smtp_host = settings.SMTP_HOST
-    smtp_port = settings.SMTP_PORT
-    smtp_user = settings.SMTP_USER
-    smtp_pass = settings.SMTP_PASS
-    from_addr = settings.SMTP_FROM
-    to_addr = settings.CONTACT_EMAIL_TO
-
+def _send_email_sync(data: DemoBookingRequest, s: RuntimeSettings) -> None:
     body = f"""Neue Demo-Anfrage von heykarl.app
 
 Name:         {data.name}
@@ -58,39 +52,41 @@ Nachricht:
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"Demo-Anfrage: {data.name} ({data.company})"
-    msg["From"] = from_addr
-    msg["To"] = to_addr
+    msg["From"] = s.SMTP_FROM
+    msg["To"] = s.CONTACT_EMAIL_TO
     msg["Reply-To"] = str(data.email)
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
-    try:
-        if smtp_user and smtp_pass:
-            # Relay mode (STARTTLS on port 587 or SSL on 465)
-            if smtp_port == 465:
-                with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10) as s:
-                    s.login(smtp_user, smtp_pass)
-                    s.sendmail(from_addr, [to_addr], msg.as_string())
-            else:
-                with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as s:
-                    s.ehlo()
-                    s.starttls()
-                    s.login(smtp_user, smtp_pass)
-                    s.sendmail(from_addr, [to_addr], msg.as_string())
+    if s.SMTP_USER and s.SMTP_PASS:
+        if s.SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(s.SMTP_HOST, s.SMTP_PORT, timeout=10) as conn:
+                conn.login(s.SMTP_USER, s.SMTP_PASS)
+                conn.sendmail(s.SMTP_FROM, [s.CONTACT_EMAIL_TO], msg.as_string())
         else:
-            # Direct MX delivery (no credentials)
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as s:
-                s.ehlo("heykarl.app")
-                s.sendmail(from_addr, [to_addr], msg.as_string())
-    except Exception as e:
-        logger.error("Failed to send demo booking email: %s", e)
-        raise
+            with smtplib.SMTP(s.SMTP_HOST, s.SMTP_PORT, timeout=10) as conn:
+                conn.ehlo()
+                conn.starttls()
+                conn.login(s.SMTP_USER, s.SMTP_PASS)
+                conn.sendmail(s.SMTP_FROM, [s.CONTACT_EMAIL_TO], msg.as_string())
+    else:
+        with smtplib.SMTP(s.SMTP_HOST, s.SMTP_PORT, timeout=10) as conn:
+            conn.ehlo("heykarl.app")
+            conn.sendmail(s.SMTP_FROM, [s.CONTACT_EMAIL_TO], msg.as_string())
 
 
 @router.post("/contact/demo", status_code=200)
-async def book_demo(data: DemoBookingRequest):
+async def book_demo(
+    data: DemoBookingRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    # Always log the request so no lead is lost even if email fails
+    logger.info(
+        "DEMO REQUEST — Name: %s | Company: %s | Email: %s | Phone: %s | TeamSize: %s | Message: %s",
+        data.name, data.company, data.email, data.phone, data.team_size, data.message,
+    )
+    s = await get_runtime_settings(db)
     try:
-        await asyncio.get_event_loop().run_in_executor(None, _send_email_sync, data)
+        await asyncio.get_event_loop().run_in_executor(None, _send_email_sync, data, s)
     except Exception as e:
-        logger.error("Demo booking email error: %s", e)
-        raise HTTPException(status_code=502, detail="E-Mail konnte nicht gesendet werden. Bitte versuche es später erneut.")
+        logger.error("Demo booking email delivery failed (request still logged above): %s", e)
     return {"ok": True}

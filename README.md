@@ -1,4 +1,4 @@
-# assist2
+# heykarl
 
 **Compliance-fähiges Prozessdokumentationssystem mit BCM-Fokus**
 
@@ -6,18 +6,18 @@ Automatisierte Generierung strukturierter Prozessdokumentation, Draw.io-Diagramm
 und Compliance-Analysen (NIS2 / KRITIS / BCM) aus User Stories, Anforderungen
 und technischen Artefakten.
 
-assist2 ist kein generischer Textgenerator – sondern eine **regelbasierte,
+heykarl ist kein generischer Textgenerator – sondern eine **regelbasierte,
 templategetriebene, auditierbare Dokumentations-Engine**.
 
 ---
 
-## Was ist assist2?
+## Was ist heykarl?
 
 Compliance-Dokumentation entsteht heute durch manuelle, fehleranfällige Arbeit:
 Consultants lesen User Stories, leiten Prozesse ab, füllen Templates aus,
 prüfen gegen NIS2/KRITIS-Anforderungen und pflegen Draw.io-Diagramme.
 
-assist2 automatisiert genau diesen Prozess – mit einem entscheidenden Unterschied
+heykarl automatisiert genau diesen Prozess – mit einem entscheidenden Unterschied
 zu generischen KI-Tools: **Das System erfindet keine Informationen.**
 Fehlende Daten werden explizit markiert, Compliance wird nie automatisch bestätigt,
 jede Ableitung ist auf ihre Quelle zurückführbar.
@@ -140,8 +140,8 @@ Phase 1 (implementiert zuerst):
 ## Schnellstart
 
 ```bash
-git clone https://github.com/fichtlandsachs/assist2.git
-cd assist2
+git clone https://github.com/fichtlandsachs/heykarl.git
+cd heykarl
 cp .env.example .env
 # LITELLM_API_BASE, ANTHROPIC_API_KEY, DB-URL,
 # JIRA_URL, JIRA_TOKEN, CONFLUENCE_URL eintragen
@@ -153,7 +153,7 @@ docker compose up
 ## Projektstruktur
 
 ```
-assist2/
+heykarl/
 ├── backend/
 │   ├── app/
 │   │   ├── api/              # FastAPI Routen

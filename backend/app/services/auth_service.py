@@ -1,14 +1,15 @@
-"""Authentication service — proxies all auth operations to Authentik."""
+"""Authentication service — bcrypt password verification + HS256 JWTs."""
 import logging
-import secrets
+import re
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 import bcrypt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictException, UnauthorizedException
+from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.schemas.organization import OrgCreate
@@ -32,13 +33,11 @@ def _verify_password(plain: str, hashed: str) -> bool:
 class AuthService:
     async def login(self, db: AsyncSession, data: LoginRequest) -> TokenResponse:
         """
-        Authenticate a user.
+        Authenticate a user via bcrypt + issue HS256 JWTs.
 
         1. Look up user in local DB.
         2. Verify password against bcrypt hash.
-        3. Create a short-lived Authentik app-password token for that user.
-        4. Exchange it via grant_type=password for OIDC tokens.
-        5. Delete the app-password token.
+        3. Issue HS256 access + refresh tokens.
         """
         result = await db.execute(
             select(User).where(
@@ -55,34 +54,18 @@ class AuthService:
         if not _verify_password(data.password, user.password_hash):
             raise UnauthorizedException(detail="Invalid email or password")
 
-        if not user.authentik_id:
-            raise UnauthorizedException(detail="Account not provisioned to identity provider")
+        token_data = {"sub": str(user.id), "email": user.email}
+        access_token = create_access_token(token_data)
+        refresh_token = create_refresh_token(token_data)
 
-        # Authentik pk is stored as string in authentik_id column
-        authentik_pk = int(user.authentik_id)
-        identifier = f"login-{uuid.uuid4().hex}"
-        expires = (datetime.now(timezone.utc) + timedelta(minutes=2)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
-
-        app_password_key = await authentik_client.create_app_password(
-            authentik_pk=authentik_pk,
-            identifier=identifier,
-            expires=expires,
-        )
-        try:
-            tokens = await authentik_client.authenticate_user(
-                username=data.email.lower(),
-                app_password=app_password_key,
-            )
-        finally:
-            await authentik_client.delete_app_password(identifier)
-
-        # Update last_login_at
         user.last_login_at = datetime.now(timezone.utc)
         await db.commit()
 
-        return tokens
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+        )
 
     async def register(self, db: AsyncSession, data: RegisterRequest) -> TokenResponse:
         """
@@ -95,11 +78,15 @@ class AuthService:
         if existing.scalar_one_or_none():
             raise ConflictException(detail="An account with this email already exists")
 
-        authentik_id = await authentik_client.create_user(
-            email=data.email.lower(),
-            password=data.password,
-            display_name=data.display_name,
-        )
+        authentik_id: str | None = None
+        try:
+            authentik_id = await authentik_client.create_user(
+                email=data.email.lower(),
+                password=data.password,
+                display_name=data.display_name,
+            )
+        except Exception as e:
+            logger.warning("Authentik user creation failed (continuing without IdP sync): %s", e)
 
         locale = data.locale if data.locale in ("de", "en") else "de"
         user = User(
@@ -116,7 +103,6 @@ class AuthService:
         await db.refresh(user)
 
         # Create organization and make user the owner
-        import re
         base_slug = re.sub(r"[^a-z0-9]+", "-", data.organization_name.lower()).strip("-")
         base_slug = base_slug[:48] if len(base_slug) > 48 else base_slug
         if len(base_slug) < 2:
@@ -134,12 +120,22 @@ class AuthService:
         return await self.login(db, LoginRequest(email=data.email.lower(), password=data.password))
 
     async def refresh(self, db: AsyncSession, refresh_token: str) -> TokenResponse:
-        """Refresh token pair via Authentik."""
-        return await authentik_client.refresh_token(refresh_token)
+        """Issue a new HS256 access token from a valid refresh token."""
+        payload = decode_token(refresh_token)
+        if payload.get("type") != "refresh":
+            raise UnauthorizedException(detail="Invalid refresh token")
+        token_data = {"sub": payload["sub"], "email": payload.get("email", "")}
+        new_access = create_access_token(token_data)
+        new_refresh = create_refresh_token(token_data)
+        return TokenResponse(
+            access_token=new_access,
+            refresh_token=new_refresh,
+            token_type="bearer",
+        )
 
     async def logout(self, db: AsyncSession, refresh_token: str) -> None:
-        """Revoke refresh token in Authentik."""
-        await authentik_client.revoke_token(refresh_token)
+        """No-op: stateless HS256 tokens expire on their own."""
+        pass
 
 
 auth_service = AuthService()

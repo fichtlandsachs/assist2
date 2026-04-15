@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# assist2 + Ghost + Traefik — Full-Stack Installer
+# heykarl + Ghost + Traefik — Full-Stack Installer
 # Reproduced from production layout on a fresh Debian VM.
 #
 # Usage:
@@ -57,13 +57,13 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-section "Welcome to the assist2 installer"
+section "Welcome to the heykarl installer"
 # ─────────────────────────────────────────────────────────────────────────────
 echo -e "This script will:"
 echo -e "  1. Install Docker + dependencies"
-echo -e "  2. Check out the assist2 and Ghost repositories"
+echo -e "  2. Check out the heykarl and Ghost repositories"
 echo -e "  3. Generate secrets and write .env files"
-echo -e "  4. Start Traefik → assist2 → Ghost"
+echo -e "  4. Start Traefik → heykarl → Ghost"
 echo -e "  5. Run database migrations and seed data"
 echo -e "  6. Optionally run the Nextcloud post-install wizard"
 echo ""
@@ -232,11 +232,11 @@ section "Step 3 — Repository checkout"
 # ─────────────────────────────────────────────────────────────────────────────
 
 if [[ -z "$REPO_URL" ]]; then
-  REPO_URL=$(prompt REPO_URL "Git repository URL for assist2" "")
+  REPO_URL=$(prompt REPO_URL "Git repository URL for heykarl" "")
 fi
 
 if [[ ! -d /opt/assist2/.git ]]; then
-  info "Cloning assist2 into /opt/assist2…"
+  info "Cloning heykarl into /opt/assist2…"
   git clone --branch "$GIT_BRANCH" "$REPO_URL" /opt/assist2
   ok "Cloned."
 else
@@ -452,7 +452,7 @@ find /opt/assist2/infra/traefik/dynamic -name "*.yml" \
   -exec sed -i "s/heykarl\.app/${DOMAIN}/g" {} \; \
   -exec sed -i "s/certresolver: letsencrypt/certresolver: ${CERT_RESOLVER}/g" {} \;
 
-# assist2 .env
+# heykarl .env
 cat > /opt/assist2/infra/.env << EOF
 # ── Core ──────────────────────────────────────────────────────────────────────
 DOMAIN=${DOMAIN}
@@ -582,15 +582,15 @@ ok "Traefik started."
 sleep 3
 
 # ─────────────────────────────────────────────────────────────────────────────
-section "Step 8 — Start assist2 core services"
+section "Step 8 — Start heykarl core services"
 # ─────────────────────────────────────────────────────────────────────────────
 info "Starting PostgreSQL, Redis, Authentik…"
 docker compose -f /opt/assist2/infra/docker-compose.yml \
   --env-file /opt/assist2/infra/.env \
   up -d postgres redis authentik-db authentik-server authentik-worker
 
-wait_healthy assist2-postgres 120
-wait_healthy assist2-redis 60
+wait_healthy heykarl-postgres 120
+wait_healthy heykarl-redis 60
 
 info "Starting LiteLLM…"
 docker compose -f /opt/assist2/infra/docker-compose.yml \
@@ -602,25 +602,25 @@ docker compose -f /opt/assist2/infra/docker-compose.yml \
   --env-file /opt/assist2/infra/.env \
   up -d backend worker frontend admin-frontend
 
-wait_healthy assist2-backend 120
+wait_healthy heykarl-backend 120
 
 info "Starting remaining services (n8n, Nextcloud, Whisper, Stirling-PDF)…"
 docker compose -f /opt/assist2/infra/docker-compose.yml \
   --env-file /opt/assist2/infra/.env \
   up -d
 
-ok "All assist2 services started."
+ok "All heykarl services started."
 
 # ─────────────────────────────────────────────────────────────────────────────
 section "Step 9 — Database migrations and seed"
 # ─────────────────────────────────────────────────────────────────────────────
 info "Running Alembic migrations…"
-docker exec assist2-backend \
+docker exec heykarl-backend \
   sh -c "cd /app && alembic upgrade head"
 ok "Migrations complete."
 
 info "Seeding system roles and permissions…"
-docker exec assist2-backend \
+docker exec heykarl-backend \
   sh -c "cd /app && python -m app.scripts.seed" 2>/dev/null \
   || warn "Seed script not found or failed — run manually if needed."
 ok "Seed complete."
@@ -640,7 +640,7 @@ section "Step 11 — Optional: Nextcloud post-install"
 echo ""
 read -rp "$(echo -e "${BOLD}Run Nextcloud post-install wizard now? [y/N]:${NC} ")" run_nc </dev/tty
 if [[ "${run_nc,,}" == "y" ]]; then
-  wait_healthy assist2-nextcloud 180
+  wait_healthy heykarl-nextcloud 180
   info "Running Nextcloud init script…"
   source /opt/assist2/infra/.env
   bash /opt/assist2/infra/nextcloud/init.sh

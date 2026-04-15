@@ -6,10 +6,10 @@
 IDLE_SECONDS=7200  # 2 Stunden
 STATE_DIR=/var/lib/idle-stop
 CONTAINERS=(
-    "assist2-pgadmin"
-    "assist2-phpmyadmin"
-    "assist2-redis-commander"
-    "assist2-openwebui"
+    "heykarl-pgadmin"
+    "heykarl-phpmyadmin"
+    "heykarl-redis-commander"
+    "heykarl-openwebui"
 )
 
 mkdir -p "$STATE_DIR"

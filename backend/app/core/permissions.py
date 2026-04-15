@@ -25,6 +25,7 @@ SYSTEM_PERMISSIONS: dict[str, list[str]] = {
         "story:read", "story:create", "story:update", "story:delete",
         "inbox:read", "inbox:manage", "inbox:update",
         "calendar:read", "calendar:manage", "calendar:create",
+        "billing:read", "billing:manage",
     ],
     "org_member": [
         "org:read",
@@ -36,6 +37,7 @@ SYSTEM_PERMISSIONS: dict[str, list[str]] = {
         "story:read", "story:create", "story:update",
         "inbox:read", "inbox:update",
         "calendar:read", "calendar:create",
+        "billing:read",
     ],
     "org_guest": [
         "org:read",

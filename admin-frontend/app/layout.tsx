@@ -9,16 +9,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=Architects+Daughter&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body style={{ fontFamily: "var(--font-body)", color: "var(--ink)" }}>
+    <html lang="de" data-theme="karl">
+      <body style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "var(--ink)" }}>
         {children}
       </body>
     </html>

@@ -136,7 +136,7 @@ def _make_client(task_category: str, ai_settings: dict | None = None, complexity
 
     litellm = openai_sdk.OpenAI(
         base_url=f"{settings.LITELLM_URL}/v1",
-        api_key=settings.LITELLM_API_KEY or "sk-assist2",
+        api_key=settings.LITELLM_API_KEY or "sk-heykarl",
         timeout=90,
         max_retries=0,
     )

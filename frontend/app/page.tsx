@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MarketingTopbar } from "@/components/marketing/Topbar";
 import {
   ArrowRight,
   CheckCircle,
@@ -13,55 +14,6 @@ import {
   Terminal,
 } from "lucide-react";
 
-/* ── Topbar ────────────────────────────────────────────────────── */
-function Topbar() {
-  return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A] border-b-2 border-[#0A0A0A]">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="font-heading font-800 text-xl text-white tracking-tight">
-            assist
-            <span className="text-[#FF5C00]">2</span>
-          </span>
-          <span className="hidden sm:inline-block text-[10px] font-heading font-700 bg-[#FF5C00] text-[#0A0A0A] px-1.5 py-0.5 uppercase tracking-widest">
-            BCM
-          </span>
-        </Link>
-
-        {/* Nav */}
-        <nav className="hidden md:flex items-center gap-1">
-          {["Funktionen", "Preise", "Docs"].map((item) => (
-            <Link
-              key={item}
-              href={`/${item.toLowerCase()}`}
-              className="font-heading font-500 text-sm text-white/80 hover:text-white px-4 py-2 transition-colors"
-            >
-              {item}
-            </Link>
-          ))}
-        </nav>
-
-        {/* CTAs */}
-        <div className="flex items-center gap-3">
-          <Link
-            href="/demo"
-            className="neo-btn neo-btn--outline neo-btn--sm hidden sm:inline-flex bg-transparent text-white border-white hover:bg-white hover:text-[#0A0A0A]"
-          >
-            Demo buchen
-          </Link>
-          <Link
-            href="/dashboard"
-            className="neo-btn neo-btn--orange neo-btn--sm font-heading font-700"
-          >
-            Kostenlos starten
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
 
 /* ── Hero Mock UI ───────────────────────────────────────────────── */
 function HeroMockUI() {
@@ -250,14 +202,16 @@ function HeroSection() {
             <div className="flex flex-wrap gap-4 mb-10">
               <Link
                 href="/dashboard"
-                className="neo-btn neo-btn--orange neo-btn--lg font-heading font-700"
+                className="neo-btn neo-btn--lg font-heading font-700 text-white"
+                style={{ background: "#FF5C00", borderColor: "#0A0A0A", boxShadow: "4px 4px 0 #0A0A0A" }}
               >
                 Kostenlos starten
                 <ArrowRight size={18} />
               </Link>
               <Link
                 href="/demo"
-                className="neo-btn neo-btn--outline neo-btn--lg font-heading font-600"
+                className="neo-btn neo-btn--lg font-heading font-600"
+                style={{ background: "transparent", borderColor: "#0A0A0A", color: "#0A0A0A" }}
               >
                 Live-Demo ansehen
               </Link>
@@ -576,7 +530,8 @@ function CTASection() {
         <div className="flex flex-wrap gap-4 justify-center">
           <Link
             href="/dashboard"
-            className="neo-btn neo-btn--default neo-btn--lg font-heading font-700 shadow-[4px_4px_0px_#FFD700] hover:shadow-[6px_6px_0px_#FFD700]"
+            className="neo-btn neo-btn--lg font-heading font-700 text-white shadow-[4px_4px_0px_#FFD700] hover:shadow-[6px_6px_0px_#FFD700]"
+            style={{ background: "#FF5C00", borderColor: "#0A0A0A" }}
           >
             Kostenlos starten — 0 EUR
             <ArrowRight size={20} />
@@ -620,7 +575,7 @@ function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <div className="font-heading font-800 text-2xl text-white mb-3">
-              assist<span className="text-[#FF5C00]">2</span>
+              hey<span className="text-[#FF5C00]">Karl</span>
             </div>
             <p className="text-[#888] text-sm leading-relaxed mb-6">
               Die Compliance-Dokumentationsplattform für NIS2, KRITIS und
@@ -691,7 +646,7 @@ function Footer() {
 export default function LandingPage() {
   return (
     <>
-      <Topbar />
+      <MarketingTopbar />
       <main>
         <HeroSection />
         <FeaturesSection />

@@ -23,7 +23,7 @@ function ToolSection({
   config: ConfigMap;
   onSaved: () => void;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [values, setValues] = useState<Record<string, string | null>>({});
   const [editing, setEditing] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -65,13 +65,10 @@ function ToolSection({
   }
 
   return (
-    <div
-      className="rounded-sm border"
-      style={{ borderColor: "var(--paper-rule)", background: "var(--card)" }}
-    >
+    <div className="neo-card">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-left"
+        className="w-full flex items-center justify-between px-5 py-4 text-sm font-bold text-left"
         style={{ color: "var(--ink)" }}
       >
         <span>{title}</span>
@@ -83,7 +80,7 @@ function ToolSection({
       </button>
 
       {open && (
-        <div className="px-5 pb-5 space-y-4 border-t" style={{ borderColor: "var(--paper-rule)" }}>
+        <div className="px-5 pb-5 space-y-4 border-t-2" style={{ borderColor: "var(--paper-rule)" }}>
           <div className="pt-4 space-y-3">
             {fields.map((f) => {
               const entry = config[f.key];
@@ -114,8 +111,7 @@ function ToolSection({
                       <button
                         type="button"
                         onClick={() => setEditing((e) => ({ ...e, [f.key]: true }))}
-                        className="text-xs px-2 py-1.5 rounded-sm border transition-colors"
-                        style={{ borderColor: "var(--paper-rule)", color: "var(--ink-mid)" }}
+                        className="neo-btn neo-btn--outline neo-btn--sm"
                       >
                         Ändern
                       </button>
@@ -128,14 +124,7 @@ function ToolSection({
                         setValues((v) => ({ ...v, [f.key]: e.target.value || null }))
                       }
                       placeholder={f.placeholder ?? ""}
-                      className="w-full px-3 py-1.5 text-sm border rounded-sm outline-none"
-                      style={{
-                        borderColor: "var(--paper-rule)",
-                        background: "var(--card)",
-                        color: "var(--ink)",
-                      }}
-                      onFocus={(e) => (e.target.style.borderColor = "var(--accent-red)")}
-                      onBlur={(e) => (e.target.style.borderColor = "var(--paper-rule)")}
+                      className="neo-input w-full text-sm"
                     />
                   )}
                 </div>
@@ -147,14 +136,13 @@ function ToolSection({
             <button
               onClick={() => void handleSave()}
               disabled={saving}
-              className="px-4 py-1.5 text-xs font-medium rounded-sm text-white transition-colors disabled:opacity-50"
-              style={{ background: "var(--accent-red)" }}
+              className="neo-btn neo-btn--default neo-btn--sm"
             >
               {saving ? "Speichern…" : "Speichern"}
             </button>
             {savedMsg && (
-              <span className="text-xs" style={{ color: "#526b5e" }}>
-                Gespeichert
+              <span className="text-xs" style={{ color: "var(--green)" }}>
+                Gespeichert ✓
               </span>
             )}
           </div>
@@ -211,10 +199,7 @@ function SSOSubsection({
   }
 
   return (
-    <div
-      className="p-4 rounded-sm border space-y-3"
-      style={{ borderColor: "var(--paper-rule)" }}
-    >
+    <div className="neo-card p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium" style={{ color: "var(--ink)" }}>
           {title}
@@ -245,8 +230,7 @@ function SSOSubsection({
           type="text"
           value={clientId}
           onChange={(e) => setClientId(e.target.value)}
-          className="w-full px-3 py-1.5 text-sm border rounded-sm outline-none"
-          style={{ borderColor: "var(--paper-rule)", background: "var(--card)", color: "var(--ink)" }}
+          className="neo-input w-full text-sm"
         />
       </div>
 
@@ -269,8 +253,7 @@ function SSOSubsection({
             <button
               type="button"
               onClick={() => setEditSecret(true)}
-              className="text-xs px-2 py-1.5 rounded-sm border"
-              style={{ borderColor: "var(--paper-rule)", color: "var(--ink-mid)" }}
+              className="neo-btn neo-btn--outline neo-btn--sm"
             >
               Ändern
             </button>
@@ -281,8 +264,7 @@ function SSOSubsection({
             value={secret ?? ""}
             onChange={(e) => setSecret(e.target.value || null)}
             placeholder="Neues Secret eingeben"
-            className="w-full px-3 py-1.5 text-sm border rounded-sm outline-none"
-            style={{ borderColor: "var(--paper-rule)", background: "var(--card)", color: "var(--ink)" }}
+            className="neo-input w-full text-sm"
           />
         )}
       </div>
@@ -291,17 +273,50 @@ function SSOSubsection({
         <button
           onClick={() => void handleSave()}
           disabled={saving}
-          className="px-4 py-1.5 text-xs font-medium rounded-sm text-white disabled:opacity-50"
-          style={{ background: "var(--accent-red)" }}
+          className="neo-btn neo-btn--default neo-btn--sm"
         >
           {saving ? "Speichern…" : "Speichern"}
         </button>
         {savedMsg && (
-          <span className="text-xs" style={{ color: "#526b5e" }}>
-            Gespeichert
+          <span className="text-xs" style={{ color: "var(--green)" }}>
+            Gespeichert ✓
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Auth Provider collapsible wrapper ────────────────────────────────────────
+
+function AuthProviderSection({ config, onSaved }: { config: ConfigMap; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="neo-card">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 text-sm font-bold text-left"
+        style={{ color: "var(--ink)" }}
+      >
+        <span>Auth-Provider</span>
+        {open ? (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+        ) : (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+        )}
+      </button>
+      {open && (
+        <div className="px-5 pb-5 space-y-4 border-t-2" style={{ borderColor: "var(--paper-rule)" }}>
+          <div className="pt-4 space-y-4">
+            <SSOSubsection title="Atlassian SSO" enabledKey="atlassian.sso_enabled"
+              clientIdKey="atlassian.client_id" clientSecretKey="atlassian.client_secret"
+              config={config} onSaved={onSaved} />
+            <SSOSubsection title="GitHub SSO" enabledKey="github.sso_enabled"
+              clientIdKey="github.client_id" clientSecretKey="github.client_secret"
+              config={config} onSaved={onSaved} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -349,19 +364,25 @@ export default function SystemSettingsPage() {
 
   return (
     <div className="space-y-4 max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold" style={{ color: "var(--ink)" }}>
-          Systemkonfiguration
-        </h1>
-        <p className="text-sm mt-1" style={{ color: "var(--ink-faint)" }}>
-          Globale Einstellungen für alle integrierten Dienste
-        </p>
-      </div>
+
+      <ToolSection
+        title="SMTP / E-Mail"
+        fields={[
+          { key: "smtp.host",       label: "Host",        placeholder: "smtp.hostinger.com" },
+          { key: "smtp.port",       label: "Port",        placeholder: "587" },
+          { key: "smtp.user",       label: "Benutzer",    placeholder: "info@heykarl.app" },
+          { key: "smtp.pass",       label: "Passwort" },
+          { key: "smtp.from",       label: "Absender",    placeholder: "noreply@heykarl.app" },
+          { key: "smtp.contact_to", label: "Empfänger",   placeholder: "info@heykarl.app" },
+        ]}
+        config={config}
+        onSaved={() => void loadConfig()}
+      />
 
       <ToolSection
         title="LiteLLM"
         fields={[
-          { key: "litellm.url", label: "URL", placeholder: "http://assist2-litellm:4000" },
+          { key: "litellm.url", label: "URL", placeholder: "http://heykarl-litellm:4000" },
           { key: "litellm.api_key", label: "Master API Key" },
         ]}
         config={config}
@@ -371,7 +392,7 @@ export default function SystemSettingsPage() {
       <ToolSection
         title="Nextcloud"
         fields={[
-          { key: "nextcloud.url", label: "URL", placeholder: "http://assist2-nextcloud" },
+          { key: "nextcloud.url", label: "URL", placeholder: "http://heykarl-nextcloud" },
           { key: "nextcloud.admin_user", label: "Admin-Benutzer", placeholder: "admin" },
           { key: "nextcloud.admin_password", label: "Admin-Passwort" },
         ]}
@@ -382,41 +403,14 @@ export default function SystemSettingsPage() {
       <ToolSection
         title="n8n"
         fields={[
-          { key: "n8n.url", label: "URL", placeholder: "http://assist2-n8n:5678" },
+          { key: "n8n.url", label: "URL", placeholder: "http://heykarl-n8n:5678" },
           { key: "n8n.api_key", label: "API Key" },
         ]}
         config={config}
         onSaved={() => void loadConfig()}
       />
 
-      <div
-        className="rounded-sm border"
-        style={{ borderColor: "var(--paper-rule)", background: "var(--card)" }}
-      >
-        <div className="px-5 py-4 border-b" style={{ borderColor: "var(--paper-rule)" }}>
-          <span className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
-            Auth-Provider
-          </span>
-        </div>
-        <div className="px-5 py-4 space-y-4">
-          <SSOSubsection
-            title="Atlassian SSO"
-            enabledKey="atlassian.sso_enabled"
-            clientIdKey="atlassian.client_id"
-            clientSecretKey="atlassian.client_secret"
-            config={config}
-            onSaved={() => void loadConfig()}
-          />
-          <SSOSubsection
-            title="GitHub SSO"
-            enabledKey="github.sso_enabled"
-            clientIdKey="github.client_id"
-            clientSecretKey="github.client_secret"
-            config={config}
-            onSaved={() => void loadConfig()}
-          />
-        </div>
-      </div>
+      <AuthProviderSection config={config} onSaved={() => void loadConfig()} />
 
       <ToolSection
         title="KI-Provider"

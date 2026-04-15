@@ -13,7 +13,7 @@ export default function LoginPage() {
         style={{ borderColor: "var(--paper-rule)", background: "var(--paper-warm)" }}
       >
         <h1 className="text-xl font-semibold mb-2" style={{ color: "var(--ink)" }}>
-          assist2 Admin
+          Karl Admin
         </h1>
         <p className="text-sm mb-6" style={{ color: "var(--ink-faint)" }}>
           Zugang nur für autorisierte Administratoren.

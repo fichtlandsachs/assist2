@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 /**
- * Neobrutalist badge system for assist2.
+ * Neobrutalist badge system for heykarl.
  *
  * Status variants (compliance tracking):
  *   direct      — teal bg  — DIRECT mapping to regulation

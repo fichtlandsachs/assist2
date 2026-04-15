@@ -3,7 +3,7 @@
   "name": "Kalender",
   "version": "1.0.0",
   "description": "Google Calendar Integration — synchronisiert Termine in die Plattform.",
-  "author": "assist2",
+  "author": "heykarl",
   "slots": ["dashboard.widget", "sidebar.link"],
   "permissions": ["calendar:read", "calendar:write"],
   "frontend": {

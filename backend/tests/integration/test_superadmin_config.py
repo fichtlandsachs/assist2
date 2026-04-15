@@ -78,7 +78,7 @@ async def test_patch_config_sets_plaintext_value(
 ) -> None:
     r = await client.patch(
         "/api/v1/superadmin/config/",
-        json={"key": "litellm.url", "value": "http://assist2-litellm:4000"},
+        json={"key": "litellm.url", "value": "http://heykarl-litellm:4000"},
         headers=superuser_headers,
     )
     assert r.status_code == 204
@@ -86,7 +86,7 @@ async def test_patch_config_sets_plaintext_value(
     await db.refresh(await db.get(GlobalConfig, "litellm.url") or GlobalConfig())
     row = await db.get(GlobalConfig, "litellm.url")
     assert row is not None
-    assert row.value == "http://assist2-litellm:4000"
+    assert row.value == "http://heykarl-litellm:4000"
     assert row.is_secret is False
 
 

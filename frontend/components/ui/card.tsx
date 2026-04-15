@@ -74,7 +74,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "[font-family:var(--font-serif)] italic font-normal text-xl leading-tight text-[var(--ink)]",
+      "font-semibold text-xl leading-tight text-[var(--ink)]",
       className
     )}
     {...props}
@@ -163,7 +163,7 @@ function StatCard({
           </div>
         )}
       </div>
-      <div className="[font-family:var(--font-serif)] italic font-normal text-4xl text-[var(--ink)] leading-none mb-1">
+      <div className="font-bold text-4xl text-[var(--ink)] leading-none mb-1">
         {value}
       </div>
       {subtext && (

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-One-time migration: provision all existing assist2 users into Authentik.
+One-time migration: provision all existing heykarl users into Authentik.
 
 Usage (run inside backend container):
   python -m scripts.migrate_to_authentik

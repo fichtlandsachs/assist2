@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   LayoutDashboard, Settings, BookOpen, Inbox, CalendarDays, FileText,
   Workflow, Folder, Globe, Bell, Star, Zap, Users, Shield, MessageSquare,
-  X, HardDrive, ChevronRight, ShieldCheck, Sparkles, type LucideIcon,
+  X, HardDrive, ChevronRight, ShieldCheck, Sparkles, Activity, type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { usePluginRegistry } from "@/lib/plugins/registry";
@@ -27,6 +27,7 @@ const NAV_COLORS: Record<string, { icon: string; bg: string }> = {
   "ai-workspace": { icon: "text-indigo-500",  bg: "bg-indigo-50" },
   project:        { icon: "text-teal-500",    bg: "bg-teal-50" },
   stories:        { icon: "text-amber-500",   bg: "bg-amber-50" },
+  readiness:      { icon: "text-orange-500",  bg: "bg-orange-50" },
   inbox:          { icon: "text-sky-500",     bg: "bg-sky-50" },
   calendar:       { icon: "text-emerald-500", bg: "bg-emerald-50" },
   workflows:      { icon: "text-violet-500",  bg: "bg-violet-50" },
@@ -92,10 +93,16 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
     { id: "ai-workspace", label: t("nav_chat"),       icon: MessageSquare, route: `/${orgSlug}/ai-workspace` },
     { id: "project",      label: t("nav_projects"),   icon: Folder,        route: `/${orgSlug}/project` },
     { id: "stories",      label: t("nav_stories"),    icon: BookOpen,      route: `/${orgSlug}/stories` },
+    { id: "readiness",    label: "Meine Story-Lage",  icon: Activity,      route: `/${orgSlug}/stories/readiness` },
     { id: "compliance",   label: t("nav_compliance"), icon: ShieldCheck,   route: `/${orgSlug}/compliance` },
     { id: "dateien",      label: t("nav_files"),      icon: HardDrive,     route: `/${orgSlug}/nextcloud` },
     { id: "docs",         label: t("nav_docs"),       icon: FileText,      route: `/${orgSlug}/docs` },
   ];
+
+  // Active workspace sub-item: most specific matching route wins (prevents parent + child both highlighting)
+  const activeWorkspaceSubItem = workspaceSubItems
+    .filter(i => pathname === i.route || pathname.startsWith(i.route + "/"))
+    .sort((a, b) => b.route.length - a.route.length)[0];
 
   // Settings sub-items (deep-link via ?tab= param)
   const settingsSubItems = [
@@ -116,7 +123,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
     >
       <div className="flex items-center justify-between px-4"
         style={{ height: "var(--topbar-height)", borderBottom: "1px solid var(--sidebar-divider)" }}>
-        <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "13px", color: "var(--sidebar-org-text)" }}>
+        <span style={{ fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600, color: "var(--sidebar-org-text)" }}>
           {orgName ?? orgSlug}
         </span>
         <button onClick={onMobileClose} className="md:hidden p-1 rounded"
@@ -151,7 +158,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           <ChevronRight size={10} style={{ transition: "transform .15s", transform: workspaceOpen ? "rotate(90deg)" : "none", opacity: .5 }} />
         </button>
         {workspaceOpen && workspaceSubItems.map(item => {
-          const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
+          const isActive = activeWorkspaceSubItem?.id === item.id;
           const Icon = item.icon;
           return (
             <Link key={item.id} href={item.route} onClick={onMobileClose}
@@ -297,23 +304,25 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           </span>
           <ChevronRight size={12} className={`text-slate-400 transition-transform ${workspaceOpen ? "rotate-90" : ""}`} />
         </button>
-        {workspaceOpen && workspaceSubItems.map(item => {
-          const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
-          const Icon = item.icon;
-          const colors = NAV_COLORS[item.id] ?? { icon: "text-slate-500", bg: "bg-slate-50" };
-          return (
-            <Link key={item.id} href={item.route} onClick={onMobileClose}
-              className={`sidebar-nav-item flex items-center gap-2 pl-5 pr-3 py-1.5 transition-all${isActive ? " is-active" : ""}`}>
-              <div className="w-1 h-1 rounded-full bg-slate-300 shrink-0" />
-              <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 border-2 transition-all ${isActive ? "border-slate-900/15 " + colors.bg : "border-transparent"}`}>
-                <Icon size={12} strokeWidth={2.5} className={isActive ? colors.icon : "text-slate-400"} />
-              </div>
-              <span className={`text-[12px] font-bold font-['Architects_Daughter'] truncate ${isActive ? "text-slate-900" : "text-slate-500"}`}>
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+        {workspaceOpen && (() => {
+          return workspaceSubItems.map(item => {
+            const isActive = activeWorkspaceSubItem?.id === item.id;
+            const Icon = item.icon;
+            const colors = NAV_COLORS[item.id] ?? { icon: "text-slate-500", bg: "bg-slate-50" };
+            return (
+              <Link key={item.id} href={item.route} onClick={onMobileClose}
+                className={`sidebar-nav-item flex items-center gap-2 pl-5 pr-3 py-1.5 transition-all${isActive ? " is-active" : ""}`}>
+                <div className="w-1 h-1 rounded-full bg-slate-300 shrink-0" />
+                <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 border-2 transition-all ${isActive ? "border-slate-900/15 " + colors.bg : "border-transparent"}`}>
+                  <Icon size={12} strokeWidth={2.5} className={isActive ? colors.icon : "text-slate-400"} />
+                </div>
+                <span className={`text-[12px] font-bold font-['Architects_Daughter'] truncate ${isActive ? "text-slate-900" : "text-slate-500"}`}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+          });
+        })()}
 
         {/* Remaining level-1 items (Posteingang, Kalender, Dateien, Admin) */}
         {navItems.slice(1).map(item => {
@@ -470,7 +479,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           <ChevronRight size={12} style={{ color: "#A0A0A0", transition: "transform .15s", transform: workspaceOpen ? "rotate(90deg)" : "none" }} />
         </button>
         {workspaceOpen && workspaceSubItems.map(item => {
-          const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
+          const isActive = activeWorkspaceSubItem?.id === item.id;
           const Icon = item.icon;
           return (
             <Link key={item.id} href={item.route} onClick={onMobileClose}

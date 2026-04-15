@@ -15,6 +15,7 @@ class UserStoryCreate(BaseModel):
     title: str
     description: Optional[str] = None
     acceptance_criteria: Optional[str] = None
+    definition_of_done: Optional[str] = None
     priority: StoryPriority = StoryPriority.medium
     story_points: Optional[int] = None
     epic_id: Optional[uuid.UUID] = None

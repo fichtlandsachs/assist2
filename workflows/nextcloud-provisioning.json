@@ -48,7 +48,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://assist2-nextcloud/ocs/v1.php/cloud/groups",
+        "url": "http://heykarl-nextcloud/ocs/v1.php/cloud/groups",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -105,7 +105,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://assist2-nextcloud/apps/groupfolders/folders",
+        "url": "http://heykarl-nextcloud/apps/groupfolders/folders",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -156,7 +156,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://assist2-nextcloud/apps/groupfolders/folders/{{ $json.folder_id }}/groups",
+        "url": "=http://heykarl-nextcloud/apps/groupfolders/folders/{{ $json.folder_id }}/groups",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -198,7 +198,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://assist2-nextcloud/ocs/v1.php/cloud/users/admin/groups",
+        "url": "http://heykarl-nextcloud/ocs/v1.php/cloud/users/admin/groups",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -242,7 +242,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://assist2-nextcloud/ocs/v1.php/cloud/users",
+        "url": "http://heykarl-nextcloud/ocs/v1.php/cloud/users",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -311,7 +311,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://assist2-nextcloud/ocs/v1.php/cloud/users/{{ $('Webhook').first().json.body.user.email.split('@')[0] }}/groups",
+        "url": "=http://heykarl-nextcloud/ocs/v1.php/cloud/users/{{ $('Webhook').first().json.body.user.email.split('@')[0] }}/groups",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {

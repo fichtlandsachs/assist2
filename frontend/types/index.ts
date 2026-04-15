@@ -344,6 +344,50 @@ export interface TestCase {
   updated_at: string;
 }
 
+// ─── Story Readiness ─────────────────────────────────────────────
+export type ReadinessState = "not_ready" | "partially_ready" | "mostly_ready" | "implementation_ready";
+
+export interface StoryReadinessEvaluation {
+  id: string;
+  story_id: string;
+  organization_id: string;
+  evaluated_for_user_id: string | null;
+  readiness_score: number;
+  readiness_state: ReadinessState;
+  open_topics: { topic: string; source: string; detail?: string }[];
+  missing_inputs: { input: string; importance: string }[];
+  required_preparatory_work: { task: string; owner?: string; urgency: string }[];
+  dependencies: { name: string; type: string; status: string }[];
+  blockers: { description: string; severity: string }[];
+  risks: { description: string; probability: string; impact: string }[];
+  recommended_next_steps: { step: string; priority: number; responsible?: string }[];
+  summary: string | null;
+  model_used: string | null;
+  confidence: number | null;
+  error_message: string | null;
+  created_at: string;
+}
+
+export interface StoryWithReadiness {
+  story_id: string;
+  title: string;
+  status: string;
+  priority: string;
+  story_points: number | null;
+  epic_id: string | null;
+  epic_title: string | null;
+  latest_evaluation: StoryReadinessEvaluation | null;
+}
+
+export interface MyReadinessResponse {
+  total_stories: number;
+  implementation_ready: number;
+  blocked: number;
+  missing_inputs_count: number;
+  not_ready: number;
+  stories: StoryWithReadiness[];
+}
+
 // ─── Mail ─────────────────────────────────────────────────────────
 export type MailProvider = "gmail" | "outlook" | "imap";
 export type MessageStatus = "unread" | "read" | "archived" | "deleted";

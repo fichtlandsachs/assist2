@@ -98,7 +98,7 @@ export function Topbar({ orgSlug, orgId, onMenuClick }: TopbarProps) {
           <button onClick={onMenuClick} className="md:hidden p-1.5 rounded" style={{ color: "var(--ink-faint)" }} aria-label={t("nav_settings")}>
             <Menu size={16} />
           </button>
-          <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "17px", color: "var(--ink)" }}>
+          <span style={{ fontFamily: "var(--font-body)", fontSize: "17px", fontWeight: 600, color: "var(--ink)" }}>
             {pageTitle}
           </span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--ink-faint)", letterSpacing: ".06em" }}>

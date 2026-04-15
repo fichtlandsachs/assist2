@@ -304,9 +304,13 @@ class JiraService:
         api_token: str,
         from_key: str,
         to_key: str,
-        link_type: str = "relates to",
+        link_type: str = "Relates",
     ) -> None:
-        """Create a Jira issue link between two tickets (basic auth)."""
+        """Create a Jira issue link between two tickets (basic auth).
+
+        link_type must be the Jira link type *name* (e.g. "Relates"), not the
+        direction label (e.g. "relates to" / "is related to").
+        """
         payload = {
             "type": {"name": link_type},
             "inwardIssue": {"key": to_key},
@@ -318,8 +322,21 @@ class JiraService:
                 headers=self._basic_headers(user, api_token),
                 content=json.dumps(payload),
             )
+        if resp.status_code == 404:
+            # Link type not found — try the lowercase fallback used by some instances
+            payload["type"]["name"] = "relates to"
+            async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+                resp = await client.post(
+                    f"{self._basic_base(base_url)}/issueLink",
+                    headers=self._basic_headers(user, api_token),
+                    content=json.dumps(payload),
+                )
         if resp.status_code not in (200, 201):
-            logger.warning("Jira link failed %s→%s: %s %s", from_key, to_key, resp.status_code, resp.text)
+            logger.warning(
+                "Jira link failed %s→%s (type=%s): HTTP %s — %s",
+                from_key, to_key, link_type, resp.status_code, resp.text[:200],
+            )
+            raise ValueError(f"Jira link {from_key}→{to_key} fehlgeschlagen: HTTP {resp.status_code}")
 
     async def get_ticket_basic(
         self,

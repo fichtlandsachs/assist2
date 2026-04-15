@@ -81,19 +81,17 @@ async def embed_story(story_id: str, org_id: str, db: AsyncSession) -> None:
         logger.error("embed_story: LiteLLM call failed for story %s: %s", story_id, e)
         raise
 
-    embedding_str = "[" + ",".join(str(x) for x in embedding_floats) + "]"
-
     if existing is None:
         row = StoryEmbedding(
             organization_id=org_uuid,
             story_id=story_uuid,
-            embedding=embedding_str,
+            embedding=embedding_floats,
             content_hash=content_hash,
             model_used=EMBED_MODEL,
         )
         db.add(row)
     else:
-        existing.embedding = embedding_str
+        existing.embedding = embedding_floats
         existing.content_hash = content_hash
         existing.model_used = EMBED_MODEL
 
