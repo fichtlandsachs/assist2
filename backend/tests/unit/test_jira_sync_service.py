@@ -1,5 +1,6 @@
 import pytest
 import uuid
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from app.models.user_story import UserStory
 
@@ -188,3 +189,41 @@ async def test_sync_story_handles_jira_exception():
 
     assert changed is False
     mock_db.commit.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_maybe_sync_jira_calls_sync_when_stale():
+    """_maybe_sync_jira must call sync when jira_last_synced_at is None."""
+    from app.routers.user_stories import _maybe_sync_jira
+
+    story = MagicMock()
+    story.jira_ticket_key = "PROJ-42"
+    story.jira_last_synced_at = None
+
+    mock_db = AsyncMock()
+    mock_sync = AsyncMock(return_value=True)
+
+    with patch("app.routers.user_stories.JiraSyncService") as MockSvc:
+        MockSvc.return_value.sync_story_from_jira = mock_sync
+        await _maybe_sync_jira(story, mock_db)
+
+    mock_sync.assert_called_once_with(story, mock_db)
+
+
+@pytest.mark.asyncio
+async def test_maybe_sync_jira_skips_when_fresh():
+    """_maybe_sync_jira must NOT sync when jira_last_synced_at is recent (< 5 min)."""
+    from app.routers.user_stories import _maybe_sync_jira
+
+    story = MagicMock()
+    story.jira_ticket_key = "PROJ-42"
+    story.jira_last_synced_at = datetime.now(tz=timezone.utc) - timedelta(minutes=2)
+
+    mock_db = AsyncMock()
+    mock_sync = AsyncMock()
+
+    with patch("app.routers.user_stories.JiraSyncService") as MockSvc:
+        MockSvc.return_value.sync_story_from_jira = mock_sync
+        await _maybe_sync_jira(story, mock_db)
+
+    mock_sync.assert_not_called()

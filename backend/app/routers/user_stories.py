@@ -1,7 +1,9 @@
+import asyncio
 import json
 import logging
 import re
 import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import List, Optional
@@ -66,16 +68,36 @@ from app.models.feature import Feature
 from app.models.project import Project
 from app.services.pdf_service import pdf_service
 from app.services.jira_service import jira_service
+from app.services.jira_sync_service import JiraSyncService
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+_JIRA_SYNC_TTL_MINUTES = 5
+
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+async def _maybe_sync_jira(story: "UserStory", db: "AsyncSession") -> None:
+    """Sync jira_* fields if story has a Jira key and data is stale (> 5 min)."""
+    if not story.jira_ticket_key:
+        return
+    if story.jira_last_synced_at is not None:
+        age = datetime.now(tz=timezone.utc) - story.jira_last_synced_at
+        if age < timedelta(minutes=_JIRA_SYNC_TTL_MINUTES):
+            return
+    try:
+        await asyncio.wait_for(
+            JiraSyncService().sync_story_from_jira(story, db),
+            timeout=3.0,
+        )
+    except (asyncio.TimeoutError, Exception):
+        pass  # silent fail — return story with cached values
+
 
 async def _check_llm_allowed(org_id: uuid.UUID, db: AsyncSession) -> None:
     """Raise 503 when the org's admin config has retrieval_only=True."""
@@ -227,6 +249,34 @@ async def get_user_story(
     story = result.scalar_one_or_none()
     if story is None:
         raise NotFoundException("User story not found")
+    await _maybe_sync_jira(story, db)
+    return UserStoryRead.model_validate(story)
+
+
+@router.post(
+    "/user-stories/{story_id}/jira-sync",
+    response_model=UserStoryRead,
+    summary="Force Jira sync for a story",
+)
+async def force_jira_sync(
+    story_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserStoryRead:
+    """Force an immediate Jira sync regardless of last sync time."""
+    stmt = select(UserStory).where(UserStory.id == story_id)
+    result = await db.execute(stmt)
+    story = result.scalar_one_or_none()
+    if story is None:
+        raise NotFoundException("User story not found")
+    if story.jira_ticket_key:
+        try:
+            await asyncio.wait_for(
+                JiraSyncService().sync_story_from_jira(story, db),
+                timeout=10.0,
+            )
+        except (asyncio.TimeoutError, Exception):
+            pass
     return UserStoryRead.model_validate(story)
 
 
