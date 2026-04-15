@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { GitBranch, Star } from "lucide-react";
+import { AlertTriangle, GitBranch, Star } from "lucide-react";
 import { PriorityBadge, StoryPointsBadge, QualityScoreBadge, DoRBadge } from "@/components/ui/badge";
 import type { UserStory } from "@/types";
 
@@ -168,7 +168,9 @@ export function StoryCard({
       {story.jira_linked_issue_keys &&
         (() => {
           try {
-            const keys: string[] = JSON.parse(story.jira_linked_issue_keys);
+            const parsed = JSON.parse(story.jira_linked_issue_keys);
+            if (!Array.isArray(parsed)) return null;
+            const keys = parsed.filter((k): k is string => typeof k === "string");
             return <LinkedIssueChips linkedKeys={keys} />;
           } catch {
             return null;
@@ -184,7 +186,7 @@ export function StoryCard({
                 className="flex items-center gap-1 mt-1 text-xs text-amber-600"
                 title={`In Jira als "${story.jira_status}" — im Workspace noch "${story.status}"`}
               >
-                <span>⚠</span>
+                <AlertTriangle className="w-3 h-3" />
                 <span>Jira: {story.jira_status}</span>
               </div>
             );
