@@ -63,8 +63,8 @@ class UserStoryRead(BaseModel):
     definition_of_done: Optional[str]
     doc_additional_info: Optional[str]
     doc_workarounds: Optional[str]
-    jira_ticket_key: Optional[str]
-    jira_ticket_url: Optional[str]
+    jira_ticket_key: Optional[str] = None
+    jira_ticket_url: Optional[str] = None
     jira_creator: Optional[str] = None
     jira_reporter: Optional[str] = None
     jira_created_at: Optional[datetime] = None
