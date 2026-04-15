@@ -171,27 +171,50 @@ class JiraService:
         cloud_id: str,
         key: str,
     ) -> dict:
-        """Fetch a single Jira ticket with plaintext description."""
+        """Fetch a single Jira ticket via OAuth.
+
+        Returns the same field set as get_ticket_basic() so both paths
+        are interchangeable in JiraSyncService._apply_jira_data().
+        """
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             resp = await client.get(
                 f"{self._base(cloud_id)}/issue/{key}",
                 headers=self._headers(access_token),
-                params={"fields": "summary,description,status,priority,assignee,reporter"},
+                params={
+                    "fields": (
+                        "summary,description,status,priority,assignee,"
+                        "reporter,creator,created,updated,issuelinks"
+                    )
+                },
             )
         resp.raise_for_status()
         data = resp.json()
         fields = data["fields"]
         raw_desc = fields.get("description")
         description = adf_to_text(raw_desc).strip() if isinstance(raw_desc, dict) else (raw_desc or "")
+        outward = [
+            lnk["outwardIssue"]["key"]
+            for lnk in fields.get("issuelinks", [])
+            if "outwardIssue" in lnk
+        ]
+        inward = [
+            lnk["inwardIssue"]["key"]
+            for lnk in fields.get("issuelinks", [])
+            if "inwardIssue" in lnk
+        ]
         return {
             "key": key,
             "id": data["id"],
             "summary": fields["summary"],
             "description": description,
-            "status": fields["status"]["name"],
+            "status": (fields.get("status") or {}).get("name", ""),
             "priority": (fields.get("priority") or {}).get("name", ""),
-            "assignee": ((fields.get("assignee") or {}).get("displayName", "")),
-            "reporter": ((fields.get("reporter") or {}).get("displayName", "")),
+            "assignee": (fields.get("assignee") or {}).get("displayName", ""),
+            "creator": (fields.get("creator") or {}).get("displayName", ""),
+            "reporter": (fields.get("reporter") or {}).get("displayName", ""),
+            "created": fields.get("created"),
+            "updated": fields.get("updated"),
+            "issue_links": outward + inward,
         }
 
     async def write_ticket(

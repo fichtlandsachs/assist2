@@ -272,7 +272,7 @@ async def force_jira_sync(
     if story.jira_ticket_key:
         try:
             await asyncio.wait_for(
-                JiraSyncService().sync_story_from_jira(story, db),
+                JiraSyncService().sync_story_from_jira(story, db, user_id=current_user.id),
                 timeout=10.0,
             )
         except Exception as exc:
