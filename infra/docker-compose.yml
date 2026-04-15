@@ -286,6 +286,40 @@ services:
       redis:
         condition: service_healthy
 
+  beat:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: heykarl-beat
+    restart: unless-stopped
+    command: celery -A app.celery_app beat --loglevel=info --scheduler celery.beat:PersistentScheduler
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 128M
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@heykarl-postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@heykarl-redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      ENVIRONMENT: ${ENVIRONMENT}
+      N8N_WEBHOOK_URL: http://heykarl-n8n:5678
+      N8N_API_KEY: ${N8N_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      LITELLM_URL: ${LITELLM_URL:-http://heykarl-litellm:4000}
+      LITELLM_API_KEY: ${LITELLM_API_KEY}
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+
   langgraph-service:
     image: heykarl-langgraph
     build:
