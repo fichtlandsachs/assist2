@@ -6,6 +6,71 @@ import { GitBranch, Star } from "lucide-react";
 import { PriorityBadge, StoryPointsBadge, QualityScoreBadge, DoRBadge } from "@/components/ui/badge";
 import type { UserStory } from "@/types";
 
+const JIRA_STATUS_COLORS: Record<string, string> = {
+  "To Do": "bg-gray-100 text-gray-600",
+  "In Progress": "bg-blue-100 text-blue-700",
+  "In Review": "bg-yellow-100 text-yellow-700",
+  "Done": "bg-green-100 text-green-700",
+  "Blocked": "bg-red-100 text-red-700",
+};
+
+function JiraBadge({
+  ticketKey,
+  jiraStatus,
+  jiraTicketUrl,
+}: {
+  ticketKey: string;
+  jiraStatus: string | null;
+  jiraTicketUrl: string | null;
+}) {
+  const colorClass = jiraStatus
+    ? (JIRA_STATUS_COLORS[jiraStatus] ?? "bg-gray-100 text-gray-500")
+    : "bg-gray-100 text-gray-500";
+
+  return (
+    <div className="flex items-center gap-1.5 mt-1">
+      {jiraTicketUrl ? (
+        <a
+          href={jiraTicketUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-mono text-blue-600 hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {ticketKey}
+        </a>
+      ) : (
+        <span className="text-xs font-mono text-gray-500">{ticketKey}</span>
+      )}
+      {jiraStatus && (
+        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${colorClass}`}>
+          {jiraStatus}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function LinkedIssueChips({ linkedKeys }: { linkedKeys: string[] }) {
+  if (linkedKeys.length === 0) return null;
+  const visible = linkedKeys.slice(0, 3);
+  const rest = linkedKeys.length - visible.length;
+  return (
+    <div className="flex items-center gap-1 mt-1 flex-wrap">
+      <span className="text-xs text-gray-400">↔</span>
+      {visible.map((key) => (
+        <span
+          key={key}
+          className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono"
+        >
+          {key}
+        </span>
+      ))}
+      {rest > 0 && <span className="text-xs text-gray-400">+{rest}</span>}
+    </div>
+  );
+}
+
 export interface StoryCardProps {
   story: UserStory;
   org: string;
@@ -92,6 +157,40 @@ export function StoryCard({
       >
         {story.title}
       </Link>
+
+      {story.jira_ticket_key && (
+        <JiraBadge
+          ticketKey={story.jira_ticket_key}
+          jiraStatus={story.jira_status ?? null}
+          jiraTicketUrl={story.jira_ticket_url ?? null}
+        />
+      )}
+      {story.jira_linked_issue_keys &&
+        (() => {
+          try {
+            const keys: string[] = JSON.parse(story.jira_linked_issue_keys);
+            return <LinkedIssueChips linkedKeys={keys} />;
+          } catch {
+            return null;
+          }
+        })()}
+      {story.jira_ticket_key && story.jira_status && story.status &&
+        (() => {
+          const jiraDone = story.jira_status.toLowerCase() === "done";
+          const localDone = story.status === "done" || story.status === "archived";
+          if (jiraDone && !localDone) {
+            return (
+              <div
+                className="flex items-center gap-1 mt-1 text-xs text-amber-600"
+                title={`In Jira als "${story.jira_status}" — im Workspace noch "${story.status}"`}
+              >
+                <span>⚠</span>
+                <span>Jira: {story.jira_status}</span>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
       {story.description && (
         <p className="text-xs text-[var(--ink-faint)] line-clamp-2 mb-2.5 leading-relaxed">
