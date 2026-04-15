@@ -95,8 +95,8 @@ async def _maybe_sync_jira(story: "UserStory", db: "AsyncSession") -> None:
             JiraSyncService().sync_story_from_jira(story, db),
             timeout=3.0,
         )
-    except (asyncio.TimeoutError, Exception):
-        pass  # silent fail — return story with cached values
+    except Exception as exc:
+        logger.debug("Jira sync skipped for story %s: %s", story.id, exc)
 
 
 async def _check_llm_allowed(org_id: uuid.UUID, db: AsyncSession) -> None:
@@ -275,8 +275,8 @@ async def force_jira_sync(
                 JiraSyncService().sync_story_from_jira(story, db),
                 timeout=10.0,
             )
-        except (asyncio.TimeoutError, Exception):
-            pass
+        except Exception as exc:
+            logger.debug("Jira force-sync skipped for story %s: %s", story_id, exc)
     return UserStoryRead.model_validate(story)
 
 
