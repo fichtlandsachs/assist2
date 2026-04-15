@@ -724,7 +724,7 @@ def index_user_action(
         raise self.retry(exc=exc, countdown=30)
 
 
-@celery.task(bind=True, retry_kwargs={"max_retries": 2})
+@celery.task(bind=True, max_retries=2, name="rag_tasks.sync_jira_stories_for_org")
 def sync_jira_stories_for_org(self, org_id: str) -> dict:
     """Sync all UserStories of an org that have a jira_ticket_key."""
     return asyncio.run(_sync_jira_stories_async(org_id))
