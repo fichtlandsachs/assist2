@@ -17,6 +17,22 @@ from app.services.org_integrations_service import get_jira_settings, get_jira_to
 logger = logging.getLogger(__name__)
 jira_service = JiraService()
 
+JIRA_STATUS_DELETED = "deleted"
+
+
+def _parse_jira_dt(raw: str | None) -> datetime | None:
+    """Parse a Jira ISO8601 timestamp to a UTC-aware datetime, or None on failure."""
+    if not raw:
+        return None
+    try:
+        dt = dateutil_parser.parse(raw)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except (ValueError, OverflowError):
+        logger.warning("Could not parse Jira timestamp: %r", raw)
+        return None
+
 
 class JiraSyncService:
     async def sync_story_from_jira(
@@ -24,7 +40,8 @@ class JiraSyncService:
     ) -> bool:
         """Fetch fresh Jira data for story.jira_ticket_key and update jira_* fields.
 
-        Returns True if any field changed, False if skipped or unchanged.
+        Returns True if Jira data was fetched and fields were written,
+        False if skipped (no ticket key, no credentials, fetch error).
         """
         if not story.jira_ticket_key:
             return False
@@ -62,7 +79,7 @@ class JiraSyncService:
 
         if not data:
             # Ticket existiert nicht mehr in Jira
-            story.jira_status = "deleted"
+            story.jira_status = JIRA_STATUS_DELETED
             story.jira_last_synced_at = datetime.now(tz=timezone.utc)
             await db.commit()
             return True
@@ -72,14 +89,8 @@ class JiraSyncService:
         story.jira_reporter = data.get("reporter") or None
         story.jira_status = data.get("status") or None
 
-        raw_created = data.get("created")
-        story.jira_created_at = (
-            dateutil_parser.parse(raw_created) if raw_created else None
-        )
-        raw_updated = data.get("updated")
-        story.jira_updated_at = (
-            dateutil_parser.parse(raw_updated) if raw_updated else None
-        )
+        story.jira_created_at = _parse_jira_dt(data.get("created"))
+        story.jira_updated_at = _parse_jira_dt(data.get("updated"))
 
         links = data.get("issue_links", [])
         story.jira_linked_issue_keys = json.dumps(links)

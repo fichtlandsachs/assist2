@@ -136,6 +136,8 @@ async def test_sync_story_updates_jira_fields():
     assert story.jira_reporter == "Anna Schmidt"
     assert story.jira_linked_issue_keys == '["PROJ-10", "PROJ-20"]'
     assert story.jira_last_synced_at is not None
+    assert story.jira_created_at is not None
+    assert story.jira_updated_at is not None
     mock_db.commit.assert_called_once()
 
 
@@ -154,6 +156,33 @@ async def test_sync_story_skips_without_jira_integration():
     mock_db.execute.return_value.scalar_one_or_none = MagicMock(return_value=mock_org)
 
     with patch("app.services.jira_sync_service.get_jira_token", return_value=None):
+        svc = JiraSyncService()
+        changed = await svc.sync_story_from_jira(story, mock_db)
+
+    assert changed is False
+    mock_db.commit.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_sync_story_handles_jira_exception():
+    """sync_story_from_jira returns False when get_ticket_basic raises."""
+    from app.services.jira_sync_service import JiraSyncService
+    from app.models.user_story import UserStory
+
+    story = UserStory()
+    story.jira_ticket_key = "PROJ-99"
+    story.organization_id = uuid.uuid4()
+
+    mock_db = AsyncMock()
+    mock_org = MagicMock()
+    mock_db.execute.return_value.scalar_one_or_none = MagicMock(return_value=mock_org)
+    mock_db.commit = AsyncMock()
+
+    with patch("app.services.jira_sync_service.get_jira_settings",
+               return_value={"base_url": "https://x.atlassian.net", "user": "u@e.com"}), \
+         patch("app.services.jira_sync_service.get_jira_token", return_value="tok"), \
+         patch("app.services.jira_sync_service.jira_service.get_ticket_basic",
+               new_callable=AsyncMock, side_effect=Exception("network error")):
         svc = JiraSyncService()
         changed = await svc.sync_story_from_jira(story, mock_db)
 
