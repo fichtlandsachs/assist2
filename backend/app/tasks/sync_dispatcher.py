@@ -129,3 +129,38 @@ async def _dispatch_rag_index() -> dict:
 def dispatch_rag_index() -> dict:
     """Daily: trigger RAG indexing for all active orgs."""
     return asyncio.run(_dispatch_rag_index())
+
+
+async def _dispatch_jira_sync() -> dict:
+    """Dispatch Jira sync tasks for all orgs with active Jira integration."""
+    from app.models.organization import Organization
+    from app.services.org_integrations_service import get_jira_token
+
+    engine = _make_engine()
+    SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    try:
+        async with SessionLocal() as db:
+            result = await db.execute(
+                select(Organization).where(
+                    Organization.deleted_at.is_(None),
+                    Organization.is_active.is_(True),
+                )
+            )
+            orgs = result.scalars().all()
+    finally:
+        await engine.dispose()
+
+    dispatched = 0
+    for org in orgs:
+        if get_jira_token(org):
+            from app.tasks.rag_tasks import sync_jira_stories_for_org
+            sync_jira_stories_for_org.delay(str(org.id))
+            dispatched += 1
+
+    return {"dispatched": dispatched}
+
+
+@celery.task(name="sync_dispatcher.dispatch_jira_sync")
+def dispatch_jira_sync() -> dict:
+    """Every 30 min: trigger Jira sync for all orgs with Jira integration."""
+    return asyncio.run(_dispatch_jira_sync())

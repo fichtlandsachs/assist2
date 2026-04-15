@@ -227,3 +227,51 @@ async def test_maybe_sync_jira_skips_when_fresh():
         await _maybe_sync_jira(story, mock_db)
 
     mock_sync.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_sync_jira_stories_async_calls_sync_for_each_story():
+    """_sync_jira_stories_async must call JiraSyncService for each story with a ticket key."""
+    from app.tasks.rag_tasks import _sync_jira_stories_async
+    from app.models.user_story import UserStory
+
+    org_id = str(uuid.uuid4())
+
+    story1 = UserStory()
+    story1.id = uuid.uuid4()
+    story1.organization_id = uuid.UUID(org_id)
+    story1.jira_ticket_key = "PROJ-1"
+    story1.jira_last_synced_at = None
+
+    story2 = UserStory()
+    story2.id = uuid.uuid4()
+    story2.organization_id = uuid.UUID(org_id)
+    story2.jira_ticket_key = "PROJ-2"
+    story2.jira_last_synced_at = None
+
+    mock_sync = AsyncMock(return_value=True)
+
+    mock_execute_result = MagicMock()
+    mock_execute_result.scalars.return_value.all.return_value = [story1, story2]
+
+    mock_db = AsyncMock()
+    mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+    mock_db.__aexit__ = AsyncMock(return_value=False)
+    mock_db.execute = AsyncMock(return_value=mock_execute_result)
+
+    mock_engine = AsyncMock()
+    mock_engine.dispose = AsyncMock()
+
+    with patch("app.tasks.rag_tasks.create_async_engine", return_value=mock_engine), \
+         patch("app.tasks.rag_tasks.async_sessionmaker") as mock_sm, \
+         patch("app.services.jira_sync_service.JiraSyncService") as MockSvc:
+
+        mock_sm.return_value.return_value = mock_db
+
+        MockSvc.return_value.sync_story_from_jira = mock_sync
+
+        result = await _sync_jira_stories_async(org_id)
+
+    assert mock_sync.call_count == 2
+    assert result["total"] == 2
+    assert result["synced"] == 2

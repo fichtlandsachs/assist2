@@ -722,3 +722,42 @@ def index_user_action(
     except Exception as exc:
         logger.error("index_user_action failed: %s", exc)
         raise self.retry(exc=exc, countdown=30)
+
+
+@celery.task(bind=True, retry_kwargs={"max_retries": 2})
+def sync_jira_stories_for_org(self, org_id: str) -> dict:
+    """Sync all UserStories of an org that have a jira_ticket_key."""
+    return asyncio.run(_sync_jira_stories_async(org_id))
+
+
+async def _sync_jira_stories_async(org_id: str) -> dict:
+    from app.config import get_settings
+    from app.models.user_story import UserStory
+    from app.services.jira_sync_service import JiraSyncService
+
+    engine = create_async_engine(get_settings().DATABASE_URL, echo=False)
+    SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    synced = 0
+    stories: list = []
+    try:
+        async with SessionLocal() as db:
+            result = await db.execute(
+                select(UserStory).where(
+                    UserStory.organization_id == uuid.UUID(org_id),
+                    UserStory.jira_ticket_key.is_not(None),
+                )
+            )
+            stories = result.scalars().all()
+            svc = JiraSyncService()
+            for story in stories:
+                try:
+                    changed = await svc.sync_story_from_jira(story, db)
+                    if changed:
+                        synced += 1
+                except Exception as exc:
+                    logger.warning("Jira sync error for story %s: %s", story.id, exc)
+    finally:
+        await engine.dispose()
+
+    logger.info("Jira sync org %s: %d/%d stories updated", org_id, synced, len(stories))
+    return {"org_id": org_id, "total": len(stories), "synced": synced}

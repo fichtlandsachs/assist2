@@ -43,4 +43,8 @@ celery.conf.beat_schedule = {
         "task": "sync_dispatcher.dispatch_rag_index",
         "schedule": crontab(hour=2, minute=0),  # daily at 02:00 UTC
     },
+    "dispatch-jira-sync": {
+        "task": "sync_dispatcher.dispatch_jira_sync",
+        "schedule": 1800.0,  # every 30 minutes
+    },
 }
