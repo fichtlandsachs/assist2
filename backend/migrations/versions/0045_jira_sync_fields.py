@@ -19,7 +19,7 @@ def upgrade() -> None:
     op.add_column("user_stories", sa.Column("jira_created_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column("user_stories", sa.Column("jira_updated_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column("user_stories", sa.Column("jira_status", sa.String(100), nullable=True))
-    op.add_column("user_stories", sa.Column("jira_linked_issue_keys", sa.Text(), nullable=True, server_default="[]"))
+    op.add_column("user_stories", sa.Column("jira_linked_issue_keys", sa.Text(), nullable=True))
     op.add_column("user_stories", sa.Column("jira_last_synced_at", sa.DateTime(timezone=True), nullable=True))
 
 
