@@ -79,11 +79,11 @@ def validate_answer(
                 break
 
     # 2. Web policy violation
-    if "[web]" not in user_text.lower() and re.search(r"https?://", answer):
+    if "/web" not in user_text.lower() and re.search(r"https?://", answer):
         findings.append(ValidationFinding(
             code="WEB_POLICY_VIOLATION",
             severity="blocking",
-            message="Answer contains external URLs but [Web] was not requested.",
+            message="Answer contains external URLs but /WEB was not requested.",
             affected_field="answer",
             blocking=True,
         ))

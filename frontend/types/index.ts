@@ -268,6 +268,13 @@ export interface UserStory {
   doc_workarounds: string | null;
   jira_ticket_key: string | null;
   jira_ticket_url: string | null;
+  jira_creator: string | null;
+  jira_reporter: string | null;
+  jira_created_at: string | null;
+  jira_updated_at: string | null;
+  jira_status: string | null;
+  jira_linked_issue_keys: string | null;  // JSON-encoded: '["ABC-1","ABC-2"]'
+  jira_last_synced_at: string | null;
   created_at: string;
   updated_at: string;
 }

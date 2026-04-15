@@ -65,6 +65,13 @@ class UserStoryRead(BaseModel):
     doc_workarounds: Optional[str]
     jira_ticket_key: Optional[str]
     jira_ticket_url: Optional[str]
+    jira_creator: Optional[str] = None
+    jira_reporter: Optional[str] = None
+    jira_created_at: Optional[datetime] = None
+    jira_updated_at: Optional[datetime] = None
+    jira_status: Optional[str] = None
+    jira_linked_issue_keys: Optional[str] = None
+    jira_last_synced_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

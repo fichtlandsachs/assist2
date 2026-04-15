@@ -109,7 +109,7 @@ class RuntimeSettings:
     CHAT_MIN_EVIDENCE_COUNT: int = 1
     CHAT_MIN_RELEVANCE_SCORE: float = 0.50
     CHAT_FALLBACK_MESSAGE: str = "Ich konnte in den Tickets und Confluence Artikeln nichts finden."
-    CHAT_WEB_SIGNAL: str = "[Web]"
+    CHAT_WEB_SIGNAL: str = "/WEB"
     CHAT_WEB_REQUIRES_SIGNAL: bool = True
 
     def ai_feature_enabled(self, flag: str) -> bool:

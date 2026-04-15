@@ -978,6 +978,7 @@ async def publish_docs_to_confluence(
         story.confluence_page_url = confluence_url
     except Exception as exc:
         import httpx as _httpx
+        logger.error("Confluence publish failed: %s: %s", type(exc).__name__, exc, exc_info=True)
         detail = str(exc)
         if isinstance(exc, _httpx.HTTPStatusError):
             try:
@@ -1123,7 +1124,11 @@ async def generate_and_upload_pdf(
     features = feat_result.scalars().all()
 
     # Generate PDF → returns cache filename
-    filename = await pdf_service.generate_and_cache(story, pdf_settings, test_cases, features)
+    try:
+        filename = await pdf_service.generate_and_cache(story, pdf_settings, test_cases, features)
+    except Exception as exc:
+        logger.error("PDF generation failed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"PDF-Erstellung fehlgeschlagen: {exc}") from exc
 
     # Read cached PDF bytes
     cfg = get_settings()
@@ -1140,19 +1145,26 @@ async def generate_and_upload_pdf(
 
     dav_base = f"{cfg.NEXTCLOUD_INTERNAL_URL}/remote.php/dav/files/{cfg.NEXTCLOUD_ADMIN_USER}"
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        # Ensure org folder exists
-        for segment in ["Organizations", f"Organizations/{org.slug}"]:
-            r = await client.request("MKCOL", f"{dav_base}/{segment}/", auth=auth)
-            if r.status_code not in (201, 405):
-                logger.warning(f"MKCOL /{segment}/ → {r.status_code}")
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            # Ensure org folder exists
+            for segment in ["Organizations", f"Organizations/{org.slug}"]:
+                r = await client.request("MKCOL", f"{dav_base}/{segment}/", auth=auth)
+                if r.status_code not in (201, 405):
+                    logger.warning(f"MKCOL /{segment}/ → {r.status_code}")
 
-        # Upload PDF
-        resp = await client.put(
-            f"{dav_base}/{dest_path}", content=pdf_bytes, auth=auth,
-            headers={"Content-Type": "application/pdf"},
-        )
-        resp.raise_for_status()
+            # Upload PDF
+            resp = await client.put(
+                f"{dav_base}/{dest_path}", content=pdf_bytes, auth=auth,
+                headers={"Content-Type": "application/pdf"},
+            )
+            resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.error("Nextcloud upload failed %s: %s", exc.response.status_code, exc.response.text[:200])
+        raise HTTPException(status_code=502, detail=f"Nextcloud-Upload fehlgeschlagen: HTTP {exc.response.status_code}") from exc
+    except Exception as exc:
+        logger.error("Nextcloud upload failed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=502, detail=f"Nextcloud-Upload fehlgeschlagen: {exc}") from exc
 
     # Persist Nextcloud path in story's generated_docs
     docs: dict = {}

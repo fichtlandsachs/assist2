@@ -374,10 +374,15 @@ class JiraService:
         summary: str,
         description_md: str,
         issue_type: str = "Story",
+        parent_key: str | None = None,
     ) -> dict:
-        """Create a Jira issue using basic auth (API token). Returns {key, id}."""
+        """Create a Jira issue using basic auth (API token). Returns {key, id}.
+
+        When parent_key is provided the new issue is created as a child of that
+        issue (works for next-gen projects and sub-tasks in classic projects).
+        """
         adf = markdown_to_adf(description_md)
-        payload = {
+        payload: dict = {
             "fields": {
                 "project": {"key": project_key.upper()},
                 "summary": summary,
@@ -385,6 +390,8 @@ class JiraService:
                 "issuetype": {"name": issue_type},
             }
         }
+        if parent_key:
+            payload["fields"]["parent"] = {"key": parent_key.upper()}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             resp = await client.post(
                 f"{self._basic_base(base_url)}/issue",

@@ -228,6 +228,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
             return { role: m.role, content: blocks };
           }),
           mode,
+          org_id: org?.id,
         }),
       });
 
@@ -274,7 +275,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
     } finally {
       setStreaming(false);
     }
-  }, [input, messages, mode, streaming]);
+  }, [input, messages, mode, streaming, org]);
 
   // ── Extract story from transcript ────────────────────────────────────────
 

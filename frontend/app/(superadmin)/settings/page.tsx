@@ -84,7 +84,7 @@ const GROUPS: Group[] = [
       { key: "chat.min_evidence_count",   label: "Min. Evidence Count", placeholder: "1", type: "number" },
       { key: "chat.min_relevance_score",  label: "Min. Relevance Score",placeholder: "0.50" },
       { key: "chat.fallback_message",     label: "Fallback-Nachricht" },
-      { key: "chat.web_signal",           label: "Web-Signal",          placeholder: "[Web]" },
+      { key: "chat.web_signal",           label: "Web-Signal",          placeholder: "/WEB" },
       { key: "chat.web_requires_signal",  label: "Web nur mit Signal",  placeholder: "true" },
     ],
   },

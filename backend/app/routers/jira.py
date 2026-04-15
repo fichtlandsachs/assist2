@@ -392,22 +392,49 @@ async def push_story_full(
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Story-Ticket fehlgeschlagen: {exc}")
 
+    async def _create_child(summary: str, description: str, issue_type: str, label: str) -> str | None:
+        """Create a child issue under main_key.
+
+        Tries to set parent field first (next-gen projects).  If Jira rejects
+        it (classic project hierarchy rules), retries without parent and adds
+        an issue link instead.
+        """
+        # Attempt 1: with parent field (next-gen / sub-task hierarchy)
+        try:
+            res = await jira_service.create_ticket_basic(
+                b, u, t, body.project_key, summary, description, issue_type, parent_key=main_key
+            )
+            return res["key"]
+        except Exception:
+            pass  # fall through to attempt 2
+
+        # Attempt 2: create without parent, then link
+        try:
+            res = await jira_service.create_ticket_basic(
+                b, u, t, body.project_key, summary, description, issue_type
+            )
+        except Exception as exc:
+            errors.append(f"{label}: Erstellen fehlgeschlagen: {exc}")
+            return None
+
+        child_key = res["key"]
+        try:
+            await jira_service.link_issues_basic(b, u, t, child_key, main_key)
+        except Exception as exc:
+            errors.append(f"{label}: Verknüpfung fehlgeschlagen: {exc}")
+        return child_key
+
     # ── 2. Features ──────────────────────────────────────────────────────────
     feat_result = await db.execute(select(Feature).where(Feature.story_id == story.id))
     for feat in feat_result.scalars().all():
         if feat.jira_ticket_key:
             created.append({"type": "feature", "key": feat.jira_ticket_key, "title": feat.title, "url": feat.jira_ticket_url or browse(feat.jira_ticket_key), "existing": True})
             continue
-        try:
-            res = await jira_service.create_ticket_basic(
-                b, u, t, body.project_key, feat.title, feat.description or "", body.feature_issue_type
-            )
-            await jira_service.link_issues_basic(b, u, t, res["key"], main_key)
-            feat.jira_ticket_key = res["key"]
-            feat.jira_ticket_url = browse(res["key"])
-            created.append({"type": "feature", "key": res["key"], "title": feat.title, "url": browse(res["key"])})
-        except Exception as exc:
-            errors.append(f"Feature '{feat.title}': {exc}")
+        key = await _create_child(feat.title, feat.description or "", body.feature_issue_type, f"Feature '{feat.title}'")
+        if key:
+            feat.jira_ticket_key = key
+            feat.jira_ticket_url = browse(key)
+            created.append({"type": "feature", "key": key, "title": feat.title, "url": browse(key)})
 
     # ── 3. Test cases ────────────────────────────────────────────────────────
     tc_result = await db.execute(select(TestCase).where(TestCase.story_id == story.id))
@@ -420,16 +447,11 @@ async def push_story_full(
             desc_parts.append(f"**Schritte:**\n{tc.steps}")
         if tc.expected_result:
             desc_parts.append(f"**Erwartetes Ergebnis:**\n{tc.expected_result}")
-        try:
-            res = await jira_service.create_ticket_basic(
-                b, u, t, body.project_key, tc.title, "\n\n".join(desc_parts), body.testcase_issue_type
-            )
-            await jira_service.link_issues_basic(b, u, t, res["key"], main_key)
-            tc.jira_ticket_key = res["key"]
-            tc.jira_ticket_url = browse(res["key"])
-            created.append({"type": "testcase", "key": res["key"], "title": tc.title, "url": browse(res["key"])})
-        except Exception as exc:
-            errors.append(f"Testfall '{tc.title}': {exc}")
+        key = await _create_child(tc.title, "\n\n".join(desc_parts), body.testcase_issue_type, f"Testfall '{tc.title}'")
+        if key:
+            tc.jira_ticket_key = key
+            tc.jira_ticket_url = browse(key)
+            created.append({"type": "testcase", "key": key, "title": tc.title, "url": browse(key)})
 
     # ── 4. DoD items (no persistent key — recreate only if not yet pushed) ───
     dod_items: list[dict] = []
@@ -445,16 +467,11 @@ async def push_story_full(
         if item.get("jira_ticket_key"):
             created.append({"type": "dod", "key": item["jira_ticket_key"], "title": text, "url": item.get("jira_ticket_url", browse(item["jira_ticket_key"])), "existing": True})
             continue
-        try:
-            res = await jira_service.create_ticket_basic(
-                b, u, t, body.project_key, text, "", body.dod_issue_type
-            )
-            await jira_service.link_issues_basic(b, u, t, res["key"], main_key)
-            item["jira_ticket_key"] = res["key"]
-            item["jira_ticket_url"] = browse(res["key"])
-            created.append({"type": "dod", "key": res["key"], "title": text, "url": browse(res["key"])})
-        except Exception as exc:
-            errors.append(f"DoD '{text}': {exc}")
+        key = await _create_child(text, "", body.dod_issue_type, f"DoD '{text}'")
+        if key:
+            item["jira_ticket_key"] = key
+            item["jira_ticket_url"] = browse(key)
+            created.append({"type": "dod", "key": key, "title": text, "url": browse(key)})
 
     # Persist updated DoD with Jira keys
     if dod_items and any("jira_ticket_key" in i for i in dod_items):

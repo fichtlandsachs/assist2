@@ -69,6 +69,22 @@ class UserStory(Base):
     doc_workarounds: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     jira_ticket_key: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     jira_ticket_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # ── Jira Sync ────────────────────────────────────────────────────────────
+    jira_creator: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    jira_reporter: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    jira_created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    jira_updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    jira_status: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    jira_linked_issue_keys: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )
+    jira_last_synced_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     current_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("story_versions.id", use_alter=True,
                    name="fk_stories_current_version"),

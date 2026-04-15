@@ -35,8 +35,8 @@ class PolicyDecision:
 
 @dataclass
 class PolicyConfig:
-    web_requires_signal: bool = True        # [Web] must be explicit
-    web_signal: str = "[Web]"
+    web_requires_signal: bool = True        # /WEB must be explicit
+    web_signal: str = "/WEB"
     default_sources: list[str] = None       # None = all internal sources
     min_evidence_count: int = 1
     min_relevance_score: float = 0.50

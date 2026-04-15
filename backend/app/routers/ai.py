@@ -55,7 +55,7 @@ _NO_HALLUCINATION_RULE = (
     "Workspace-Kontext stehen. Wenn du eine Quelle nicht im Kontext findest, existiert sie für dich nicht. "
     "Wenn der Nutzer nach einem Link, einer Seite oder einem Dokument fragt und du keinen Kontext dazu hast, "
     "antworte IMMER genau so: "
-    "'Leider konnte ich den internen Unterlagen nichts finden. Mit [Web] kann ich noch einmal extern schauen, welche Informationen ich für dich finden kann. Du musst mir aber genau sagen, wonach ich suchen soll.' "
+    "'Leider konnte ich den internen Unterlagen nichts finden. Mit /WEB kann ich noch einmal extern schauen, welche Informationen ich für dich finden kann. Du musst mir aber genau sagen, wonach ich suchen soll.' "
     "Wenn du dir bei einer Information nicht sicher bist: sage es offen. "
     "Besser eine ehrliche 'Ich weiß es nicht'-Antwort als eine falsche."
 )
@@ -85,8 +85,8 @@ _RAG_CITATION_RULE = (
     "Erfinde KEINE Quellen. Erwähne KEINE Dokumentation, Tickets oder Stories. "
     "Antworte ausschließlich auf Basis deines allgemeinen Wissens und weise den Nutzer ggf. darauf hin, "
     "dass dir keine internen Quellen vorliegen. "
-    "Schließe bei vorhandenem Kontext ab mit: 'Schreibe [Web], wenn ich zusätzlich im Internet recherchieren soll.' "
-    "WEBSUCHE-REGEL: Wenn der Nutzer '[Web]' schreibt, recherchiere im Internet und ergänze mit aktuellen Quellen."
+    "Schließe bei vorhandenem Kontext ab mit: 'Schreibe /WEB, wenn ich zusätzlich im Internet recherchieren soll.' "
+    "WEBSUCHE-REGEL: Wenn der Nutzer '/WEB' schreibt, recherchiere im Internet und ergänze mit aktuellen Quellen."
 )
 
 CHAT_SYSTEM_PROMPTS: dict[str, str] = {
@@ -285,7 +285,7 @@ async def chat_stream(
             "Tickets oder Wiki-Seiten gefunden. Erwähne keine internen Quellen, erfinde keine Links, "
             "Seitentitel oder Ticket-Nummern. Antworte ausschließlich auf Basis deines allgemeinen Wissens. "
             "Wenn der Nutzer nach internen Quellen oder Links fragt, antworte: "
-            "'Leider konnte ich den internen Unterlagen nichts finden. Mit [Web] kann ich noch einmal extern schauen, welche Informationen ich für dich finden kann. Du musst mir aber genau sagen, wonach ich suchen soll.'\n\n"
+            "'Leider konnte ich den internen Unterlagen nichts finden. Mit /WEB kann ich noch einmal extern schauen, welche Informationen ich für dich finden kann. Du musst mir aber genau sagen, wonach ich suchen soll.'\n\n"
         )
     full_system = rag_block + system_prompt
     messages = [{"role": "system", "content": full_system}]
@@ -293,7 +293,7 @@ async def chat_stream(
 
     # Quellenpflicht: Antwort muss mit Quellenangabe beginnen wenn Kontext vorhanden
     _SOURCE_PREFIX = "Ich habe in der "
-    _NO_SOURCE_MSG = "Leider konnte ich den internen Unterlagen nichts finden. Mit [Web] kann ich noch einmal extern schauen, welche Informationen ich für dich finden kann. Du musst mir aber genau sagen, wonach ich suchen soll."
+    _NO_SOURCE_MSG = "Leider konnte ich den internen Unterlagen nichts finden. Mit /WEB kann ich noch einmal extern schauen, welche Informationen ich für dich finden kann. Du musst mir aber genau sagen, wonach ich suchen soll."
     _HALLUCINATION_PATTERNS = (
         "ich habe in der confluence",
         "ich habe in der jira",

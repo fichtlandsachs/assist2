@@ -106,8 +106,8 @@ class Settings(BaseSettings):
     LITELLM_API_KEY: str = ""
 
     # ── Grounded Chat Policy ──────────────────────────────────────────────────
-    # Hard rule: web search only when [Web] signal present in user message
-    CHAT_WEB_SIGNAL: str = "[Web]"
+    # Hard rule: web search only when /WEB signal present in user message
+    CHAT_WEB_SIGNAL: str = "/WEB"
     CHAT_WEB_REQUIRES_SIGNAL: bool = True
     # Minimum number of usable evidence items required before generating an answer
     CHAT_MIN_EVIDENCE_COUNT: int = 1

@@ -480,6 +480,12 @@ async def publish_story_page(
             headers=_make_headers(b, user, token),
             json=story_payload,
         )
+        if not resp.is_success:
+            import logging as _logging
+            _logging.getLogger(__name__).error(
+                "Confluence create page failed %s: %s | payload ancestors=%s space=%s title=%s",
+                resp.status_code, resp.text[:500], story_payload.get("ancestors"), space_key, story_title,
+            )
         resp.raise_for_status()
         data = resp.json()
         web_ui = data.get("_links", {}).get("webui", "")

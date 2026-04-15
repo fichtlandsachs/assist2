@@ -221,7 +221,6 @@ function HeroSection() {
             <div className="flex flex-wrap items-center gap-6 pt-6 border-t-2 border-[#0A0A0A]">
               {[
                 { icon: CheckCircle, label: "DSGVO-konform" },
-                { icon: Lock, label: "On-Premise möglich" },
                 { icon: Star, label: "4.9/5 von 120+ Teams" },
               ].map(({ icon: Icon, label }) => (
                 <div key={label} className="flex items-center gap-2">

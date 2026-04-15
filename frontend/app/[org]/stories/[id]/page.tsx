@@ -1030,51 +1030,75 @@ function StoryPromptSection({ story, orgId }: { story: UserStory; orgId: string 
   } catch { /* ignore */ }
 
   const lines: string[] = [];
-  lines.push(`# Implementierungsauftrag: ${story.title}`);
+
+  // ── Rollenanweisung ──────────────────────────────────────────────────────
+  lines.push(`Implementiere die folgende User Story vollständig und produktionsreif.`);
   lines.push("");
 
+  // ── Ziel ────────────────────────────────────────────────────────────────
+  lines.push(`## Ziel`);
+  lines.push(`**${story.title}**`);
   if (story.description) {
-    lines.push("## User Story");
-    lines.push(story.description);
     lines.push("");
+    lines.push(story.description);
   }
+  lines.push("");
 
+  // ── Akzeptanzkriterien ───────────────────────────────────────────────────
   if (story.acceptance_criteria) {
     lines.push("## Akzeptanzkriterien");
+    lines.push("Die Implementierung gilt als korrekt, wenn folgende Kriterien erfüllt sind:");
+    lines.push("");
     lines.push(story.acceptance_criteria);
     lines.push("");
   }
 
+  // ── Features als nummerierte Aufgaben ────────────────────────────────────
   if (features && features.length > 0) {
-    lines.push("## Zu implementierende Features");
-    features.forEach(f => {
-      lines.push(`- **${f.title}**${f.description ? `: ${f.description}` : ""}`);
-    });
+    lines.push("## Aufgaben");
+    lines.push("Implementiere alle folgenden Features. Arbeite sie der Reihe nach ab:");
     lines.push("");
+    features.forEach((f, i) => {
+      lines.push(`### ${i + 1}. ${f.title}`);
+      if (f.description) lines.push(f.description);
+      lines.push("");
+    });
   }
 
+  // ── Testfälle als Verifikation ───────────────────────────────────────────
   if (testCases && testCases.length > 0) {
-    lines.push("## Testfälle");
-    testCases.forEach(tc => {
-      lines.push(`- ${tc.title}`);
-      if (tc.steps) lines.push(`  Schritte: ${tc.steps}`);
-      if (tc.expected_result) lines.push(`  Erwartetes Ergebnis: ${tc.expected_result}`);
-    });
+    lines.push("## Verifikation");
+    lines.push("Stelle sicher, dass alle folgenden Szenarien korrekt funktionieren:");
     lines.push("");
+    testCases.forEach((tc, i) => {
+      lines.push(`### Szenario ${i + 1}: ${tc.title}`);
+      if (tc.steps) {
+        lines.push("**Schritte:**");
+        lines.push(tc.steps);
+      }
+      if (tc.expected_result) {
+        lines.push("**Erwartetes Ergebnis:**");
+        lines.push(tc.expected_result);
+      }
+      lines.push("");
+    });
   }
 
+  // ── Definition of Done ───────────────────────────────────────────────────
   if (dod.length > 0) {
     lines.push("## Definition of Done");
+    lines.push("Die Implementierung ist abgeschlossen, wenn alle folgenden Punkte erfüllt sind:");
+    lines.push("");
     dod.forEach(item => {
-      lines.push(`- [${item.done ? "x" : " "}] ${item.text}`);
+      lines.push(`- [ ] ${item.text}`);
     });
     lines.push("");
   }
 
-  lines.push("## Hinweise");
-  lines.push("- Implementiere alle Features vollständig und teste sie gegen die Akzeptanzkriterien.");
-  lines.push("- Stelle sicher, dass alle Testfälle erfolgreich durchlaufen.");
-  lines.push("- Beachte die Definition of Done vor dem Abschluss.");
+  // ── Abschlussanweisung ───────────────────────────────────────────────────
+  lines.push("---");
+  lines.push("Beginne mit Aufgabe 1. Implementiere jedes Feature vollständig bevor du zum nächsten weitergehst. Prüfe nach der Implementierung jedes Features die zugehörigen Verifikationsszenarien.");
+
 
   const prompt = lines.join("\n");
 

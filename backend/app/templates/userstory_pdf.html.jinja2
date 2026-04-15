@@ -71,7 +71,7 @@
 <h2>Definition of Done</h2>
 <ul>
 {% for criterion in dod_items %}
-  <li><span class="dod-check">✓</span> {{ criterion }}</li>
+  <li><span class="dod-check">✓</span> {{ criterion.text if criterion is mapping else criterion }}</li>
 {% endfor %}
 </ul>
 {% endif %}

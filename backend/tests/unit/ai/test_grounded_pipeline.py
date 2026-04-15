@@ -3,8 +3,8 @@
 Tests:
 1. Internal evidence found → answer generated
 2. No internal evidence → exact fallback message
-3. [Web] absent, web access attempted → blocked
-4. [Web] present → web_allowed=True, source_mode=internal_plus_web
+3. /WEB absent, web access attempted → blocked
+4. /WEB present → web_allowed=True, source_mode=internal_plus_web
 5. Hallucinated citation in answer → validator blocks
 6. Contradictory evidence → warning flagged
 7. strict_grounded + insufficient evidence → blocked
@@ -70,24 +70,24 @@ def test_fallback_message_exact():
     assert FALLBACK_MESSAGE == "Ich konnte in den Tickets und Confluence Artikeln nichts finden."
 
 
-# ── Test 3: No [Web] but web_allowed=True → policy blocks ────────────────────
+# ── Test 3: No /WEB but web_allowed=True → policy blocks ────────────────────
 
 def test_web_access_blocked_without_signal():
     evidence = qualify_evidence([], web_allowed=True)  # simulate incorrectly set flag
     engine = PolicyEngine()
-    # user_text has no [Web] signal
+    # user_text has no /WEB signal
     decision = engine.evaluate("Wie login?", evidence)
     assert decision.blocked is True
     assert decision.reason == "web_access_without_signal"
 
 
-# ── Test 4: [Web] present → source_mode=internal_plus_web ────────────────────
+# ── Test 4: /WEB present → source_mode=internal_plus_web ────────────────────
 
 def test_web_signal_enables_web_mode():
     chunks = [make_chunk(score=0.75)]
     evidence = qualify_evidence(chunks, web_allowed=True)
     engine = PolicyEngine()
-    decision = engine.evaluate("Wie login? [Web]", evidence)
+    decision = engine.evaluate("Wie login? /WEB", evidence)
     assert decision.source_mode == "internal_plus_web"
     assert decision.allowed is True
 

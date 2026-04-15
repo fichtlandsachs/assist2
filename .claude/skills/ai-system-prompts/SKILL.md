@@ -51,11 +51,11 @@ Fehlende Felder werden als Stichpunkte mit Kontext aufgelistet — maximal 2 auf
 
 ## Web-Recherche — nur auf explizite Anfrage
 
-Der Assistent recherchiert **nur dann im Web**, wenn der Nutzer explizit `[Web]` schreibt.
+Der Assistent recherchiert **nur dann im Web**, wenn der Nutzer explizit `/WEB` schreibt.
 Ansonsten bleibt er auf der internen Dokumentation (RAG-Kontext).
 
 Am Ende einer RAG-Antwort immer folgenden Hinweis anfügen:
-> *„Schreibe [Web], wenn ich zusätzlich im Internet recherchieren soll."*
+> *„Schreibe /WEB, wenn ich zusätzlich im Internet recherchieren soll."*
 
 ---
 
