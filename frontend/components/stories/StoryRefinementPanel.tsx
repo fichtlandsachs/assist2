@@ -219,6 +219,11 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
 
   const handleDismiss = () => {
     setSession((prev) => prev ? { ...prev, last_proposal: null } : prev);
+    // Persist dismissal to backend so reload doesn't bring the proposal back
+    authFetch(`${API_BASE}/api/v1/stories/${storyId}/refinement/dismiss`, {
+      method: "POST",
+      body: JSON.stringify({ org_id: orgId }),
+    }).catch(() => {});
   };
 
   const sendMessage = useCallback(async () => {
@@ -228,13 +233,14 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
     setStreaming(true);
     setStreamingContent("");
 
-    // Optimistic: add user message
+    // Optimistic: add user message + clear old proposal (backend will set new one if AI produces one)
     const optimisticSession: StoryRefinementSession = {
       ...session,
       messages: [
         ...session.messages,
         { role: "user", content: userMessage, ts: new Date().toISOString() },
       ],
+      last_proposal: null,
     };
     setSession(optimisticSession);
 

@@ -233,17 +233,24 @@ async def chat_stream(
     else:
         full_system = system_prompt
 
-    # Build message list for LLM
+    import re as _re
+    _MARKER_RE = _re.compile(r"<!--(?:proposal[\s\S]*?|score:-?\d+)-->", _re.DOTALL)
+
+    # Build message list for LLM — strip hidden markers so the model doesn't reproduce them
     history = session.messages or []
     llm_messages = [{"role": "system", "content": full_system}]
-    llm_messages += [{"role": m["role"], "content": m["content"]} for m in history]
+    llm_messages += [
+        {"role": m["role"], "content": _MARKER_RE.sub("", m["content"]).strip()}
+        for m in history
+    ]
     llm_messages.append({"role": "user", "content": body.message})
 
-    # Persist user message before streaming starts
+    # Persist user message and clear previous proposal before streaming starts
     new_messages = history + [
         {"role": "user", "content": body.message, "ts": datetime.now(timezone.utc).isoformat()}
     ]
     session.messages = new_messages
+    session.last_proposal = None   # clear old proposal — new one set after stream if AI produces one
     session.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
@@ -336,6 +343,32 @@ async def apply_proposal(
 
     await db.commit()
     return {"ok": True, "field": body.field}
+
+
+class DismissRequest(BaseModel):
+    org_id: str
+
+
+@router.post("/stories/{story_id}/refinement/dismiss")
+async def dismiss_proposal(
+    story_id: _uuid_module.UUID,
+    body: DismissRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Clear last_proposal without modifying the story — user dismissed the suggestion."""
+    await _get_story_or_404(story_id, _uuid_module.UUID(body.org_id), db)
+    result = await db.execute(
+        select(StoryRefinementSession).where(
+            StoryRefinementSession.story_id == story_id
+        )
+    )
+    session = result.scalar_one_or_none()
+    if session:
+        session.last_proposal = None
+        session.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+    return {"ok": True}
 
 
 @router.delete("/stories/{story_id}/refinement")
