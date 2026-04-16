@@ -245,12 +245,11 @@ async def chat_stream(
     ]
     llm_messages.append({"role": "user", "content": body.message})
 
-    # Persist user message and clear previous proposal before streaming starts
+    # Persist user message before streaming starts
     new_messages = history + [
         {"role": "user", "content": body.message, "ts": datetime.now(timezone.utc).isoformat()}
     ]
     session.messages = new_messages
-    session.last_proposal = None   # clear old proposal — new one set after stream if AI produces one
     session.updated_at = datetime.now(timezone.utc)
     await db.commit()
 

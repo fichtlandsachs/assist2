@@ -74,7 +74,7 @@ def build_system_prompt(
 # ── Proposal extraction ───────────────────────────────────────────────────────
 
 _PROPOSAL_RE = re.compile(
-    r"<!--proposal\s*\n(.*?)\n-->",
+    r"<!--proposal\s*\n(.*?)\s*-->",
     re.DOTALL,
 )
 
