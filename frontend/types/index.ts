@@ -256,6 +256,7 @@ export interface UserStory {
   status: StoryStatus;
   priority: StoryPriority;
   story_points: number | null;
+  effective_points: number | null;
   dor_passed: boolean;
   quality_score: number | null;
   ai_suggestions: string | null;
@@ -311,6 +312,7 @@ export interface AISuggestion {
   title: string | null;
   description: string | null;
   acceptance_criteria: string | null;
+  business_value_feedback?: string | null;
   explanation?: string | null;
   dor_issues: string[];
   quality_score: number | null;
@@ -450,4 +452,30 @@ export interface CalendarEvent {
   status: EventStatus;
   organizer_email: string | null;
   created_at: string;
+}
+
+// ─── Story Refinement ─────────────────────────────────────────────────────────
+export interface RefinementMessage {
+  role: "user" | "assistant";
+  content: string;
+  ts: string;
+}
+
+export interface RefinementProposal {
+  title?: string;
+  description?: string;
+  acceptance_criteria?: string;
+}
+
+export interface StoryRefinementSession {
+  id: string;
+  story_id: string;
+  organization_id: string;
+  stage: number;
+  messages: RefinementMessage[];
+  last_proposal: RefinementProposal | null;
+  quality_score: number | null;
+  readiness_state: string | null;
+  created_at: string;
+  updated_at: string;
 }

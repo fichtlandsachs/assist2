@@ -34,6 +34,7 @@ from app.models.billing import (
     Subscription, Payment, UsageLog, PricingConfig,
     BillingPlan, SubscriptionStatus, PaymentProvider, PaymentStatus,
 )
+from app.models.story_refinement import StoryRefinementSession
 
 __all__ = [
     "User",
@@ -97,4 +98,5 @@ __all__ = [
     "SubscriptionStatus",
     "PaymentProvider",
     "PaymentStatus",
+    "StoryRefinementSession",
 ]

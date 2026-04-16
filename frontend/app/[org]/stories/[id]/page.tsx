@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { apiRequest, fetcher } from "@/lib/api/client";
 import useSWR from "swr";
 import type { UserStory, StoryStatus, StoryPriority, TestCase, TestResult, DoDItem, Feature, FeatureStatus, Epic, Process, StoryProcessChange } from "@/types";
-import { AISuggestPanel } from "@/components/stories/AISuggestPanel";
+// import { AISuggestPanel } from "@/components/stories/AISuggestPanel"; // replaced by StoryRefinementPanel
+import { StoryRefinementPanel } from "@/components/stories/StoryRefinementPanel";
 import { EpicSelector } from "@/components/stories/EpicSelector";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { DoDItem as DoDItemComponent } from "@/components/stories/DoDItem";
@@ -34,6 +35,7 @@ interface StoryDocsData {
   pdf_outline: string[];
   summary: string;
   technical_notes: string;
+  business_value?: string | null;
   confluence_page_url?: string | null;
   additional_info?: string | null;
   workarounds?: string | null;
@@ -1451,6 +1453,15 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
               },
               {
                 num: 7,
+                label: t("story_docs_section_business_value"),
+                aiOnly: true,
+                hasContent: !!docs?.business_value,
+                content: docs?.business_value
+                  ? <p className="text-sm text-[var(--ink-mid)] leading-relaxed line-clamp-3">{docs.business_value}</p>
+                  : null,
+              },
+              {
+                num: 8,
                 label: t("story_docs_section_summary"),
                 aiOnly: true,
                 hasContent: !!docs?.summary,
@@ -1459,7 +1470,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
                   : null,
               },
               {
-                num: 8,
+                num: 9,
                 label: t("story_docs_section_tech"),
                 aiOnly: true,
                 hasContent: !!docs?.technical_notes,
@@ -1468,7 +1479,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
                   : null,
               },
               {
-                num: 9,
+                num: 10,
                 label: t("story_docs_section_changelog"),
                 aiOnly: true,
                 hasContent: !!docs?.changelog_entry,
@@ -3447,13 +3458,13 @@ export default function StoryDetailPage({
                         href={story.jira_ticket_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-mono text-xs px-1.5 py-0.5 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-[var(--btn-primary)] hover:underline"
+                        className="text-xs px-1.5 py-0.5 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-[var(--btn-primary)] hover:underline"
                       >
-                        {story.jira_ticket_key} ↗
+                        {story.title} ({story.jira_ticket_key}) ↗
                       </a>
                     ) : (
-                      <span className="font-mono text-xs px-1.5 py-0.5 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-[var(--ink-mid)]">
-                        {story.jira_ticket_key}
+                      <span className="text-xs px-1.5 py-0.5 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-[var(--ink-mid)]">
+                        {story.title} ({story.jira_ticket_key})
                       </span>
                     )}
                   </div>
@@ -3577,15 +3588,11 @@ export default function StoryDetailPage({
 
           {/* RIGHT: AI Suggestions */}
           <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 lg:sticky lg:top-6 lg:h-[calc(100vh-8rem)] lg:overflow-hidden lg:flex lg:flex-col">
-            <AISuggestPanel
-              title={title}
-              description={description}
-              acceptanceCriteria={acceptanceCriteria}
-              onApply={handleApplySuggestion}
+            <StoryRefinementPanel
               storyId={resolvedParams.id}
-              persistedScore={story.quality_score}
-              onScorePersisted={() => void mutate()}
-              onNavigateToTab={(tab) => setActiveTab(tab)}
+              orgId={story.organization_id}
+              story={story}
+              onApply={(field, value) => handleApplySuggestion(field, value, "replace")}
             />
           </div>
         </div>
