@@ -170,8 +170,9 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Load session on mount
+  // Load session on mount — skip if storyId not yet available
   useEffect(() => {
+    if (!storyId) { setSession(null); setLoading(false); return; }
     let cancelled = false;
     authFetch(`${API_BASE}/api/v1/stories/${storyId}/refinement?org_id=${orgId}`)
       .then((r) => (r.status === 404 ? null : r.json()))
