@@ -195,9 +195,9 @@ async def transcribe(
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
-                f"{settings.WHISPER_URL}/v1/audio/transcriptions",
-                files={"file": (file.filename, audio, file.content_type)},
-                data={"model": "whisper-1", "language": "de"},
+                f"{settings.WHISPER_URL}/asr",
+                params={"task": "transcribe", "language": "de", "output": "json"},
+                files={"audio_file": (file.filename, audio, file.content_type)},
             )
             resp.raise_for_status()
             return {"text": resp.json().get("text", "")}
