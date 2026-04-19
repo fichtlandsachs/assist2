@@ -9,13 +9,17 @@ RouteDecision carries:
 
 Routing table:
 
-  task=suggest, low     → haiku,   512 tok,  0.3 temp,  single
-  task=suggest, medium  → sonnet,  1024 tok, 0.4 temp,  single
-  task=suggest, high    → sonnet,  2048 tok, 0.2 temp,  multi
+  task=suggest,  low     → haiku,   512 tok,  0.3 temp,  single
+  task=suggest,  medium  → sonnet,  1024 tok, 0.4 temp,  single
+  task=suggest,  high    → sonnet,  2048 tok, 0.2 temp,  multi
 
-  task=docs,    low     → haiku,   768 tok,  0.3 temp,  single
-  task=docs,    medium  → sonnet,  1536 tok, 0.4 temp,  single
-  task=docs,    high    → sonnet,  2048 tok, 0.3 temp,  multi
+  task=docs,     low     → haiku,   768 tok,  0.3 temp,  single
+  task=docs,     medium  → sonnet,  1536 tok, 0.4 temp,  single
+  task=docs,     high    → sonnet,  2048 tok, 0.3 temp,  multi
+
+  task=evaluate, low     → haiku,   800 tok,  0.15 temp, single  (always single)
+  task=evaluate, medium  → quality, 1200 tok, 0.15 temp, single
+  task=evaluate, high    → quality, 1600 tok, 0.15 temp, single  (no multi for structured JSON)
 """
 from __future__ import annotations
 
@@ -24,7 +28,7 @@ from typing import Literal
 
 from app.ai.complexity_scorer import ComplexityScore
 
-TaskType = Literal["suggest", "docs"]
+TaskType = Literal["suggest", "docs", "evaluate"]
 PipelineMode = Literal["single", "multi"]
 
 
@@ -43,12 +47,17 @@ class RouteDecision:
 # ---------------------------------------------------------------------------
 
 _TABLE: dict[tuple[TaskType, str], dict] = {
-    ("suggest", "low"):    {"max_tokens": 1024, "temperature": 0.30, "pipeline": "single"},
-    ("suggest", "medium"): {"max_tokens": 2048, "temperature": 0.40, "pipeline": "single"},
-    ("suggest", "high"):   {"max_tokens": 4096, "temperature": 0.20, "pipeline": "multi"},
-    ("docs",    "low"):    {"max_tokens": 1536, "temperature": 0.30, "pipeline": "single"},
-    ("docs",    "medium"): {"max_tokens": 3072, "temperature": 0.40, "pipeline": "single"},
-    ("docs",    "high"):   {"max_tokens": 4096, "temperature": 0.30, "pipeline": "multi"},
+    ("suggest",  "low"):    {"max_tokens": 1024, "temperature": 0.30, "pipeline": "single"},
+    ("suggest",  "medium"): {"max_tokens": 2048, "temperature": 0.40, "pipeline": "single"},
+    ("suggest",  "high"):   {"max_tokens": 4096, "temperature": 0.20, "pipeline": "multi"},
+    ("docs",     "low"):    {"max_tokens": 1536, "temperature": 0.30, "pipeline": "single"},
+    ("docs",     "medium"): {"max_tokens": 3072, "temperature": 0.40, "pipeline": "single"},
+    ("docs",     "high"):   {"max_tokens": 4096, "temperature": 0.30, "pipeline": "multi"},
+    # evaluate: always single-stage (structured JSON output doesn't benefit from multi-pass)
+    # low token budget because JSON output is compact; lower temperature for deterministic scoring
+    ("evaluate", "low"):    {"max_tokens": 800,  "temperature": 0.15, "pipeline": "single"},
+    ("evaluate", "medium"): {"max_tokens": 1200, "temperature": 0.15, "pipeline": "single"},
+    ("evaluate", "high"):   {"max_tokens": 1600, "temperature": 0.15, "pipeline": "single"},
 }
 
 _MODEL_MAP: dict[str, str] = {

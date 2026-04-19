@@ -22,6 +22,9 @@
   .footer { margin-top: 40px; font-size: 10px; color: #999; border-top: 1px solid #e2e8f0; padding-top: 8px; }
   .logo { float: right; max-height: 50px; max-width: 150px; }
   .clearfix::after { content: ""; display: table; clear: both; }
+  .doccontrol { border-collapse: collapse; margin: 16px 0 24px 0; font-size: 11px; }
+  .doccontrol th { background: #f7fafc; text-align: left; padding: 5px 12px; border: 1px solid #cbd5e0; white-space: nowrap; color: #4a5568; font-weight: 600; width: 130px; }
+  .doccontrol td { padding: 5px 12px; border: 1px solid #e2e8f0; color: #2d3748; }
 </style>
 </head>
 <body>
@@ -45,8 +48,27 @@
   <span class="badge priority-{{ story.priority.value }}">{{ story.priority.value | upper }}</span>&nbsp;
   {% if story.story_points %}Story Points: <strong>{{ story.story_points }}</strong>&nbsp;{% endif %}
   {% if story.quality_score %}Quality Score: <strong>{{ story.quality_score }}/100</strong>&nbsp;{% endif %}
-  &nbsp;|&nbsp; Erstellt: {{ story.created_at.strftime('%d.%m.%Y') }}
 </div>
+
+<!-- Dokumentensteuerung -->
+<table class="doccontrol">
+  <tr>
+    <th>Zielgruppe</th>
+    <td>{{ story.target_audience or '—' }}</td>
+  </tr>
+  <tr>
+    <th>Version</th>
+    <td>{{ story.doc_version or '1.0' }}</td>
+  </tr>
+  <tr>
+    <th>Datum</th>
+    <td>{{ story.created_at.strftime('%d.%m.%Y') }}</td>
+  </tr>
+  <tr>
+    <th>Ersteller</th>
+    <td>{{ creator_name or '—' }}</td>
+  </tr>
+</table>
 
 <!-- Summary -->
 {% if docs.summary %}
@@ -122,6 +144,12 @@
 {% if story.doc_additional_info %}
 <h2>Zusätzliche Informationen</h2>
 <p style="white-space: pre-wrap;">{{ story.doc_additional_info }}</p>
+{% endif %}
+
+<!-- Workarounds -->
+{% if story.doc_workarounds %}
+<h2>Workarounds</h2>
+<p style="white-space: pre-wrap;">{{ story.doc_workarounds }}</p>
 {% endif %}
 
 <!-- Footer -->

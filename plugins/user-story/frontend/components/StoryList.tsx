@@ -96,6 +96,7 @@ interface CreateStoryModalProps {
 function CreateStoryModal({ orgSlug, onClose, onCreated }: CreateStoryModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
   const [priority, setPriority] = useState<StoryPriority>("medium");
   const [storyPoints, setStoryPoints] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,6 +116,8 @@ function CreateStoryModal({ orgSlug, onClose, onCreated }: CreateStoryModalProps
           priority,
           story_points: storyPoints ? parseInt(storyPoints, 10) : null,
           acceptance_criteria: [],
+          target_audience: targetAudience || null,
+          doc_version: "1.0",
         }),
       });
       onCreated();
@@ -156,6 +159,19 @@ function CreateStoryModal({ orgSlug, onClose, onCreated }: CreateStoryModalProps
               rows={3}
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Damit [Nutzen]..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Zielgruppe
+            </label>
+            <input
+              type="text"
+              value={targetAudience}
+              onChange={(e) => setTargetAudience(e.target.value)}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="z.B. Produktmanager, Entwicklungsteam, Endkunden..."
             />
           </div>
 

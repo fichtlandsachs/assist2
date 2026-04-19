@@ -67,6 +67,8 @@ class UserStory(Base):
     definition_of_done: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON array
     doc_additional_info: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     doc_workarounds: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    target_audience: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    doc_version: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     jira_ticket_key: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     jira_ticket_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # ── Jira Sync ────────────────────────────────────────────────────────────

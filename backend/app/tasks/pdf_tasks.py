@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.celery_app import celery
 from app.database import AsyncSessionLocal
 from app.models.user_story import UserStory
+from app.models.user import User
 from app.models.test_case import TestCase
 from app.models.feature import Feature
 from app.models.pdf_settings import PdfSettings
@@ -56,8 +57,17 @@ async def _generate_pdf_async(story_id: str, org_id: str) -> None:
         )
         features = feat_result.scalars().all()
 
+        # Resolve creator display name
+        creator_name: str | None = None
+        creator_id = getattr(story, "created_by_id", None)
+        if creator_id:
+            u_result = await db.execute(select(User).where(User.id == creator_id))
+            creator = u_result.scalar_one_or_none()
+            if creator:
+                creator_name = creator.display_name or creator.email
+
         # 4. Generate PDF and cache it
-        filename = await pdf_service.generate_and_cache(story, settings, test_cases, features)
+        filename = await pdf_service.generate_and_cache(story, settings, test_cases, features, creator_name=creator_name)
 
         # 5. Update generated_docs with pdf_url
         docs: dict = {}

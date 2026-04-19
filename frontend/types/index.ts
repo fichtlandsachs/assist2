@@ -267,6 +267,8 @@ export interface UserStory {
   definition_of_done: string | null;
   doc_additional_info: string | null;
   doc_workarounds: string | null;
+  target_audience: string | null;
+  doc_version: string | null;
   jira_ticket_key: string | null;
   jira_ticket_url: string | null;
   jira_creator: string | null;
@@ -459,6 +461,8 @@ export interface RefinementMessage {
   role: "user" | "assistant";
   content: string;
   ts: string;
+  web_cost_usd?: number;
+  web_provider?: string;
 }
 
 export interface RefinementProposal {
@@ -476,6 +480,31 @@ export interface StoryRefinementSession {
   last_proposal: RefinementProposal | null;
   quality_score: number | null;
   readiness_state: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Story Assistant (DoD + Features) ──────────────────────────────────────────
+
+export interface DoDProposalItem {
+  text: string;
+  done: boolean;
+}
+
+export interface FeaturesProposalItem {
+  title: string;
+  description?: string;
+  priority: string;
+  story_points?: number;
+}
+
+export interface StoryAssistantSession {
+  id: string;
+  story_id: string;
+  organization_id: string;
+  session_type: "dod" | "features";
+  messages: RefinementMessage[];
+  last_proposal: DoDProposalItem[] | FeaturesProposalItem[] | null;
   created_at: string;
   updated_at: string;
 }

@@ -142,7 +142,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
             </div>
           )}
           <Link
-            href={`/${resolvedParams.org}/stories/new`}
+            href={`/${resolvedParams.org}/stories/new${projectFilter ? `?project_id=${projectFilter}` : ""}`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />
@@ -169,7 +169,7 @@ export default function StoriesBoardPage({ params }: { params: Promise<{ org: st
           <h3 className="text-lg font-semibold text-[var(--ink-mid)] mb-2">{t("story_board_empty")}</h3>
           <p className="text-[var(--ink-faint)] mb-6 text-sm">Erstelle deine erste User Story.</p>
           <Link
-            href={`/${resolvedParams.org}/stories/new`}
+            href={`/${resolvedParams.org}/stories/new${projectFilter ? `?project_id=${projectFilter}` : ""}`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
           >
             <Plus size={16} />

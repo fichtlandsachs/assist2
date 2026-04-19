@@ -64,6 +64,8 @@ class StoryService:
             reporter_id=reporter_id,
             group_id=data.group_id,
             acceptance_criteria=data.acceptance_criteria or [],
+            target_audience=data.target_audience,
+            doc_version=data.doc_version or "1.0",
         )
         db.add(story)
         await db.commit()

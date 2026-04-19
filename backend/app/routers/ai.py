@@ -11,6 +11,7 @@ from openai import AsyncOpenAI
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -67,24 +68,30 @@ _STORY_COMPLETENESS_RULE = (
     "Wenn eine passende Story gefunden wurde, nenne sie direkt mit Titel, Status und Link — erfinde KEINE neue. "
     "Wenn keine Story im Kontext gefunden wurde, helfe dabei eine neue zu erstellen und frage nach den Pflichtfeldern: "
     "(1) Rolle — wer nutzt das Feature, (2) Funktion — was soll möglich sein, "
-    "(3) Businessnutzen — welcher Mehrwert entsteht, (4) Akzeptanzkriterien — messbar und testbar, (5) Priorität. "
+    "(3) Businessnutzen — welcher messbare Outcome entsteht, (4) Akzeptanzkriterien — messbar und testbar, (5) Priorität. "
+    "BUSINESSNUTZEN-QUALITÄTSPRÜFUNG: Ist ein Businessnutzen vorhanden, prüfe ob er einen echten Outcome beschreibt. "
+    "Schwacher Nutzen ('damit es besser wird', 'um die UX zu verbessern') muss konkretisiert werden. "
+    "Ein guter Businessnutzen benennt: wer profitiert, was sich messbar ändert und welchen Wert das erzeugt "
+    "(z.B. 'damit Support-Anfragen um 30 % sinken' oder 'damit Nutzer den Prozess ohne Rückfragen abschließen'). "
+    "Fehlt ein konkreter Outcome, stelle eine einladende Rückfrage: "
+    "'Was soll sich für [Rolle] konkret verändern, wenn dieses Feature live ist — gibt es eine Kennzahl oder ein Verhalten, das sich messbar verbessern soll?' "
     "Fehlen Informationen, gib einen kontextuellen Hinweis — maximal 2 Punkte auf einmal. "
-    "Sobald alle Pflichtfelder vorhanden sind, erstelle die Story ohne weitere Rückfragen."
+    "Sobald alle Pflichtfelder vorhanden sind UND der Businessnutzen einen echten Outcome beschreibt, erstelle die Story ohne weitere Rückfragen."
 )
 
 _RAG_CITATION_RULE = (
     "QUELLENREGEL — KRITISCH: "
     "Zitiere AUSSCHLIESSLICH Quellen, die dir im Abschnitt 'Relevanter Kontext aus dem Workspace' "
-    "explizit bereitgestellt wurden. Jede Quelle dort enthält Titel und ggf. URL — nutze genau diese. "
-    "Wenn Kontext vorhanden ist, zitiere proaktiv und konkret, z.B.: "
-    "'In der Confluence-Seite \"[Titel]\" steht: ...' oder 'Ticket \"[Titel]\" beschreibt: ...'. "
-    "Wenn der Nutzer nach einer Referenz fragt, nenne Titel und URL direkt aus dem bereitgestellten Kontext. "
+    "explizit bereitgestellt wurden. Jede Quelle dort enthält einen Titel — nutze genau diesen. "
+    "Wenn Kontext vorhanden ist, nenne den Quelltitel direkt im Satz, z.B.: "
+    "'Laut **[Titel]** ...' oder 'In **[Titel]** steht: ...'. "
+    "Nenne im Fließtext NIEMALS URLs, Pfade oder Links — also keine Zeichenfolgen wie "
+    "'/demo/stories/...', 'https://...' oder ähnliche Pfadangaben. Gib niemals Rohe IDs oder UUIDs aus. "
     "STORY-SONDERREGEL: Wenn eine [Karl Story]-Quelle gefunden wurde aber keine Dokumentation, antworte: "
-    "'Dokumentation habe ich dazu nicht gefunden, aber es gibt eine User Story dazu: [Titel] (Status: [Status aus Titel]) — [URL]'. "
+    "'Dokumentation habe ich dazu nicht gefunden, aber es gibt eine User Story dazu: [Titel] (Status: [Status aus Titel]).' "
     "Wenn KEIN Workspace-Kontext bereitgestellt wurde: "
     "Erfinde KEINE Quellen. Erwähne KEINE Dokumentation, Tickets oder Stories. "
-    "Antworte ausschließlich auf Basis deines allgemeinen Wissens und weise den Nutzer ggf. darauf hin, "
-    "dass dir keine internen Quellen vorliegen. "
+    "Antworte ausschließlich auf Basis deines allgemeinen Wissens. "
     "Schließe bei vorhandenem Kontext ab mit: 'Schreibe /WEB, wenn ich zusätzlich im Internet recherchieren soll.' "
     "WEBSUCHE-REGEL: Wenn der Nutzer '/WEB' schreibt, recherchiere im Internet und ergänze mit aktuellen Quellen."
 )
@@ -93,22 +100,23 @@ CHAT_SYSTEM_PROMPTS: dict[str, str] = {
     "chat": (
         "Du bist ein hilfreicher KI-Assistent für ein agiles Entwicklungsteam. "
         "Antworte präzise, professionell und auf Deutsch, es sei denn, der Nutzer schreibt in einer anderen Sprache. "
+        "Strukturiere deine Antworten mit Markdown: Überschriften (##), Aufzählungen (- oder 1.), "
+        "Fettschrift (**) für wichtige Begriffe und Code-Blöcke (```) wo sinnvoll. "
         "Wenn der Nutzer ein Bild (Mockup, Screenshot, Wireframe) einfügt, beschreibe es detailliert als UX/UI-Mockup: "
         "Layout, Komponenten, Benutzerfluss und mögliche Anforderungen, die sich daraus ableiten lassen. "
         + _STORY_COMPLETENESS_RULE
-        + _NO_MARKUP
     ),
     "docs": (
         "Du bist ein Experte für technische Dokumentation. "
         "Hilf beim Erstellen, Verbessern und Strukturieren von Dokumenten. "
+        "Verwende Markdown für klare Strukturierung: Überschriften, Listen, Tabellen und Code-Blöcke. "
         + _STORY_COMPLETENESS_RULE
-        + _NO_MARKUP
     ),
     "tasks": (
         "Du bist ein agiler Coach und Projektmanager. "
         "Hilf bei der Planung, Priorisierung und Strukturierung von User Stories und Aufgaben. "
+        "Strukturiere Antworten mit Markdown: Aufzählungen, nummerierten Listen und Überschriften für klare Gliederung. "
         + _STORY_COMPLETENESS_RULE
-        + _NO_MARKUP
     ),
 }
 
@@ -263,11 +271,64 @@ async def chat_stream(
                     def _fmt_chunk(c) -> str:
                         label = _label.get(c.source_type, "[Kontext]")
                         title = c.source_title or ""
-                        url = f" ({c.source_url})" if c.source_url else ""
-                        return f"{label} {title}{url}\n{c.text}"
+                        return f"{label} {title}\n{c.text}"
 
                     rag_context = "\n\n".join(_fmt_chunk(c) for c in rag_result.chunks)
-                    rag_chunks = rag_result.chunks
+                    rag_chunks = list(rag_result.chunks)
+
+                    # Enrich karl_story chunks: attach linked Jira + Confluence sources
+                    from app.models.user_story import UserStory as _UserStory
+                    _extra_sources: list = []
+                    _seen_refs: set = set()
+                    for _c in rag_result.chunks:
+                        if _c.source_type != "karl_story" or not _c.source_url:
+                            continue
+                        # source_ref format: "story:{uuid}" — extract uuid from URL instead
+                        # source_url: "/{org_slug}/stories/{uuid}"
+                        _parts = (_c.source_url or "").rstrip("/").split("/")
+                        _story_id_str = _parts[-1] if _parts else None
+                        if not _story_id_str or _story_id_str in _seen_refs:
+                            continue
+                        _seen_refs.add(_story_id_str)
+                        try:
+                            from types import SimpleNamespace as _NS
+                            _story_uuid = _uuid_module.UUID(_story_id_str)
+                            _story_res = await db.execute(
+                                select(_UserStory).where(_UserStory.id == _story_uuid)
+                            )
+                            _story = _story_res.scalar_one_or_none()
+                            if _story:
+                                if _story.jira_ticket_key and _story.jira_ticket_url:
+                                    _extra_sources.append(_NS(
+                                        source_type="jira",
+                                        source_title=f"Jira: {_story.jira_ticket_key}",
+                                        source_url=_story.jira_ticket_url,
+                                        indexed_at=None,
+                                    ))
+                                if _story.confluence_page_url:
+                                    from app.models.document_chunk import DocumentChunk as _DC
+                                    from urllib.parse import unquote_plus as _uq
+                                    _conf_chunk = await db.execute(
+                                        select(_DC.source_title).where(
+                                            _DC.org_id == _story.organization_id,
+                                            _DC.source_type == "confluence",
+                                            _DC.source_url == _story.confluence_page_url,
+                                        ).limit(1)
+                                    )
+                                    _conf_title = _conf_chunk.scalar_one_or_none()
+                                    if not _conf_title:
+                                        # Fall back to last URL path segment
+                                        _url_seg = _story.confluence_page_url.rstrip("/").split("/")[-1]
+                                        _conf_title = _uq(_url_seg).replace("+", " ") or "Confluence-Dokumentation"
+                                    _extra_sources.append(_NS(
+                                        source_type="confluence",
+                                        source_title=_conf_title,
+                                        source_url=_story.confluence_page_url,
+                                        indexed_at=None,
+                                    ))
+                        except Exception:
+                            pass
+                    rag_chunks.extend(_extra_sources)
         except asyncio.TimeoutError:
             pass  # RAG timeout is normal under load
         except Exception as rag_exc:
@@ -369,9 +430,8 @@ async def chat_stream(
                 if hallucination_detected:
                     yield f"data: {_NO_SOURCE_MSG}\n\n"
                 elif rag_chunks:
-                    yield "data: \n\n"
-                    yield "data: ---\n\n"
-                    seen = set()
+                    seen: set = set()
+                    sources_data = []
                     for c in rag_chunks:
                         key = c.source_url or c.source_title or c.source_type
                         if key in seen:
@@ -384,11 +444,12 @@ async def chat_stream(
                             "nextcloud": "Dokument",
                             "user_action": "Team-Wissen",
                         }.get(c.source_type, c.source_type)
-                        date_str = c.indexed_at[:10] if c.indexed_at else "nicht erfasst"
-                        url_str = c.source_url or "nicht erfasst"
-                        yield f"data: Quelle: {c.source_title or 'unbekannt'} ({_type_label})\n\n"
-                        yield f"data: Stand: {date_str} | URL: {url_str}\n\n"
-                        yield f"data: Autor: nicht erfasst | Projekt: {_type_label} | Gültigkeit: nicht erfasst | Version: nicht erfasst\n\n"
+                        sources_data.append({
+                            "title": c.source_title or _type_label,
+                            "url": c.source_url or None,
+                            "type": _type_label,
+                        })
+                    yield f"data: [SOURCES]{json.dumps(sources_data)}\n\n"
                 yield "data: [DONE]\n\n"
                 return
             except Exception as exc:

@@ -400,7 +400,7 @@ export default function EpicDetailPage({
               )}
             </h2>
             <Link
-              href={`/${resolvedParams.org}/stories/new`}
+              href={`/${resolvedParams.org}/stories/new?epic_id=${resolvedParams.id}${epic?.project_id ? `&project_id=${epic.project_id}` : ""}`}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-xs font-medium transition-colors"
             >
               <Plus size={13} />
@@ -420,7 +420,7 @@ export default function EpicDetailPage({
                 Noch keine User Stories in diesem Epic.
               </p>
               <Link
-                href={`/${resolvedParams.org}/stories/new`}
+                href={`/${resolvedParams.org}/stories/new?epic_id=${resolvedParams.id}${epic?.project_id ? `&project_id=${epic.project_id}` : ""}`}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--btn-primary)] hover:bg-[var(--btn-primary-hover)] text-white rounded-sm text-sm font-medium transition-colors"
               >
                 <Plus size={15} />

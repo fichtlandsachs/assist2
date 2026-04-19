@@ -7,6 +7,8 @@ import useSWR from "swr";
 import type { UserStory, StoryStatus, StoryPriority, TestCase, TestResult, DoDItem, Feature, FeatureStatus, Epic, Process, StoryProcessChange } from "@/types";
 // import { AISuggestPanel } from "@/components/stories/AISuggestPanel"; // replaced by StoryRefinementPanel
 import { StoryRefinementPanel } from "@/components/stories/StoryRefinementPanel";
+import { StoryDoDChatPanel } from "@/components/stories/StoryDoDChatPanel";
+import { StoryFeaturesChatPanel } from "@/components/stories/StoryFeaturesChatPanel";
 import { EpicSelector } from "@/components/stories/EpicSelector";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { DoDItem as DoDItemComponent } from "@/components/stories/DoDItem";
@@ -365,7 +367,7 @@ interface AIDoDSuggestionData {
   sources?: import("@/components/stories/AISuggestionItem").Source[];
 }
 
-function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentUserId }: { storyId: string; initialDod: string | null; editing: boolean; orgId: string; currentUserId: string }) {
+function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentUserId, story }: { storyId: string; initialDod: string | null; editing: boolean; orgId: string; currentUserId: string; story: UserStory }) {
   const { t } = useT();
   const membersMap = useMembersMap(orgId);
   function parseDod(raw: string | null): DoDItem[] {
@@ -567,88 +569,14 @@ function DefinitionOfDoneSection({ storyId, initialDod, editing, orgId, currentU
         </div>
       </div>
 
-      {/* RIGHT: Assistent */}
-      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
-        <div className="mb-4">
-          <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2">
-            <Sparkles size={16} className="text-[var(--accent-red)]" />
-            {t("story_docs_assistant")}
-          </h2>
-          <p className="text-xs text-[var(--ink-faint)] mt-1">
-            Schlägt DoD-Kriterien basierend auf der Story vor.
-          </p>
-        </div>
-
-        {(
-          <button
-            onClick={editing ? () => void handleLoadSuggestions() : undefined}
-            disabled={!editing || aiLoading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
-          >
-            {aiLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                {t("story_dod_generating")}
-              </>
-            ) : (
-              <>
-                <Sparkles size={16} />
-                {t("story_dod_ai_suggest")}
-              </>
-            )}
-          </button>
-        )}
-
-        {aiError && (
-          <div className="mt-3 p-3 bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm text-[var(--accent-red)] text-xs">{aiError}</div>
-        )}
-
-        <div className={`mt-4 space-y-2 transition-opacity duration-300 ${!aiSuggestions && !aiLoading ? "opacity-30 pointer-events-none select-none" : "opacity-100"}`}>
-          {!aiSuggestions && (
-            <div className="space-y-2">
-              <div className="h-10 bg-[var(--paper-warm)] rounded-sm" />
-              <div className="h-10 bg-[var(--paper-warm)] rounded-sm" />
-              <div className="h-10 bg-[var(--paper-warm)] rounded-sm" />
-              <p className="text-xs text-[var(--ink-faint)] text-center pt-1">Kriterien erscheinen nach der Analyse hier.</p>
-            </div>
-          )}
-
-          {aiSuggestions?.length === 0 && (
-            <p className="text-xs text-[var(--ink-faint)] text-center py-4">Alle Vorschläge wurden übernommen.</p>
-          )}
-
-          {aiSuggestions && aiSuggestions.length > 0 && (
-            <>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide flex items-center gap-1.5">
-                  <Sparkles size={12} />
-                  Vorschläge
-                  <span className="normal-case font-normal text-[var(--ink-faint)]">({aiSuggestions.length})</span>
-                </p>
-                <button
-                  onClick={() => setAiSuggestions(null)}
-                  className="text-xs text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors"
-                >
-                  Schließen
-                </button>
-              </div>
-              {aiSuggestions.map((s, i) => (
-                <AISuggestionItem
-                  key={i}
-                  text={s.text}
-                  category={s.category}
-                  sources={s.sources}
-                  onAdd={() => void addFromSuggestion(s)}
-                  onReject={() => {
-                    setAiSuggestions((prev) => prev?.filter((_, idx) => idx !== i) ?? prev);
-                    void rejectSuggestion("dod", s.text);
-                  }}
-                  dragType={editing ? "application/x-dod-suggestion" : undefined}
-                />
-              ))}
-            </>
-          )}
-        </div>
+      {/* RIGHT: Chat-Assistent */}
+      <div className="xl:sticky xl:top-6">
+        <StoryDoDChatPanel
+          storyId={storyId}
+          orgId={orgId}
+          story={story}
+          onAddItem={(text) => addItem(text)}
+        />
       </div>
     </div>
   );
@@ -1251,12 +1179,18 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
   );
   const { data: testCases } = useSWR<TestCase[]>(`/api/v1/user-stories/${storyId}/test-cases`, fetcher);
   const { data: features } = useSWR<Feature[]>(`/api/v1/features?org_id=${story.organization_id}&story_id=${storyId}`, fetcher);
+  const { data: orgIntegrations } = useSWR<{ confluence?: { default_space_key?: string } }>(
+    `/api/v1/organizations/${story.organization_id}/integrations`,
+    fetcher
+  );
   const [regenerating, setRegenerating] = useState(false);
   const [regenError, setRegenError] = useState<string | null>(null);
 
   // Local state for user-editable notes (initialised from docs/story)
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [workarounds, setWorkarounds] = useState("");
+  const [targetAudience, setTargetAudience] = useState(story.target_audience ?? "");
+  const [docVersion, setDocVersion] = useState(story.doc_version ?? "1.0");
 
   // Confluence state
   const [confluenceSpaceKey, setConfluenceSpaceKey] = useState("");
@@ -1275,22 +1209,21 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
   useEffect(() => {
     setAdditionalInfo(docs?.additional_info ?? "");
     setWorkarounds(docs?.workarounds ?? "");
-    // Auto-extract space key from existing Confluence URL
-    if (docs?.confluence_page_url && !confluenceSpaceKey) {
-      const match = docs.confluence_page_url.match(/\/spaces\/([A-Z0-9]+)\//i);
-      if (match) setConfluenceSpaceKey(match[1].toUpperCase());
+    // Pre-fill space key from org settings (always preferred over URL extraction)
+    if (!confluenceSpaceKey) {
+      const orgDefault = orgIntegrations?.confluence?.default_space_key ?? "";
+      if (orgDefault) setConfluenceSpaceKey(orgDefault);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [docs?.additional_info, docs?.workarounds, docs?.confluence_page_url]);
+  }, [docs?.additional_info, docs?.workarounds, orgIntegrations?.confluence?.default_space_key]);
 
   async function handlePublishConfluence() {
-    if (!confluenceSpaceKey.trim()) return;
     setPublishingConfluence(true);
     setConfluenceError(null);
     try {
       const updated = await apiRequest<StoryDocsData>(`/api/v1/user-stories/${storyId}/docs/publish-confluence`, {
         method: "POST",
-        body: JSON.stringify({ space_key: confluenceSpaceKey.trim().toUpperCase(), org_id: story.organization_id }),
+        body: JSON.stringify({ space_key: confluenceSpaceKey.trim().toUpperCase() || null, org_id: story.organization_id }),
       });
       mutate(updated, false);
     } catch (err: unknown) {
@@ -1338,6 +1271,15 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
     });
     if (field === "doc_additional_info") setAdditionalInfo(value);
     else setWorkarounds(value);
+  }
+
+  async function saveStoryField(field: "target_audience" | "doc_version", value: string) {
+    await apiRequest(`/api/v1/user-stories/${storyId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ [field]: value || null }),
+    });
+    if (field === "target_audience") setTargetAudience(value);
+    else setDocVersion(value);
   }
 
   return (
@@ -1536,6 +1478,21 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
 
           {/* Divider for user-editable sections — always visible */}
           <div className="border-t border-[var(--paper-rule)] pt-5 space-y-5">
+            {/* Dokumentensteuerung */}
+            <div className="grid grid-cols-2 gap-4">
+              <EditableNotesField
+                label="Zielgruppe"
+                value={targetAudience}
+                placeholder="z.B. Produktmanager, Entwicklungsteam, Endkunden..."
+                onSave={(v) => saveStoryField("target_audience", v)}
+              />
+              <EditableNotesField
+                label="Version"
+                value={docVersion}
+                placeholder="1.0"
+                onSave={(v) => saveStoryField("doc_version", v)}
+              />
+            </div>
             <EditableNotesField
               label={t("story_docs_additional_info")}
               value={additionalInfo}
@@ -1662,7 +1619,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
                 />
                 <button
                   onClick={() => void handlePublishConfluence()}
-                  disabled={publishingConfluence || !docs || !confluenceSpaceKey.trim()}
+                  disabled={publishingConfluence || !docs}
                   className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[var(--navy)] hover:bg-[rgba(74,85,104,.9)] disabled:opacity-50 text-white rounded-sm text-xs font-medium transition-colors"
                 >
                   {publishingConfluence ? <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent" /> : <Upload size={12} />}
@@ -1708,7 +1665,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
             <div className="px-4 py-3 border-t border-[var(--paper-rule)] flex justify-end">
               <button
                 onClick={() => { void handlePublishConfluence(); setShowConfluenceSync(false); }}
-                disabled={publishingConfluence || !confluenceSpaceKey.trim()}
+                disabled={publishingConfluence}
                 className="flex items-center gap-2 px-4 py-2 bg-[var(--navy)] hover:bg-[rgba(74,85,104,.9)] disabled:opacity-50 text-white rounded-sm text-xs font-medium transition-colors"
               >
                 <Upload size={12} />
@@ -1912,7 +1869,7 @@ function SuggestedFeatureCard({
   );
 }
 
-function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: string; editing: boolean }) {
+function FeaturesSection({ storyId, orgId, editing, story }: { storyId: string; orgId: string; editing: boolean; story: UserStory }) {
   const { t } = useT();
   const membersMap = useMembersMap(orgId);
   const { data: features, mutate } = useSWR<Feature[]>(
@@ -2197,43 +2154,14 @@ function FeaturesSection({ storyId, orgId, editing }: { storyId: string; orgId: 
         )}
       </div>
 
-      {/* RIGHT: AI Panel */}
-      <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-[var(--accent-red)]" />
-          <h3 className="font-semibold text-[var(--ink)]">Feature-Vorschläge</h3>
-        </div>
-        <p className="text-sm text-[var(--ink-faint)]">
-          Analysiert die User Story und schlägt konkrete, implementierbare Features (Teilfunktionen) vor.
-        </p>
-
-        {(
-          <button
-            onClick={editing ? () => void handleAiSuggest() : undefined}
-            disabled={!editing || aiLoading}
-            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[var(--accent-red)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
-          >
-            {aiLoading
-              ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Wird analysiert…</>
-              : <><Sparkles size={14} /> Features vorschlagen</>
-            }
-          </button>
-        )}
-
-        {aiError && (
-          <p className="text-sm text-[var(--accent-red)] bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] px-3 py-2 rounded-sm">{aiError}</p>
-        )}
-
-        {aiSuggestions.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">
-              {aiSuggestions.length} Vorschläge
-            </p>
-            {aiSuggestions.map((s, i) => (
-              <SuggestedFeatureCard key={i} suggestion={s} onAdd={handleAddSuggestion} priorityOptions={PRIORITY_OPTIONS} />
-            ))}
-          </div>
-        )}
+      {/* RIGHT: Chat-Assistent */}
+      <div className="xl:sticky xl:top-6">
+        <StoryFeaturesChatPanel
+          storyId={storyId}
+          orgId={orgId}
+          story={story}
+          onAddFeature={(f) => void handleAddSuggestion({ title: f.title, description: f.description ?? null, priority: f.priority as import("@/types").StoryPriority, story_points: f.story_points ?? null, sources: [] })}
+        />
       </div>
     </div>
   );
@@ -3443,48 +3371,24 @@ export default function StoryDetailPage({
               editing={editing}
             />
 
-            {!editing && (
-              <>
-                <StoryAssignmentView
-                  story={story}
-                  orgId={story.organization_id}
-                />
-                {story.jira_ticket_key && (
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Upload size={13} className="text-[var(--ink-faint)] shrink-0" />
-                    <span className="text-[var(--ink-faint)] text-xs">Jira:</span>
-                    {story.jira_ticket_url ? (
-                      <a
-                        href={story.jira_ticket_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs px-1.5 py-0.5 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-[var(--btn-primary)] hover:underline"
-                      >
-                        {story.title} ({story.jira_ticket_key}) ↗
-                      </a>
-                    ) : (
-                      <span className="text-xs px-1.5 py-0.5 bg-[var(--paper-warm)] border border-[var(--paper-rule)] rounded-sm text-[var(--ink-mid)]">
-                        {story.title} ({story.jira_ticket_key})
-                      </span>
-                    )}
-                  </div>
-                )}
-                {story.jira_ticket_key && (
-                  <JiraSection
-                    story={story}
-                    onSynced={() => mutate()}
-                  />
-                )}
-              </>
+            <StoryAssignmentView
+              story={story}
+              orgId={story.organization_id}
+            />
+            {!editing && story.jira_ticket_key && (
+              <JiraSection
+                story={story}
+                onSynced={() => mutate()}
+              />
             )}
 
-            {editing && (
-              <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                    {t("story_detail_field_status")}
-                  </label>
+            {/* Metadata fields — always visible, editable only in edit mode */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
+                  {t("story_detail_field_status")}
+                </label>
+                {editing ? (
                   <select
                     id="status"
                     value={status}
@@ -3492,17 +3396,23 @@ export default function StoryDetailPage({
                     className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   >
                     {STATUS_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
+                      <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>
-                </div>
+                ) : (
+                  <div className="px-3 py-2 text-sm border border-[var(--paper-rule)] rounded-sm bg-[var(--card)]">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[story.status]}`}>
+                      {STATUS_OPTIONS.find((o) => o.value === story.status)?.label ?? story.status}
+                    </span>
+                  </div>
+                )}
+              </div>
 
-                <div>
-                  <label htmlFor="priority" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                    {t("story_detail_field_priority")}
-                  </label>
+              <div>
+                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
+                  {t("story_detail_field_priority")}
+                </label>
+                {editing ? (
                   <select
                     id="priority"
                     value={priority}
@@ -3510,17 +3420,21 @@ export default function StoryDetailPage({
                     className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   >
                     {PRIORITY_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
+                      <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>
-                </div>
+                ) : (
+                  <div className={`px-3 py-2 text-sm border border-[var(--paper-rule)] rounded-sm bg-[var(--card)] font-medium ${PRIORITY_COLORS[story.priority]}`}>
+                    {PRIORITY_OPTIONS.find((o) => o.value === story.priority)?.label ?? story.priority}
+                  </div>
+                )}
+              </div>
 
-                <div>
-                  <label htmlFor="story_points" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                    {t("story_detail_field_points")}
-                  </label>
+              <div>
+                <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
+                  {t("story_detail_field_points")}
+                </label>
+                {editing ? (
                   <input
                     id="story_points"
                     type="number"
@@ -3531,37 +3445,46 @@ export default function StoryDetailPage({
                     placeholder="z.B. 5"
                     className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                   />
-                </div>
-
-                <div className="flex items-end pb-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={dorPassed}
-                      onChange={(e) => setDorPassed(e.target.checked)}
-                      className="w-4 h-4 rounded border-[var(--ink-faintest)] text-[var(--accent-red)]"
-                    />
-                    <span className="text-sm font-medium text-[var(--ink-mid)]">DoR bestanden</span>
-                  </label>
-                </div>
+                ) : (
+                  <div className="px-3 py-2 text-sm border border-[var(--paper-rule)] rounded-sm bg-[var(--card)] text-[var(--ink-mid)]">
+                    {story.story_points ?? <span className="text-[var(--ink-faint)]">—</span>}
+                  </div>
+                )}
               </div>
 
-              <EpicSelector
-                orgId={story.organization_id}
-                value={epicId}
-                onChange={setEpicId}
-              />
-
-              <ProjectSelector
-                orgId={story.organization_id}
-                value={projectId}
-                onChange={setProjectId}
-              />
-
-              <div>
-                <label htmlFor="jira_ticket_key" className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
-                  {t("story_detail_field_jira")}
+              <div className="flex items-end pb-2">
+                <label className={`flex items-center gap-2 ${editing ? "cursor-pointer" : "cursor-default"}`}>
+                  <input
+                    type="checkbox"
+                    checked={editing ? dorPassed : story.dor_passed}
+                    onChange={editing ? (e) => setDorPassed(e.target.checked) : undefined}
+                    disabled={!editing}
+                    className="w-4 h-4 rounded border-[var(--ink-faintest)] text-[var(--accent-red)] disabled:opacity-60"
+                  />
+                  <span className="text-sm font-medium text-[var(--ink-mid)]">DoR bestanden</span>
                 </label>
+              </div>
+            </div>
+
+            <EpicSelector
+              orgId={story.organization_id}
+              value={epicId}
+              onChange={setEpicId}
+              disabled={!editing}
+            />
+
+            <ProjectSelector
+              orgId={story.organization_id}
+              value={projectId}
+              onChange={setProjectId}
+              disabled={!editing}
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-[var(--ink-mid)] mb-1.5">
+                {t("story_detail_field_jira")}
+              </label>
+              {editing ? (
                 <input
                   id="jira_ticket_key"
                   type="text"
@@ -3570,9 +3493,17 @@ export default function StoryDetailPage({
                   placeholder="z.B. PROJ-123"
                   className="w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                 />
-              </div>
-              </>
-            )}
+              ) : (
+                <div className="px-3 py-2 text-sm border border-[var(--paper-rule)] rounded-sm bg-[var(--card)] text-[var(--ink-mid)]">
+                  {story.jira_ticket_key
+                    ? story.jira_ticket_url
+                      ? <a href={story.jira_ticket_url} target="_blank" rel="noopener noreferrer" className="text-[var(--btn-primary)] hover:underline">{story.jira_ticket_key} ↗</a>
+                      : story.jira_ticket_key
+                    : <span className="text-[var(--ink-faint)]">—</span>
+                  }
+                </div>
+              )}
+            </div>
 
             {fieldErrors.general && (
               <div className="p-3 bg-[rgba(var(--accent-red-rgb),.08)] border border-[rgba(var(--accent-red-rgb),.3)] rounded-sm text-[var(--accent-red)] text-sm">
@@ -3598,9 +3529,10 @@ export default function StoryDetailPage({
         </div>
       )}
 
-      {/* DoD / Tests / Features — always mounted so suggestion state survives tab switches */}
+      {/* DoD / Tests / Features — always mounted so suggestion state survives tab switches.
+           Each section is shown only when its tab is active. */}
       <div className={activeTab !== "dod" ? "hidden" : ""}>
-        <DefinitionOfDoneSection storyId={resolvedParams.id} initialDod={story.definition_of_done} editing={editing} orgId={story.organization_id} currentUserId={currentUser?.id ?? ""} />
+        <DefinitionOfDoneSection storyId={resolvedParams.id} initialDod={story.definition_of_done} editing={editing} orgId={story.organization_id} currentUserId={currentUser?.id ?? ""} story={story} />
       </div>
 
       <div className={activeTab !== "tests" ? "hidden" : ""}>
@@ -3608,7 +3540,7 @@ export default function StoryDetailPage({
       </div>
 
       <div className={activeTab !== "features" ? "hidden" : ""}>
-        <FeaturesSection storyId={resolvedParams.id} orgId={story.organization_id} editing={editing} />
+        <FeaturesSection storyId={resolvedParams.id} orgId={story.organization_id} editing={editing} story={story} />
       </div>
 
       {/* Docs tab */}

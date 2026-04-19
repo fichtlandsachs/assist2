@@ -14,10 +14,17 @@ import { ProjectSelector } from "@/components/stories/ProjectSelector";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+interface ChatSource {
+  title: string;
+  url: string | null;
+  type: string;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
   images?: { mediaType: string; data: string }[];
+  sources?: ChatSource[];
 }
 
 interface StoryData {
@@ -64,6 +71,23 @@ function parseJiraPanel(text: string): JiraStoryPanel | null {
     generated_at: getField("generated_at"),
     content,
   };
+}
+
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+function stripInternalUrls(text: string): string {
+  return text
+    // "Link: /path/uuid" or "Link:/path/uuid" (with optional label before colon)
+    .replace(/\b\w+:\s*\/[^\s,.)[\]]+/g, (m) => UUID_RE.test(m) ? "" : m)
+    // " — /path/uuid" or " – /path/uuid"
+    .replace(/\s*[—–]\s*\/[^\s,.)[\]]+/g, "")
+    // (/path/uuid) in parentheses
+    .replace(/\(\/[^\s)]*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[^\s)]*\)/gi, "")
+    // any remaining /path/containing-uuid
+    .replace(/[\s(]\/[a-z][a-zA-Z0-9/_-]*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[a-zA-Z0-9/_-]*/gi, "")
+    // trailing whitespace/comma cleanup
+    .replace(/,\s*,/g, ",")
+    .trim();
 }
 
 function stripJiraPanel(text: string): string {
@@ -255,6 +279,19 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
             const chunk = pendingDataLines.join("\n");
             pendingDataLines = [];
             if (chunk === "[DONE]" || chunk === "[ERROR]") continue;
+            if (chunk.startsWith("[SOURCES]")) {
+              try {
+                const sources: ChatSource[] = JSON.parse(chunk.slice(9));
+                setMessages(prev =>
+                  prev.map((m, i) =>
+                    i === assistantIdx ? { ...m, sources } : m
+                  )
+                );
+              } catch {
+                // malformed sources payload — ignore
+              }
+              continue;
+            }
             setMessages(prev =>
               prev.map((m, i) =>
                 i === assistantIdx ? { ...m, content: m.content + chunk } : m
@@ -563,12 +600,52 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                             h2: ({ children }) => <p style={{ fontWeight: 600, margin: "0.4em 0 0.2em" }}>{children}</p>,
                             h3: ({ children }) => <p style={{ fontWeight: 600, margin: "0.3em 0 0.1em" }}>{children}</p>,
                           }}
-                        >{mode === "jira" ? stripJiraPanel(m.content) : m.content}</ReactMarkdown>
+                        >{stripInternalUrls(mode === "jira" ? stripJiraPanel(m.content) : m.content)}</ReactMarkdown>
                         {streaming && i === messages.length - 1 && (
                           m.content ? (
                             <span className="inline-block w-1.5 h-3.5 ml-0.5 align-text-bottom animate-pulse"
                               style={{ background: "var(--ink-faint)" }} />
                           ) : <TypingDots />
+                        )}
+                        {m.sources && m.sources.length > 0 && (
+                          <div style={{ marginTop: "0.6em", display: "flex", flexWrap: "wrap", gap: "0.35em" }}>
+                            {m.sources.map((src, si) => (
+                              src.url ? (
+                                <a key={si} href={src.url} target="_blank" rel="noopener noreferrer"
+                                  style={{
+                                    display: "inline-flex", alignItems: "center", gap: "0.3em",
+                                    fontSize: "11px", lineHeight: 1.4,
+                                    padding: "0.15em 0.55em",
+                                    background: "var(--paper-warm)",
+                                    border: "0.5px solid var(--paper-rule)",
+                                    borderRadius: "3px",
+                                    color: "var(--btn-primary)",
+                                    textDecoration: "none",
+                                    fontFamily: "var(--font-body)",
+                                  }}
+                                  onMouseOver={e => (e.currentTarget.style.textDecoration = "underline")}
+                                  onMouseOut={e => (e.currentTarget.style.textDecoration = "none")}
+                                >
+                                  <span style={{ opacity: 0.5, fontSize: "10px", fontFamily: "var(--font-mono)" }}>{src.type}</span>
+                                  {src.title}
+                                </a>
+                              ) : (
+                                <span key={si} style={{
+                                  display: "inline-flex", alignItems: "center", gap: "0.3em",
+                                  fontSize: "11px", lineHeight: 1.4,
+                                  padding: "0.15em 0.55em",
+                                  background: "var(--paper-warm)",
+                                  border: "0.5px solid var(--paper-rule)",
+                                  borderRadius: "3px",
+                                  color: "var(--ink-mid)",
+                                  fontFamily: "var(--font-body)",
+                                }}>
+                                  <span style={{ opacity: 0.5, fontSize: "10px", fontFamily: "var(--font-mono)" }}>{src.type}</span>
+                                  {src.title}
+                                </span>
+                              )
+                            ))}
+                          </div>
                         )}
                       </div>
                     ) : (

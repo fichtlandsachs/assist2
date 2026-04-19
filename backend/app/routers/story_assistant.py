@@ -1,16 +1,19 @@
-"""Story Refinement Panel — REST + SSE endpoints.
+"""Story Assistant — DoD and Features AI chat (SSE streaming).
 
 Routes (all prefixed /api/v1):
-  GET    /stories/{story_id}/refinement          → load or 404
-  POST   /stories/{story_id}/refinement          → create / reset session
-  POST   /stories/{story_id}/refinement/chat     → SSE stream
-  POST   /stories/{story_id}/refinement/apply    → apply proposal field to story
-  DELETE /stories/{story_id}/refinement          → delete session
+  GET    /stories/{story_id}/assistant/{session_type}       → load or 404
+  POST   /stories/{story_id}/assistant/{session_type}       → create / reset session
+  POST   /stories/{story_id}/assistant/{session_type}/chat  → SSE stream
+  POST   /stories/{story_id}/assistant/{session_type}/dismiss
+  DELETE /stories/{story_id}/assistant/{session_type}       → delete session
+
+session_type: "dod" | "features"
 """
 from __future__ import annotations
 
 import asyncio
 import logging
+import re as _re
 import uuid as _uuid_module
 from datetime import datetime, timezone
 from typing import AsyncIterator
@@ -24,15 +27,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import re as _re
 
-from app.config import get_settings
 from app.database import AsyncSessionLocal
 from app.deps import get_current_user, get_db
 from app.models.user import User
 from app.models.user_story import UserStory
 from app.models.epic import Epic
 from app.models.project import Project
-from app.models.story_refinement import StoryRefinementSession
-from app.services.story_refinement_service import (
+from app.models.story_assistant_session import StoryAssistantSession
+from app.services.story_assistant_service import (
     build_system_prompt,
     extract_proposal,
     extract_score,
@@ -46,8 +48,16 @@ _MARKER_RE = _re.compile(r"<!--(?:proposal[\s\S]*?|score:-?\d+)-->", _re.DOTALL)
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+_ALLOWED_TYPES = {"dod", "features"}
+_MARKER_RE = _re.compile(r"<!--(?:proposal[\s\S]*?|score:-?\d+)-->", _re.DOTALL)
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _validate_type(session_type: str) -> None:
+    if session_type not in _ALLOWED_TYPES:
+        raise HTTPException(status_code=422, detail=f"Ungültiger session_type: {session_type}")
+
 
 async def _get_story_or_404(
     story_id: _uuid_module.UUID,
@@ -66,21 +76,6 @@ async def _get_story_or_404(
     return story
 
 
-async def _get_session_or_404(
-    story_id: _uuid_module.UUID,
-    db: AsyncSession,
-) -> StoryRefinementSession:
-    result = await db.execute(
-        select(StoryRefinementSession).where(
-            StoryRefinementSession.story_id == story_id
-        )
-    )
-    session = result.scalar_one_or_none()
-    if not session:
-        raise HTTPException(status_code=404, detail="Keine aktive Refinement-Session")
-    return session
-
-
 async def _resolve_epic_title(epic_id, db: AsyncSession) -> str | None:
     if not epic_id:
         return None
@@ -95,16 +90,14 @@ async def _resolve_project_name(project_id, db: AsyncSession) -> str | None:
     return res.scalar_one_or_none()
 
 
-def _session_to_dict(s: StoryRefinementSession) -> dict:
+def _session_to_dict(s: StoryAssistantSession) -> dict:
     return {
         "id": str(s.id),
         "story_id": str(s.story_id),
         "organization_id": str(s.organization_id),
-        "stage": s.stage,
+        "session_type": s.session_type,
         "messages": s.messages,
         "last_proposal": s.last_proposal,
-        "quality_score": s.quality_score,
-        "readiness_state": s.readiness_state,
         "created_at": s.created_at.isoformat(),
         "updated_at": s.updated_at.isoformat(),
     }
@@ -121,60 +114,62 @@ class ChatRequest(BaseModel):
     org_id: str
 
 
-class ApplyRequest(BaseModel):
-    field: str   # "title" | "description" | "acceptance_criteria"
-    value: str
+class DismissRequest(BaseModel):
     org_id: str
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
-@router.get("/stories/{story_id}/refinement")
+@router.get("/stories/{story_id}/assistant/{session_type}")
 async def get_session(
     story_id: _uuid_module.UUID,
+    session_type: str,
     org_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
+    _validate_type(session_type)
     await _get_story_or_404(story_id, _uuid_module.UUID(org_id), db)
     result = await db.execute(
-        select(StoryRefinementSession).where(
-            StoryRefinementSession.story_id == story_id
+        select(StoryAssistantSession).where(
+            StoryAssistantSession.story_id == story_id,
+            StoryAssistantSession.session_type == session_type,
         )
     )
     session = result.scalar_one_or_none()
     if not session:
-        raise HTTPException(status_code=404, detail="Keine aktive Refinement-Session")
+        raise HTTPException(status_code=404, detail="Keine aktive Session")
     return _session_to_dict(session)
 
 
-@router.post("/stories/{story_id}/refinement")
+@router.post("/stories/{story_id}/assistant/{session_type}")
 async def create_session(
     story_id: _uuid_module.UUID,
+    session_type: str,
     body: CreateSessionRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
+    _validate_type(session_type)
     org_uuid = _uuid_module.UUID(body.org_id)
     await _get_story_or_404(story_id, org_uuid, db)
 
-    # Upsert: if session exists, reset it; otherwise create new
     result = await db.execute(
-        select(StoryRefinementSession).where(
-            StoryRefinementSession.story_id == story_id
+        select(StoryAssistantSession).where(
+            StoryAssistantSession.story_id == story_id,
+            StoryAssistantSession.session_type == session_type,
         )
     )
     session = result.scalar_one_or_none()
     if session:
         session.messages = []
         session.last_proposal = None
-        session.quality_score = None
-        session.readiness_state = None
         session.updated_at = datetime.now(timezone.utc)
     else:
-        session = StoryRefinementSession(
+        session = StoryAssistantSession(
             story_id=story_id,
             organization_id=org_uuid,
+            session_type=session_type,
             created_by_id=current_user.id,
         )
         db.add(session)
@@ -183,24 +178,34 @@ async def create_session(
     return _session_to_dict(session)
 
 
-@router.post("/stories/{story_id}/refinement/chat")
+@router.post("/stories/{story_id}/assistant/{session_type}/chat")
 async def chat_stream(
     story_id: _uuid_module.UUID,
+    session_type: str,
     body: ChatRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
+    _validate_type(session_type)
     org_uuid = _uuid_module.UUID(body.org_id)
     story = await _get_story_or_404(story_id, org_uuid, db)
-    session = await _get_session_or_404(story_id, db)
+
+    result = await db.execute(
+        select(StoryAssistantSession).where(
+            StoryAssistantSession.story_id == story_id,
+            StoryAssistantSession.session_type == session_type,
+        )
+    )
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Keine aktive Session")
 
     runtime_settings = await get_runtime_settings(db)
-
-    # Resolve Epic/Project names for context
     epic_title = await _resolve_epic_title(story.epic_id, db)
     project_name = await _resolve_project_name(story.project_id, db)
 
     system_prompt = build_system_prompt(
+        session_type=session_type,
         title=story.title,
         description=story.description,
         acceptance_criteria=story.acceptance_criteria,
@@ -210,7 +215,7 @@ async def chat_stream(
         project_name=project_name,
     )
 
-    # RAG retrieval (800 ms timeout, non-blocking)
+    # RAG retrieval (800ms timeout, non-blocking)
     rag_context = ""
     try:
         rag_result = await asyncio.wait_for(
@@ -230,7 +235,7 @@ async def chat_stream(
                 for c in rag_result.chunks
             )
     except (asyncio.TimeoutError, Exception) as exc:
-        logger.warning("RAG error in refinement (suppressed): %s", exc)
+        logger.warning("RAG error in assistant (suppressed): %s", exc)
 
     # /WEB detection — strip signal from LLM input, keep visible in chat history
     _WEB_SIGNAL = "/WEB"
@@ -244,7 +249,7 @@ async def chat_stream(
 
     history = session.messages or []
 
-    # Persist user message before streaming starts
+    # Persist user message before streaming (keep /WEB visible in chat history)
     session.messages = history + [
         {"role": "user", "content": display_message, "ts": datetime.now(timezone.utc).isoformat()}
     ]
@@ -267,7 +272,7 @@ async def chat_stream(
                     timeout=12.0,
                 )
             except (asyncio.TimeoutError, Exception) as exc:
-                logger.warning("web_search error in refinement (suppressed): %s", exc)
+                logger.warning("web_search error in assistant (suppressed): %s", exc)
 
         full_system = base_system
         if web_result:
@@ -303,18 +308,18 @@ async def chat_stream(
                     sse_payload = delta.replace("\n", "\ndata: ")
                     yield f"data: {sse_payload}\n\n"
 
-                # After stream: persist assistant message + extract metadata
                 proposal = extract_proposal(full_response)
                 score = extract_score(full_response)
-                logger.debug("Refinement persist: proposal=%s score=%s", proposal, score)
+                logger.debug("Assistant persist (%s): proposal=%s score=%s", session_type, proposal, score)
 
                 async with AsyncSessionLocal() as persist_db:
-                    result = await persist_db.execute(
-                        select(StoryRefinementSession).where(
-                            StoryRefinementSession.story_id == story_id
+                    res = await persist_db.execute(
+                        select(StoryAssistantSession).where(
+                            StoryAssistantSession.story_id == story_id,
+                            StoryAssistantSession.session_type == session_type,
                         )
                     )
-                    s = result.scalar_one_or_none()
+                    s = res.scalar_one_or_none()
                     if s:
                         assistant_msg: dict = {
                             "role": "assistant",
@@ -327,8 +332,6 @@ async def chat_stream(
                         s.messages = list(s.messages or []) + [assistant_msg]
                         if proposal is not None:
                             s.last_proposal = proposal
-                        if score is not None:
-                            s.quality_score = score
                         s.updated_at = datetime.now(timezone.utc)
                         await persist_db.commit()
 
@@ -339,7 +342,7 @@ async def chat_stream(
                 return
 
             except Exception as exc:
-                logger.warning("Refinement stream error (model=%s): %s", model, exc)
+                logger.warning("Assistant stream error (model=%s): %s", model, exc)
                 continue
 
         yield "data: [ERROR]\n\n"
@@ -347,56 +350,24 @@ async def chat_stream(
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
-@router.post("/stories/{story_id}/refinement/apply")
-async def apply_proposal(
-    story_id: _uuid_module.UUID,
-    body: ApplyRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    allowed_fields = {"title", "description", "acceptance_criteria"}
-    if body.field not in allowed_fields:
-        raise HTTPException(status_code=422, detail=f"Unbekanntes Feld: {body.field}")
-
-    org_uuid = _uuid_module.UUID(body.org_id)
-    story = await _get_story_or_404(story_id, org_uuid, db)
-    session = await _get_session_or_404(story_id, db)
-
-    setattr(story, body.field, body.value)
-
-    # Remove only the applied field from the proposal; clear entirely if nothing remains
-    if session.last_proposal:
-        remaining = {k: v for k, v in session.last_proposal.items() if k != body.field and v}
-        session.last_proposal = remaining if remaining else None
-    session.updated_at = datetime.now(timezone.utc)
-
-    await db.commit()
-    return {"ok": True, "field": body.field}
-
-
-class DismissRequest(BaseModel):
-    org_id: str
-
-
-@router.post("/stories/{story_id}/refinement/dismiss")
+@router.post("/stories/{story_id}/assistant/{session_type}/dismiss")
 async def dismiss_proposal(
     story_id: _uuid_module.UUID,
+    session_type: str,
     body: DismissRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Clear last_proposal without modifying the story — user dismissed the suggestion."""
+    _validate_type(session_type)
     await _get_story_or_404(story_id, _uuid_module.UUID(body.org_id), db)
     result = await db.execute(
-        select(StoryRefinementSession).where(
-            StoryRefinementSession.story_id == story_id
+        select(StoryAssistantSession).where(
+            StoryAssistantSession.story_id == story_id,
+            StoryAssistantSession.session_type == session_type,
         )
     )
     session = result.scalar_one_or_none()
@@ -407,17 +378,20 @@ async def dismiss_proposal(
     return {"ok": True}
 
 
-@router.delete("/stories/{story_id}/refinement")
-async def reset_session(
+@router.delete("/stories/{story_id}/assistant/{session_type}")
+async def delete_session(
     story_id: _uuid_module.UUID,
+    session_type: str,
     org_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
+    _validate_type(session_type)
     await _get_story_or_404(story_id, _uuid_module.UUID(org_id), db)
     result = await db.execute(
-        select(StoryRefinementSession).where(
-            StoryRefinementSession.story_id == story_id
+        select(StoryAssistantSession).where(
+            StoryAssistantSession.story_id == story_id,
+            StoryAssistantSession.session_type == session_type,
         )
     )
     session = result.scalar_one_or_none()

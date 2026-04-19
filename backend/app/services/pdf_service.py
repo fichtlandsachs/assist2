@@ -24,7 +24,14 @@ _jinja_env = Environment(
 class PdfService:
     """Orchestrates HTML rendering + Stirling PDF conversion + local cache storage."""
 
-    def render_html(self, story: Any, settings: Any, test_cases: List, features: List) -> str:
+    def render_html(
+        self,
+        story: Any,
+        settings: Any,
+        test_cases: List,
+        features: List,
+        creator_name: Optional[str] = None,
+    ) -> str:
         """Render the Jinja2 template with story data. Returns HTML string."""
         docs: dict = {}
         if story.generated_docs:
@@ -56,18 +63,24 @@ class PdfService:
             docs=docs,
             dod_items=dod_items,
             logo_path=logo_path,
+            creator_name=creator_name,
             generated_at=datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC"),
         )
 
     async def generate_and_cache(
-        self, story: Any, settings: Any, test_cases: List, features: List
+        self,
+        story: Any,
+        settings: Any,
+        test_cases: List,
+        features: List,
+        creator_name: Optional[str] = None,
     ) -> str:
         """
         Render HTML, convert to PDF via Stirling, apply letterhead if configured,
         write to cache volume. Returns the filename (not full path).
         """
         cfg = get_settings()
-        html = self.render_html(story, settings, test_cases, features)
+        html = self.render_html(story, settings, test_cases, features, creator_name=creator_name)
 
         # Convert HTML → PDF
         pdf_bytes = await stirling_client.html_to_pdf(html)

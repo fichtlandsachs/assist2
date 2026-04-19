@@ -1,27 +1,37 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { StoryRefinementSession, RefinementProposal, UserStory } from "@/types";
+import type { StoryAssistantSession, UserStory } from "@/types";
 import { useT } from "@/lib/i18n/context";
 import { API_BASE, getAccessToken } from "@/lib/api/client";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  Sparkles, Send, RefreshCw, Lock, Check, X, Globe, PenLine,
-} from "lucide-react";
+import { Sparkles, Send, RefreshCw, X, Plus, Globe, PenLine, BadgeEuro } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface ProposalItemRenderer {
+  renderItem: (item: unknown, index: number, onAdd: () => void) => React.ReactNode;
+  emptyLabel: string;
+}
 
 interface Props {
   storyId: string;
   orgId: string;
   story: UserStory;
-  onApply: (field: "title" | "description" | "acceptance_criteria", value: string) => void;
+  sessionType: "dod" | "features";
+  panelTitle: string;
+  emptyTitle: string;
+  emptyDesc: string;
+  startButtonLabel: string;
+  consolidateMessage: string;
+  proposalRenderer: ProposalItemRenderer;
+  onProposalItemAdd: (item: unknown) => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function stripHiddenMarkers(text: string): string {
+function stripMarkers(text: string): string {
   return text
     .replace(/<!--proposal[\s\S]*?-->/g, "")
     .replace(/<!--score:-?\d+-->/g, "")
@@ -40,107 +50,14 @@ async function authFetch(url: string, options: RequestInit = {}) {
   });
 }
 
-// ── Score badge ───────────────────────────────────────────────────────────────
-
-function ScoreBadge({ score }: { score: number | null }) {
-  const { t } = useT();
-  if (score === null) return null;
-  const color =
-    score >= 75 ? "bg-green-100 text-green-700" :
-    score >= 50 ? "bg-yellow-100 text-yellow-700" :
-    "bg-red-100 text-red-700";
+function WebCostBadge({ cost, provider }: { cost: number; provider: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
-      {t("refinement_score_label")}: {score}/100
+    <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 mt-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium w-fit">
+      <Globe size={9} />
+      {provider} · ~${cost.toFixed(3)}
     </span>
   );
 }
-
-// ── Proposal card ─────────────────────────────────────────────────────────────
-
-function ProposalCard({
-  proposal,
-  onApply,
-  onDismiss,
-}: {
-  proposal: RefinementProposal;
-  onApply: (field: "title" | "description" | "acceptance_criteria", value: string) => void;
-  onDismiss: () => void;
-}) {
-  const { t } = useT();
-  const fields = [
-    { key: "title" as const, label: t("refinement_field_title"), value: proposal.title },
-    { key: "description" as const, label: t("refinement_field_description"), value: proposal.description },
-    { key: "acceptance_criteria" as const, label: t("refinement_field_ac"), value: proposal.acceptance_criteria },
-  ].filter((f) => !!f.value);
-
-  if (!fields.length) return null;
-
-  return (
-    <div className="rounded-lg border border-[var(--accent-blue,#3b82f6)] bg-blue-50 p-3 space-y-2 my-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-[var(--accent-blue,#3b82f6)] uppercase tracking-wide">
-          {t("refinement_proposal_title")}
-        </span>
-        <button
-          onClick={onDismiss}
-          className="text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors"
-          aria-label={t("refinement_dismiss_button")}
-        >
-          <X size={14} />
-        </button>
-      </div>
-      {fields.map(({ key, label, value }) => (
-        <div key={key} className="space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[var(--ink-mid)] font-medium">{label}</span>
-            <button
-              onClick={() => onApply(key, value!)}
-              className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-[var(--btn-primary)] text-white hover:opacity-90 transition-opacity"
-            >
-              <Check size={10} />
-              {t("refinement_apply_button")}
-            </button>
-          </div>
-          <p className="text-xs text-[var(--ink-body)] bg-white rounded p-1.5 border border-blue-100 whitespace-pre-wrap line-clamp-3">
-            {value}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Stage tabs ────────────────────────────────────────────────────────────────
-
-function StageTabs({ stage }: { stage: number }) {
-  const { t } = useT();
-  const stages = [
-    { n: 1, label: t("refinement_stage1") },
-    { n: 2, label: t("refinement_stage2") },
-    { n: 3, label: t("refinement_stage3") },
-  ];
-  return (
-    <div className="flex gap-1">
-      {stages.map(({ n, label }) => (
-        <div
-          key={n}
-          title={n > 1 ? t("refinement_stage_locked") : undefined}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
-            n === stage
-              ? "bg-[var(--btn-primary)] text-white"
-              : "bg-[var(--paper-warm)] text-[var(--ink-faint)]"
-          }`}
-        >
-          {n > 1 && <Lock size={10} />}
-          {label}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Typing indicator ──────────────────────────────────────────────────────────
 
 function TypingDots() {
   return (
@@ -158,10 +75,21 @@ function TypingDots() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) {
+export function StoryAssistantPanel({
+  storyId,
+  orgId,
+  sessionType,
+  panelTitle,
+  emptyTitle,
+  emptyDesc,
+  startButtonLabel,
+  consolidateMessage,
+  proposalRenderer,
+  onProposalItemAdd,
+}: Props) {
   const { t } = useT();
 
-  const [session, setSession] = useState<StoryRefinementSession | null | undefined>(undefined);
+  const [session, setSession] = useState<StoryAssistantSession | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -169,67 +97,52 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
   const [streamingWebCost, setStreamingWebCost] = useState<{ cost: number; provider: string } | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const base = `${API_BASE}/api/v1/stories/${storyId}/assistant/${sessionType}`;
 
   // Load session on mount
   useEffect(() => {
     let cancelled = false;
-    authFetch(`${API_BASE}/api/v1/stories/${storyId}/refinement?org_id=${orgId}`)
+    authFetch(`${base}?org_id=${orgId}`)
       .then((r) => (r.status === 404 ? null : r.json()))
       .then((data) => { if (!cancelled) setSession(data); })
       .catch(() => { if (!cancelled) setSession(null); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [storyId, orgId]);
+  }, [storyId, orgId, base]);
 
-  // Scroll to bottom when messages update
+  // Scroll to bottom on content changes
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [session?.messages, session?.last_proposal, streamingContent]);
 
   const handleStart = async () => {
-    const res = await authFetch(`${API_BASE}/api/v1/stories/${storyId}/refinement`, {
+    const res = await authFetch(base, {
       method: "POST",
       body: JSON.stringify({ org_id: orgId }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      setSession(data);
-    }
+    if (res.ok) setSession(await res.json());
   };
 
   const handleReset = async () => {
-    await authFetch(
-      `${API_BASE}/api/v1/stories/${storyId}/refinement?org_id=${orgId}`,
-      { method: "DELETE" }
-    );
+    await authFetch(`${base}?org_id=${orgId}`, { method: "DELETE" });
     setSession(null);
-  };
-
-  const handleApply = async (
-    field: "title" | "description" | "acceptance_criteria",
-    value: string
-  ) => {
-    onApply(field, value);
-    await authFetch(`${API_BASE}/api/v1/stories/${storyId}/refinement/apply`, {
-      method: "POST",
-      body: JSON.stringify({ field, value, org_id: orgId }),
-    });
-    // Remove only the applied field; keep proposal visible if other fields remain
-    setSession((prev) => {
-      if (!prev?.last_proposal) return prev;
-      const remaining = { ...prev.last_proposal, [field]: undefined };
-      const hasFields = Object.values(remaining).some(Boolean);
-      return { ...prev, last_proposal: hasFields ? remaining : null };
-    });
   };
 
   const handleDismiss = () => {
     setSession((prev) => prev ? { ...prev, last_proposal: null } : prev);
-    // Persist dismissal to backend so reload doesn't bring the proposal back
-    authFetch(`${API_BASE}/api/v1/stories/${storyId}/refinement/dismiss`, {
+    authFetch(`${base}/dismiss`, {
       method: "POST",
       body: JSON.stringify({ org_id: orgId }),
     }).catch(() => {});
+  };
+
+  const handleAddItem = (item: unknown, index: number) => {
+    onProposalItemAdd(item);
+    setSession((prev) => {
+      if (!prev?.last_proposal) return prev;
+      const remaining = (prev.last_proposal as unknown[]).filter((_, i) => i !== index);
+      return { ...prev, last_proposal: remaining.length > 0 ? remaining as typeof prev.last_proposal : null };
+    });
   };
 
   const sendMessage = useCallback(async (overrideMsg?: string) => {
@@ -240,29 +153,21 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
     setStreamingContent("");
     setStreamingWebCost(null);
 
-    // Optimistic: add user message (keep existing proposal visible during streaming)
-    const optimisticSession: StoryRefinementSession = {
-      ...session,
-      messages: [
-        ...session.messages,
-        { role: "user", content: userMessage, ts: new Date().toISOString() },
-      ],
-    };
-    setSession(optimisticSession);
+    setSession((prev) => prev ? {
+      ...prev,
+      messages: [...prev.messages, { role: "user", content: userMessage, ts: new Date().toISOString() }],
+    } : prev);
 
     try {
       const token = getAccessToken();
-      const response = await fetch(
-        `${API_BASE}/api/v1/stories/${storyId}/refinement/chat`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ message: userMessage, org_id: orgId }),
-        }
-      );
+      const response = await fetch(`${base}/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ message: userMessage, org_id: orgId }),
+      });
 
       if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
 
@@ -298,24 +203,20 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
         }
       }
     } catch (err) {
-      console.error("Refinement stream error:", err);
+      console.error("Assistant stream error:", err);
     } finally {
       setStreaming(false);
       setStreamingContent("");
-      // Reload session to get persisted messages + proposal + score
-      authFetch(`${API_BASE}/api/v1/stories/${storyId}/refinement?org_id=${orgId}`)
+      authFetch(`${base}?org_id=${orgId}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => { if (data) setSession(data); })
         .catch(() => {});
     }
-  }, [input, streaming, session, storyId, orgId]);
+  }, [input, streaming, session, base, orgId]);
 
   const handleConsolidate = useCallback(() => {
-    sendMessage(
-      "Erstelle bitte jetzt einen vollständigen konsolidierten Verbesserungsvorschlag " +
-      "für alle Story-Felder basierend auf unserem bisherigen Gespräch."
-    );
-  }, [sendMessage]);
+    sendMessage(consolidateMessage);
+  }, [sendMessage, consolidateMessage]);
 
   const handleRevise = useCallback(() => {
     sendMessage("Überarbeite und verbessere den letzten Vorschlag basierend auf allem, was wir besprochen haben.");
@@ -345,20 +246,22 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
           <Sparkles size={20} className="text-[var(--btn-primary)]" />
         </div>
         <div>
-          <p className="font-semibold text-[var(--ink-body)]">{t("refinement_empty_title")}</p>
-          <p className="text-sm text-[var(--ink-mid)] mt-1">{t("refinement_empty_desc")}</p>
+          <p className="font-semibold text-[var(--ink-body)]">{emptyTitle}</p>
+          <p className="text-sm text-[var(--ink-mid)] mt-1">{emptyDesc}</p>
         </div>
         <button
           onClick={handleStart}
           className="px-4 py-1.5 rounded-lg bg-[var(--btn-primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
         >
-          {t("refinement_start_button")}
+          {startButtonLabel}
         </button>
       </div>
     );
   }
 
   // ── Active session ────────────────────────────────────────────────────────
+  const proposal = session.last_proposal as unknown[];
+
   return (
     <div
       className="rounded-xl border border-[var(--paper-rule2)] flex flex-col"
@@ -366,23 +269,17 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--paper-rule2)] shrink-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Sparkles size={14} className="text-[var(--btn-primary)]" />
-          <span className="text-sm font-semibold text-[var(--ink-body)]">
-            {t("refinement_panel_title")}
-          </span>
-          <StageTabs stage={session.stage} />
-        </div>
         <div className="flex items-center gap-2">
-          <ScoreBadge score={session.quality_score} />
-          <button
-            onClick={handleReset}
-            title={t("refinement_reset_button")}
-            className="text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors"
-          >
-            <RefreshCw size={13} />
-          </button>
+          <Sparkles size={14} className="text-[var(--btn-primary)]" />
+          <span className="text-sm font-semibold text-[var(--ink-body)]">{panelTitle}</span>
         </div>
+        <button
+          onClick={handleReset}
+          title={t("refinement_reset_button")}
+          className="text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors"
+        >
+          <RefreshCw size={13} />
+        </button>
       </div>
 
       {/* Messages */}
@@ -405,7 +302,7 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
                 {msg.role === "assistant" ? (
                   <div className="prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {stripHiddenMarkers(msg.content)}
+                      {stripMarkers(msg.content)}
                     </ReactMarkdown>
                   </div>
                 ) : (
@@ -413,45 +310,59 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
                 )}
               </div>
               {msg.web_cost_usd !== undefined && msg.web_provider && (
-                <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 mt-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
-                  <Globe size={9} />
-                  {msg.web_provider} · ~${msg.web_cost_usd.toFixed(3)}
-                </span>
+                <WebCostBadge cost={msg.web_cost_usd} provider={msg.web_provider} />
               )}
             </div>
           );
         })}
 
-        {/* Proposal card after messages */}
-        {session.last_proposal &&
-          Object.values(session.last_proposal).some(Boolean) && (
-            <ProposalCard
-              proposal={session.last_proposal}
-              onApply={handleApply}
-              onDismiss={handleDismiss}
-            />
-          )}
+        {/* Proposal list */}
+        {proposal && proposal.length > 0 && (
+          <div className="rounded-lg border border-[var(--accent-blue,#3b82f6)] bg-blue-50 p-3 space-y-2 my-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[var(--accent-blue,#3b82f6)] uppercase tracking-wide">
+                {t("assistant_proposal_title")}
+              </span>
+              <button
+                onClick={handleDismiss}
+                className="text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors"
+                aria-label={t("refinement_dismiss_button")}
+              >
+                <X size={14} />
+              </button>
+            </div>
+            {proposal.map((item, idx) => (
+              <div key={idx} className="flex items-start justify-between gap-2 bg-white rounded p-2 border border-blue-100">
+                <div className="flex-1 text-xs text-[var(--ink-body)]">
+                  {proposalRenderer.renderItem(item, idx, () => handleAddItem(item, idx))}
+                </div>
+                <button
+                  onClick={() => handleAddItem(item, idx)}
+                  className="shrink-0 flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-[var(--btn-primary)] text-white hover:opacity-90 transition-opacity"
+                >
+                  <Plus size={10} />
+                  {t("assistant_add_button")}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* Streaming assistant response */}
+        {/* Streaming */}
         {streaming && streamingContent && (
           <div className="flex flex-col items-start">
             <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-[var(--paper-warm)] text-[var(--ink-body)]">
               <div className="prose prose-sm max-w-none dark:prose-invert">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {stripHiddenMarkers(streamingContent)}
+                  {stripMarkers(streamingContent)}
                 </ReactMarkdown>
               </div>
             </div>
             {streamingWebCost && (
-              <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 mt-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
-                <Globe size={9} />
-                {streamingWebCost.provider} · ~${streamingWebCost.cost.toFixed(3)}
-              </span>
+              <WebCostBadge cost={streamingWebCost.cost} provider={streamingWebCost.provider} />
             )}
           </div>
         )}
-
-        {/* Typing indicator (before first content arrives) */}
         {streaming && !streamingContent && (
           <div className="flex justify-start">
             <div className="rounded-lg px-3 py-2 bg-[var(--paper-warm)]">
@@ -486,7 +397,7 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
             </button>
             <button
               onClick={handleRevise}
-              disabled={streaming || !session.last_proposal}
+              disabled={streaming || !session?.last_proposal?.length}
               className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-[var(--ink-faint)] text-[var(--ink-mid)] hover:border-[var(--btn-primary)] hover:text-[var(--btn-primary)] disabled:opacity-30 transition-all"
               title={t("assistant_revise_tooltip")}
             >

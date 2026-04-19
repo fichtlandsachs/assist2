@@ -35,6 +35,7 @@ from app.models.billing import (
     BillingPlan, SubscriptionStatus, PaymentProvider, PaymentStatus,
 )
 from app.models.story_refinement import StoryRefinementSession
+from app.models.story_assistant_session import StoryAssistantSession
 
 __all__ = [
     "User",
@@ -99,4 +100,5 @@ __all__ = [
     "PaymentProvider",
     "PaymentStatus",
     "StoryRefinementSession",
+    "StoryAssistantSession",
 ]

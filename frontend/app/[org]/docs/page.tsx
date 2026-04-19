@@ -19,7 +19,13 @@ interface DocsResult {
 interface ConfluenceConfig {
   configured: boolean;
   spaces: { key: string; name: string }[];
+  default_space_key?: string;
   error?: string;
+}
+
+interface ConfluencePage {
+  id: string;
+  title: string;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -48,7 +54,12 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
     fetcher
   );
   const { data: confluenceConfig } = useSWR<ConfluenceConfig>(
-    "/api/v1/confluence/spaces",
+    org ? `/api/v1/confluence/spaces?org_id=${org.id}` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const { data: confluencePages } = useSWR<{ pages: ConfluencePage[]; error?: string }>(
+    confluenceConfig?.configured && org ? `/api/v1/confluence/pages?org_id=${org.id}` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -89,6 +100,13 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
       setPdfGenerating(false);
     }
   };
+
+  // Auto-populate space key from org settings
+  useEffect(() => {
+    if (confluenceConfig?.configured && confluenceConfig.default_space_key) {
+      setConfluenceSpaceKey(confluenceConfig.default_space_key);
+    }
+  }, [confluenceConfig]);
 
   // Load previously saved docs when story is selected
   useEffect(() => {
@@ -309,51 +327,41 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />
                   In Confluence veröffentlichen
-                  <span className="text-xs font-normal text-[var(--ink-faint)]">(optional)</span>
+                  {confluenceConfig.default_space_key && (
+                    <span className="text-xs font-normal text-[var(--ink-faint)]">
+                      Space: {confluenceConfig.default_space_key}
+                    </span>
+                  )}
                 </p>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">
-                      Space
-                    </label>
+                <div>
+                  <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">
+                    Übergeordnete Seite
+                    <span className="font-normal text-[var(--ink-faint)] ml-1">(optional)</span>
+                  </label>
+                  {confluencePages === undefined ? (
+                    <div className="flex items-center gap-2 text-xs text-[var(--ink-faint)] py-1.5">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b border-[var(--accent-red)]" />
+                      Seiten werden geladen…
+                    </div>
+                  ) : confluencePages.error ? (
+                    <p className="text-xs text-[var(--ink-faint)]">{confluencePages.error}</p>
+                  ) : (
                     <select
-                      value={confluenceSpaceKey}
-                      onChange={(e) => setConfluenceSpaceKey(e.target.value)}
+                      value={confluenceParentPageId}
+                      onChange={(e) => setConfluenceParentPageId(e.target.value)}
                       className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)]"
                     >
-                      <option value="">— Kein Confluence —</option>
-                      {confluenceConfig.spaces.map((sp) => (
-                        <option key={sp.key} value={sp.key}>
-                          {sp.name} ({sp.key})
+                      <option value="">— Keine übergeordnete Seite —</option>
+                      {confluencePages.pages.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.title}
                         </option>
                       ))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--ink-mid)] mb-1">
-                      Übergeordnete Seite ID
-                      <span className="font-normal text-[var(--ink-faint)] ml-1">(optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={confluenceParentPageId}
-                      onChange={(e) => setConfluenceParentPageId(e.target.value)}
-                      placeholder="z.B. 12345678"
-                      className="w-full px-3 py-1.5 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-1 focus:ring-[var(--accent-red)] bg-[var(--card)]"
-                    />
-                  </div>
+                  )}
                 </div>
               </div>
-            )}
-
-            {confluenceConfig && !confluenceConfig.configured && (
-              <p className="text-xs text-[var(--ink-faint)] flex items-center gap-1.5">
-                Confluence nicht konfiguriert —
-                setze <code className="bg-[var(--paper-warm)] px-1 rounded-sm">CONFLUENCE_BASE_URL</code>,{" "}
-                <code className="bg-[var(--paper-warm)] px-1 rounded-sm">CONFLUENCE_USER</code> und{" "}
-                <code className="bg-[var(--paper-warm)] px-1 rounded-sm">CONFLUENCE_API_TOKEN</code> in der <code className="bg-[var(--paper-warm)] px-1 rounded-sm">.env</code>.
-              </p>
             )}
 
             {saveError && (
@@ -415,7 +423,7 @@ export default function DocsPage({ params }: { params: Promise<{ org: string }> 
                 ) : (
                   <Save size={16} />
                 )}
-                {confluenceSpaceKey ? "Speichern & in Confluence veröffentlichen" : "Speichern"}
+                {confluenceConfig?.configured && confluenceSpaceKey ? "Speichern & in Confluence veröffentlichen" : "Speichern"}
               </button>
               <button
                 onClick={() => void handleGeneratePdf()}

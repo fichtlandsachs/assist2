@@ -33,6 +33,8 @@ class UserStoryUpdate(BaseModel):
     definition_of_done: Optional[str] = None
     doc_additional_info: Optional[str] = None
     doc_workarounds: Optional[str] = None
+    target_audience: Optional[str] = None
+    doc_version: Optional[str] = None
     jira_ticket_key: Optional[str] = None
     jira_ticket_url: Optional[str] = None
     epic_id: Optional[uuid.UUID] = None
@@ -51,6 +53,7 @@ class UserStoryRead(BaseModel):
     status: StoryStatus
     priority: StoryPriority
     story_points: Optional[int]
+    effective_points: Optional[int] = None
     dor_passed: bool
     quality_score: Optional[int]
     ai_suggestions: Optional[str]
@@ -63,6 +66,8 @@ class UserStoryRead(BaseModel):
     definition_of_done: Optional[str]
     doc_additional_info: Optional[str]
     doc_workarounds: Optional[str]
+    target_audience: Optional[str] = None
+    doc_version: Optional[str] = None
     jira_ticket_key: Optional[str] = None
     jira_ticket_url: Optional[str] = None
     jira_creator: Optional[str] = None
@@ -87,6 +92,7 @@ class AISuggestion(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     acceptance_criteria: Optional[str] = None
+    business_value_feedback: Optional[str] = None  # Feedback on business value / outcome quality
     explanation: Optional[str] = None
     dor_issues: list[str] = []
     quality_score: Optional[int] = None  # 0-100; None when answered from RAG knowledge base
@@ -103,6 +109,7 @@ class StoryDocsSave(BaseModel):
     pdf_outline: list[str]
     summary: str
     technical_notes: str
+    business_value: Optional[str] = None
     confluence_space_key: Optional[str] = None
     confluence_parent_page_id: Optional[str] = None
     save_to_nextcloud: bool = False
@@ -113,6 +120,7 @@ class StoryDocsRead(BaseModel):
     pdf_outline: list[str]
     summary: str
     technical_notes: str
+    business_value: Optional[str] = None
     confluence_page_url: Optional[str] = None
     additional_info: Optional[str] = None
     workarounds: Optional[str] = None

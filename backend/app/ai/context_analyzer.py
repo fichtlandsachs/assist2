@@ -56,6 +56,9 @@ class StoryContext:
     risk: float         # How much risk / security sensitivity
     domain: Literal["technical", "business", "security", "generic"]
 
+    # Structural completeness signals
+    target_audience_set: bool = False  # Whether Zielgruppe is defined
+
     # Raw signals (for debugging / audit)
     signals: dict = field(default_factory=dict)
 
@@ -68,6 +71,7 @@ def analyze_context(
     title: str | None,
     description: str | None,
     acceptance_criteria: str | None,
+    target_audience: str | None = None,
 ) -> StoryContext:
     """
     Produce a StoryContext from story fields.
@@ -85,11 +89,14 @@ def analyze_context(
     ac_count = len(_NUMBERED_LIST_PATTERN.findall(ac)) if ac else 0
     has_ac = ac_count > 0
     fields_filled = sum([bool(t), bool(d), bool(ac)])
+    # Zielgruppe: same structural weight as Dokumentensteuerung, higher than content fields
+    ta_set = bool((target_audience or "").strip())
 
     clarity_score = (
-        (0.35 if title_ok else 0.0)
-        + (0.35 if story_format else 0.0)
-        + (0.20 if ac_numbered else 0.0)
+        (0.30 if title_ok else 0.0)
+        + (0.25 if story_format else 0.0)
+        + (0.15 if ac_numbered else 0.0)
+        + (0.20 if ta_set else 0.0)        # Zielgruppe — high structural weight
         + (0.10 * (fields_filled / 3))
     )
 
@@ -128,12 +135,14 @@ def analyze_context(
         complexity=round(complexity_score, 3),
         risk=round(risk_score, 3),
         domain=domain,
+        target_audience_set=ta_set,
         signals={
             "title_ok": title_ok,
             "story_format": story_format,
             "ac_numbered": ac_numbered,
             "ac_count": ac_count,
             "fields_filled": fields_filled,
+            "target_audience_set": ta_set,
             "tech_hits": tech_hits,
             "risk_hits": risk_hits,
             "biz_hits": biz_hits,

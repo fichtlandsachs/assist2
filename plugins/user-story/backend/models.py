@@ -62,6 +62,8 @@ class UserStory(Base):
     )
     acceptance_criteria: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    target_audience: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    doc_version: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

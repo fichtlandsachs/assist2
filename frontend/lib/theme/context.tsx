@@ -25,11 +25,11 @@ const STORAGE_KEY = "theme";
 const VALID: ThemeId[] = ["agile", "paperwork", "karl"];
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeId>("agile");
+  const [theme, setThemeState] = useState<ThemeId>("karl");
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as ThemeId | null;
-    const initial: ThemeId = stored && VALID.includes(stored) ? stored : "agile";
+    const initial: ThemeId = stored && VALID.includes(stored) ? stored : "karl";
     setThemeState(initial);
     document.documentElement.dataset.theme = initial;
   }, []);

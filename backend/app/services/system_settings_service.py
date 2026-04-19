@@ -64,6 +64,11 @@ _KEY_MAP: dict[str, str] = {
     "chat.fallback_message":         "CHAT_FALLBACK_MESSAGE",
     "chat.web_signal":               "CHAT_WEB_SIGNAL",
     "chat.web_requires_signal":      "CHAT_WEB_REQUIRES_SIGNAL",
+    "web_search.enabled":            "WEB_SEARCH_ENABLED",
+    "web_search.provider":           "WEB_SEARCH_PROVIDER",
+    "web_search.api_key":            "WEB_SEARCH_API_KEY",
+    "web_search.google_cx":          "WEB_SEARCH_GOOGLE_CX",
+    "web_search.monthly_budget_usd": "WEB_SEARCH_MONTHLY_BUDGET_USD",
 }
 
 
@@ -111,6 +116,11 @@ class RuntimeSettings:
     CHAT_FALLBACK_MESSAGE: str = "Ich konnte in den Tickets und Confluence Artikeln nichts finden."
     CHAT_WEB_SIGNAL: str = "/WEB"
     CHAT_WEB_REQUIRES_SIGNAL: bool = True
+    WEB_SEARCH_ENABLED: bool = False
+    WEB_SEARCH_PROVIDER: str = "brave"
+    WEB_SEARCH_API_KEY: str = ""
+    WEB_SEARCH_GOOGLE_CX: str = ""
+    WEB_SEARCH_MONTHLY_BUDGET_USD: float = 10.0
 
     def ai_feature_enabled(self, flag: str) -> bool:
         flags = {f.strip() for f in self.AI_FEATURE_FLAGS.split(",") if f.strip()}
@@ -120,8 +130,8 @@ class RuntimeSettings:
 def _coerce(attr: str, raw: str) -> Any:
     """Coerce a raw DB string to the expected Python type based on the field name."""
     int_fields = {"SMTP_PORT", "CHAT_MIN_EVIDENCE_COUNT", "ACCESS_TOKEN_EXPIRE_MINUTES", "REFRESH_TOKEN_EXPIRE_DAYS"}
-    float_fields = {"CHAT_MIN_RELEVANCE_SCORE"}
-    bool_fields = {"CHAT_WEB_REQUIRES_SIGNAL"}
+    float_fields = {"CHAT_MIN_RELEVANCE_SCORE", "WEB_SEARCH_MONTHLY_BUDGET_USD"}
+    bool_fields = {"CHAT_WEB_REQUIRES_SIGNAL", "WEB_SEARCH_ENABLED"}
     if attr in int_fields:
         return int(raw)
     if attr in float_fields:
@@ -183,6 +193,11 @@ async def get_runtime_settings(db: AsyncSession) -> RuntimeSettings:
             "CHAT_FALLBACK_MESSAGE": env.CHAT_FALLBACK_MESSAGE,
             "CHAT_WEB_SIGNAL": env.CHAT_WEB_SIGNAL,
             "CHAT_WEB_REQUIRES_SIGNAL": env.CHAT_WEB_REQUIRES_SIGNAL,
+            "WEB_SEARCH_ENABLED": False,
+            "WEB_SEARCH_PROVIDER": "brave",
+            "WEB_SEARCH_API_KEY": "",
+            "WEB_SEARCH_GOOGLE_CX": "",
+            "WEB_SEARCH_MONTHLY_BUDGET_USD": 10.0,
         }
 
         # Apply DB overrides

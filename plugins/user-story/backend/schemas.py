@@ -68,6 +68,8 @@ class StoryCreate(BaseModel):
     group_id: Optional[uuid.UUID] = None
     acceptance_criteria: List[str] = Field(default_factory=list)
     assignee_id: Optional[uuid.UUID] = None
+    target_audience: Optional[str] = None
+    doc_version: Optional[str] = Field(None, max_length=20)
 
     @field_validator("story_points")
     @classmethod
@@ -86,6 +88,8 @@ class StoryUpdate(BaseModel):
     assignee_id: Optional[uuid.UUID] = None
     group_id: Optional[uuid.UUID] = None
     acceptance_criteria: Optional[List[str]] = None
+    target_audience: Optional[str] = None
+    doc_version: Optional[str] = Field(None, max_length=20)
 
     @field_validator("story_points")
     @classmethod
@@ -108,6 +112,8 @@ class StoryRead(BaseModel):
     group_id: Optional[uuid.UUID]
     parent_story_id: Optional[uuid.UUID]
     acceptance_criteria: Optional[List[str]]
+    target_audience: Optional[str] = None
+    doc_version: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime]
 

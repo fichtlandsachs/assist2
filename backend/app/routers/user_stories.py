@@ -13,6 +13,7 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal, get_db
@@ -82,6 +83,20 @@ _JIRA_SYNC_TTL_MINUTES = 5
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _effective_points(story: "UserStory") -> Optional[int]:
+    """Return story_points if set; otherwise sum feature story_points as fallback."""
+    if story.story_points is not None:
+        return story.story_points
+    pts = [f.story_points for f in story.features if f.story_points is not None]
+    return sum(pts) if pts else None
+
+
+def _story_read(story: "UserStory") -> "UserStoryRead":
+    r = UserStoryRead.model_validate(story)
+    r.effective_points = _effective_points(story)
+    return r
+
+
 async def _maybe_sync_jira(story: "UserStory", db: "AsyncSession") -> None:
     """Sync jira_* fields if story has a Jira key and data is stale (> 5 min)."""
     if not story.jira_ticket_key:
@@ -150,6 +165,7 @@ async def _regenerate_docs_bg(
                 "pdf_outline": docs.pdf_outline,
                 "summary": docs.summary,
                 "technical_notes": docs.technical_notes,
+                "business_value": docs.business_value,
             }
             stmt = select(UserStory).where(UserStory.id == story_id)
             result = await db.execute(stmt)
@@ -177,6 +193,7 @@ async def list_user_stories(
     """List all user stories for the given organization."""
     stmt = (
         select(UserStory)
+        .options(selectinload(UserStory.features))
         .where(UserStory.organization_id == org_id)
         .order_by(UserStory.created_at.desc())
     )
@@ -186,7 +203,7 @@ async def list_user_stories(
         stmt = stmt.where(UserStory.epic_id == epic_id)
     result = await db.execute(stmt)
     stories = result.scalars().all()
-    return [UserStoryRead.model_validate(s) for s in stories]
+    return [_story_read(s) for s in stories]
 
 
 @router.post(
@@ -230,7 +247,8 @@ async def create_user_story(
     _org = _org_res.scalar_one_or_none()
     _org_slug = _org.slug if _org else str(org_id)
     index_story_knowledge.delay(str(story.id), str(org_id), _org_slug)
-    return UserStoryRead.model_validate(story)
+    # features not yet created at this point — effective_points == story_points
+    return _story_read(story)
 
 
 @router.get(
@@ -244,13 +262,17 @@ async def get_user_story(
     current_user: User = Depends(get_current_user),
 ) -> UserStoryRead:
     """Get a specific user story by ID."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = (
+        select(UserStory)
+        .options(selectinload(UserStory.features))
+        .where(UserStory.id == story_id)
+    )
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
         raise NotFoundException("User story not found")
     await _maybe_sync_jira(story, db)
-    return UserStoryRead.model_validate(story)
+    return _story_read(story)
 
 
 @router.post(
@@ -388,7 +410,7 @@ async def score_user_story(
     if story is None:
         raise NotFoundException("User story not found")
 
-    context = analyze_context(story.title, story.description, story.acceptance_criteria)
+    context = analyze_context(story.title, story.description, story.acceptance_criteria, story.target_audience)
     complexity = score_complexity(context)
 
     return StoryScoreResponse(
@@ -709,6 +731,7 @@ async def save_story_docs(
         "pdf_outline": data.pdf_outline,
         "summary": data.summary,
         "technical_notes": data.technical_notes,
+        "business_value": data.business_value,
     }
     story.generated_docs = json.dumps(docs_dict, ensure_ascii=False)
 
@@ -870,6 +893,7 @@ async def list_confluence_spaces(
 ) -> dict:
     """Return configured status and list of spaces (uses org-level credentials when org_id given)."""
     b_url = b_user = b_token = None
+    default_space_key = ""
     if org_id:
         org_stmt = select(Organization).where(Organization.id == org_id)
         org_result = await db.execute(org_stmt)
@@ -878,13 +902,52 @@ async def list_confluence_spaces(
             creds = integrations_svc.get_confluence_credentials(org)
             if creds:
                 b_url, b_user, b_token = creds
+            conf_settings = integrations_svc.get_confluence_settings(org)
+            default_space_key = conf_settings.get("default_space_key", "")
     if not confluence_service.is_configured(b_url, b_user, b_token):
-        return {"configured": False, "spaces": []}
+        return {"configured": False, "spaces": [], "default_space_key": default_space_key}
     try:
         spaces = await confluence_service.get_spaces(b_url, b_user, b_token)
-        return {"configured": True, "spaces": spaces}
+        return {"configured": True, "spaces": spaces, "default_space_key": default_space_key}
     except Exception as exc:
-        return {"configured": True, "spaces": [], "error": str(exc)}
+        return {"configured": True, "spaces": [], "default_space_key": default_space_key, "error": str(exc)}
+
+
+@router.get(
+    "/confluence/pages",
+    summary="List pages in the org's default Confluence space",
+)
+async def list_confluence_pages(
+    org_id: uuid.UUID,
+    space_key: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Return {pages: [{id, title}]} for the given (or org-default) space."""
+    org_stmt = select(Organization).where(Organization.id == org_id)
+    org_result = await db.execute(org_stmt)
+    org = org_result.scalar_one_or_none()
+    if org is None:
+        raise NotFoundException("Organization not found")
+
+    creds = integrations_svc.get_confluence_credentials(org)
+    if not creds:
+        return {"pages": [], "error": "Confluence nicht konfiguriert"}
+    b_url, b_user, b_token = creds
+
+    if not space_key:
+        conf_settings = integrations_svc.get_confluence_settings(org)
+        space_key = conf_settings.get("default_space_key", "")
+
+    if not space_key:
+        return {"pages": [], "error": "Kein Space Key konfiguriert"}
+
+    try:
+        pages = await confluence_service.get_pages_in_space(space_key, b_url, b_user, b_token)
+        return {"pages": pages}
+    except Exception as exc:
+        logger.exception("Failed to list Confluence pages for space %s: %s", space_key, exc)
+        return {"pages": [], "error": str(exc)}
 
 
 @router.post(
@@ -918,6 +981,7 @@ async def regenerate_story_docs(
         "pdf_outline": docs.pdf_outline,
         "summary": docs.summary,
         "technical_notes": docs.technical_notes,
+        "business_value": docs.business_value,
     }
     story.generated_docs = json.dumps(docs_dict, ensure_ascii=False)
     await db.commit()
@@ -973,6 +1037,17 @@ async def publish_docs_to_confluence(
     docs_dict.setdefault("definition_of_done", story.definition_of_done or "")
     docs_dict.setdefault("doc_additional_info", story.doc_additional_info or "")
     docs_dict.setdefault("doc_workarounds", story.doc_workarounds or "")
+    # Dokumentensteuerung
+    docs_dict["doc_version"] = story.doc_version or "1.0"
+    docs_dict["target_audience"] = story.target_audience or ""
+    docs_dict["created_at"] = story.created_at.strftime("%d.%m.%Y")
+    # Resolve creator name for Dokumentensteuerung
+    _creator_id = getattr(story, "created_by_id", None)
+    if _creator_id:
+        _cu = (await db.execute(select(User).where(User.id == _creator_id))).scalar_one_or_none()
+        docs_dict["creator_name"] = (_cu.display_name or _cu.email) if _cu else ""
+    else:
+        docs_dict["creator_name"] = ""
 
     # Resolve org + Confluence creds
     org_stmt = select(Organization).where(Organization.id == data.org_id)
@@ -1005,13 +1080,30 @@ async def publish_docs_to_confluence(
     if not space_key:
         raise HTTPException(status_code=422, detail="Kein Confluence Space-Key angegeben.")
 
-    # Resolve project name
+    # Resolve project and epic (both provide description for parent page creation)
     project_name: str | None = None
+    project_description: str | None = None
     if story.project_id:
         proj_stmt = select(Project).where(Project.id == story.project_id)
         proj = (await db.execute(proj_stmt)).scalar_one_or_none()
         if proj:
             project_name = proj.name
+            project_description = proj.description
+
+    epic_title: str | None = None
+    epic_description: str | None = None
+    if story.epic_id:
+        epic_stmt = select(Epic).where(Epic.id == story.epic_id)
+        epic = (await db.execute(epic_stmt)).scalar_one_or_none()
+        if epic:
+            epic_title = epic.title
+            epic_description = epic.description
+
+    # Load features and test cases for the Aufgaben section
+    features_result = await db.execute(select(Feature).where(Feature.story_id == story.id))
+    story_features = features_result.scalars().all()
+    tc_result = await db.execute(select(TestCase).where(TestCase.story_id == story.id))
+    story_test_cases = tc_result.scalars().all()
 
     try:
         confluence_url = await confluence_service.publish_story_page(
@@ -1019,11 +1111,16 @@ async def publish_docs_to_confluence(
             story_title=story.title,
             docs=docs_dict,
             project_name=project_name,
+            project_description=project_description,
+            epic_title=epic_title,
+            epic_description=epic_description,
             base_url=b_url,
             user=b_user,
             token=b_token,
             existing_page_url=story.confluence_page_url,
             default_parent_page_id=default_parent_page_id,
+            features=story_features,
+            test_cases=story_test_cases,
         )
         story.confluence_page_url = confluence_url
     except Exception as exc:
@@ -1111,6 +1208,7 @@ async def confluence_sync_preview(
 
     docs_dict = json.loads(story.generated_docs)
     heykarl_text = (
+        f"Business Value: {docs_dict.get('business_value', '')}\n\n"
         f"Zusammenfassung: {docs_dict.get('summary', '')}\n\n"
         f"Changelog: {docs_dict.get('changelog_entry', '')}\n\n"
         f"Technische Hinweise: {docs_dict.get('technical_notes', '')}\n\n"
@@ -1173,9 +1271,18 @@ async def generate_and_upload_pdf(
     feat_result = await db.execute(select(Feature).where(Feature.story_id == story.id))
     features = feat_result.scalars().all()
 
+    # Resolve creator display name
+    creator_name: str | None = None
+    creator_id = getattr(story, "created_by_id", None)
+    if creator_id:
+        u_result = await db.execute(select(User).where(User.id == creator_id))
+        creator_user = u_result.scalar_one_or_none()
+        if creator_user:
+            creator_name = creator_user.display_name or creator_user.email
+
     # Generate PDF → returns cache filename
     try:
-        filename = await pdf_service.generate_and_cache(story, pdf_settings, test_cases, features)
+        filename = await pdf_service.generate_and_cache(story, pdf_settings, test_cases, features, creator_name=creator_name)
     except Exception as exc:
         logger.error("PDF generation failed: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=f"PDF-Erstellung fehlgeschlagen: {exc}") from exc

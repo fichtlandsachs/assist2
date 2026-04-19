@@ -49,6 +49,12 @@ ALLOWED_KEYS: frozenset[str] = frozenset({
     "chat.fallback_message",
     "chat.web_signal",
     "chat.web_requires_signal",
+    # Web Search
+    "web_search.enabled",
+    "web_search.provider",
+    "web_search.api_key",
+    "web_search.google_cx",
+    "web_search.monthly_budget_usd",
 })
 
 SECRET_KEYS: frozenset[str] = frozenset({
@@ -61,6 +67,7 @@ SECRET_KEYS: frozenset[str] = frozenset({
     "ai.openai_api_key",
     "ai.ionos_api_key",
     "smtp.pass",
+    "web_search.api_key",
 })
 
 

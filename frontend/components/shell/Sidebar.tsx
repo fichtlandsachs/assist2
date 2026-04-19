@@ -53,7 +53,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
   const { t } = useT();
   const isPaperwork = theme === "paperwork";
   const isKarl = theme === "karl";
-  const isWorkspacePath = pathname.startsWith(`/${orgSlug}/ai-workspace`) || pathname.startsWith(`/${orgSlug}/project`) || pathname.startsWith(`/${orgSlug}/stories`) || pathname.startsWith(`/${orgSlug}/docs`) || pathname.startsWith(`/${orgSlug}/nextcloud`) || pathname.startsWith(`/${orgSlug}/compliance`);
+  const isWorkspacePath = pathname.startsWith(`/${orgSlug}/project`) || pathname.startsWith(`/${orgSlug}/stories`) || pathname.startsWith(`/${orgSlug}/docs`) || pathname.startsWith(`/${orgSlug}/nextcloud`) || pathname.startsWith(`/${orgSlug}/compliance`);
   const isSettingsPath = pathname.startsWith(`/${orgSlug}/settings`) || pathname.startsWith(`/${orgSlug}/workflows`);
   const searchParams = useSearchParams();
   const currentTab = searchParams?.get("tab") ?? "";
@@ -77,6 +77,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
   // Level-1 nav (no Projekte, no User Stories — those are in workspace submenu)
   const navItems = [
     { id: "dashboard",    label: t("nav_dashboard"),  icon: LayoutDashboard, route: `/${orgSlug}/dashboard` },
+    { id: "ai-workspace", label: t("nav_chat"),        icon: MessageSquare,   route: `/${orgSlug}/ai-workspace` },
     ...(mailConfigured
       ? [{ id: "inbox",    label: t("nav_inbox"),    icon: Inbox,        route: `/${orgSlug}/inbox` }]
       : []),
@@ -90,7 +91,6 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
 
   // Workspace sub-items
   const workspaceSubItems = [
-    { id: "ai-workspace", label: t("nav_chat"),       icon: MessageSquare, route: `/${orgSlug}/ai-workspace` },
     { id: "project",      label: t("nav_projects"),   icon: Folder,        route: `/${orgSlug}/project` },
     { id: "stories",      label: t("nav_stories"),    icon: BookOpen,      route: `/${orgSlug}/stories` },
     { id: "readiness",    label: "Meine Story-Lage",  icon: Activity,      route: `/${orgSlug}/stories/readiness` },
@@ -133,8 +133,8 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
       </div>
 
       <nav className="flex-1 py-3 flex flex-col gap-0.5 px-2 overflow-y-auto">
-        {/* Dashboard */}
-        {navItems.slice(0, 1).map(item => {
+        {/* Dashboard + Chat */}
+        {navItems.slice(0, 2).map(item => {
           const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
           const Icon = item.icon;
           return (
@@ -171,8 +171,8 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           );
         })}
 
-        {/* Remaining level-1 items (Posteingang, Kalender, Dateien, Admin) */}
-        {navItems.slice(1).map(item => {
+        {/* Remaining level-1 items (Posteingang, Kalender, Admin) */}
+        {navItems.slice(2).map(item => {
           const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
           const Icon = item.icon;
           return (
@@ -275,8 +275,8 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
 
       {/* Navigation */}
       <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto">
-        {/* Dashboard */}
-        {navItems.slice(0, 1).map(item => {
+        {/* Dashboard + Chat */}
+        {navItems.slice(0, 2).map(item => {
           const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
           const Icon = item.icon;
           const colors = NAV_COLORS[item.id] ?? { icon: "text-slate-500", bg: "bg-slate-50" };
@@ -324,8 +324,8 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           });
         })()}
 
-        {/* Remaining level-1 items (Posteingang, Kalender, Dateien, Admin) */}
-        {navItems.slice(1).map(item => {
+        {/* Remaining level-1 items (Posteingang, Kalender, Admin) */}
+        {navItems.slice(2).map(item => {
           const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
           const Icon = item.icon;
           const colors = NAV_COLORS[item.id] ?? { icon: "text-slate-500", bg: "bg-slate-50" };
@@ -448,7 +448,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
 
       {/* Navigation */}
       <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto">
-        {navItems.slice(0, 1).map(item => {
+        {navItems.slice(0, 2).map(item => {
           const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
           const Icon = item.icon;
           return (
@@ -497,7 +497,7 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
           );
         })}
 
-        {navItems.slice(1).map(item => {
+        {navItems.slice(2).map(item => {
           const isActive = pathname === item.route || pathname.startsWith(item.route + "/");
           const Icon = item.icon;
           return (

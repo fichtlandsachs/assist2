@@ -16,6 +16,7 @@ type ConfigMap = Record<string, ConfigEntry>;
 
 interface Group {
   label: string;
+  description?: string;
   keys: { key: string; label: string; placeholder?: string; type?: "text" | "number" }[];
 }
 
@@ -86,6 +87,17 @@ const GROUPS: Group[] = [
       { key: "chat.fallback_message",     label: "Fallback-Nachricht" },
       { key: "chat.web_signal",           label: "Web-Signal",          placeholder: "/WEB" },
       { key: "chat.web_requires_signal",  label: "Web nur mit Signal",  placeholder: "true" },
+    ],
+  },
+  {
+    label: "Web-Suche (/WEB)",
+    description: "Kosten pro Suche: brave ~$0,003 · bing ~$0,003 · google ~$0,005 · tavily ~$0,010 · perplexity ~$0,005. Brave bietet 2.000 Suchanfragen/Monat kostenlos — ideal für kleine Teams.",
+    keys: [
+      { key: "web_search.enabled",            label: "Aktiviert",              placeholder: "false" },
+      { key: "web_search.provider",           label: "Provider",               placeholder: "brave" },
+      { key: "web_search.api_key",            label: "API Key" },
+      { key: "web_search.google_cx",          label: "Google Custom Search ID", placeholder: "(nur bei provider=google)" },
+      { key: "web_search.monthly_budget_usd", label: "Monatsbudget (USD)",     placeholder: "10.00" },
     ],
   },
 ];
@@ -241,7 +253,12 @@ export default function SettingsPage() {
         GROUPS.map((group) => (
           <section key={group.label} className="bg-white border border-[var(--paper-rule)] rounded-2xl p-6 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--ink-faint)]">{group.label}</h2>
+              <div>
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--ink-faint)]">{group.label}</h2>
+                {group.description && (
+                  <p className="text-[11px] text-[var(--ink-mid)] mt-1 max-w-lg">{group.description}</p>
+                )}
+              </div>
               {group.label === "SMTP / E-Mail" && (
                 <div className="flex items-center gap-3">
                   {smtpResult && (

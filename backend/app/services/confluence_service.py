@@ -174,22 +174,71 @@ async def get_spaces(
     return spaces
 
 
-def _docs_to_html(title: str, docs: dict) -> str:
-    """Render a story as a Confluence page with a fixed, RAG-optimised section structure.
+async def get_pages_in_space(
+    space_key: str,
+    base_url: str | None = None,
+    user: str | None = None,
+    token: str | None = None,
+    limit: int = 100,
+) -> list[dict]:
+    """Return list of {id, title} for pages in the given space (up to *limit*)."""
+    creds = _resolve_credentials(base_url, user, token)
+    if not creds:
+        return []
+    b, u, t = creds
+    b = _confluence_api_base(b)
+    headers = _make_headers(b, u, t)
 
-    Fixed sections (always in this order, skipped when empty):
-      1. Einleitung        — story description
-      2. Zusammenfassung   — AI-generated summary
-      3. Akzeptanzkriterien
-      4. Technische Details — technical_notes
-      5. Definition of Done
-      6. Weitere Informationen — doc_additional_info
+    collected: list[dict] = []
+    start = 0
+    page_size = min(limit, 50)
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        while len(collected) < limit:
+            resp = await client.get(
+                f"{b}/rest/api/content",
+                headers=headers,
+                params={
+                    "spaceKey": space_key,
+                    "type": "page",
+                    "limit": page_size,
+                    "start": start,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            results = data.get("results", [])
+            if not results:
+                break
+            for p in results:
+                collected.append({"id": p["id"], "title": p["title"]})
+                if len(collected) >= limit:
+                    break
+            if not data.get("_links", {}).get("next") or len(results) < page_size:
+                break
+            start += len(results)
+
+    return collected
+
+
+def _docs_to_html(
+    title: str,
+    docs: dict,
+    features: list | None = None,
+    test_cases: list | None = None,
+) -> str:
+    """Render a story as a Confluence page.
+
+    Sections (in order):
+      1. Einleitung        — story description + DoD als Stichpunkte am Ende
+      2. Business Value
+      3. Zusammenfassung
+      4. Akzeptanzkriterien
+      5. Technische Details
+      6. Weitere Informationen
       7. Workarounds
-      8. Changelog
-
-    The ``pdf_outline`` is NOT rendered as a separate list — its items label
-    any matching sections that were AI-generated; when present they may extend
-    the outline beyond the fixed sections (appended as additional h2 blocks).
+      8. Aufgaben          — Development | Test | Quality / Compliance
+      9. Changelog
     """
     import json as _json
 
@@ -198,7 +247,7 @@ def _docs_to_html(title: str, docs: dict) -> str:
 
     def _ul(lines: list[str]) -> str:
         items = "".join(f"<li>{l}</li>" for l in lines if l.strip())
-        return f"<ul>{items}</ul>"
+        return f"<ul>{items}</ul>" if items else ""
 
     def _criteria_lines(raw: str) -> list[str]:
         return [
@@ -207,15 +256,64 @@ def _docs_to_html(title: str, docs: dict) -> str:
             if line.strip()
         ]
 
-    parts: list[str] = [f"<h1>{title}</h1>"]
+    def _doccontrol_table(docs: dict) -> str:
+        rows = [
+            ("Zielgruppe", docs.get("target_audience") or "—"),
+            ("Version",    docs.get("doc_version") or "1.0"),
+            ("Datum",      docs.get("created_at") or "—"),
+            ("Ersteller",  docs.get("creator_name") or "—"),
+        ]
+        row_html = "".join(
+            f'<tr><th style="width:130px;background:#f4f5f7;padding:4px 8px;border:1px solid #dfe1e6;">{k}</th>'
+            f'<td style="padding:4px 8px;border:1px solid #dfe1e6;">{v}</td></tr>'
+            for k, v in rows
+        )
+        return (
+            '<table style="border-collapse:collapse;font-size:12px;margin-bottom:16px;">'
+            f"{row_html}</table>"
+        )
 
+    def _parse_dod_items(dod_raw: str | list | None) -> list[dict]:
+        if not dod_raw:
+            return []
+        try:
+            items = _json.loads(dod_raw) if isinstance(dod_raw, str) else dod_raw
+            if isinstance(items, list):
+                return items
+        except Exception:
+            pass
+        return []
+
+    parts: list[str] = [f"<h1>{title}</h1>", _doccontrol_table(docs)]
+
+    # ── Einleitung (description + DoD-Stichpunkte) ──────────────────────────
+    parts.append("<h2>Einleitung</h2>")
+    description = docs.get("description") or ""
+    dod_items = _parse_dod_items(docs.get("definition_of_done"))
+    if description:
+        parts.append(_p(description))
+    if dod_items:
+        dod_lines = []
+        for item in dod_items:
+            if isinstance(item, dict):
+                text = item.get("text") or item.get("title") or str(item)
+            else:
+                text = str(item)
+            dod_lines.append(text)
+        if dod_lines:
+            parts.append("<p><strong>Definition of Done:</strong></p>")
+            parts.append(_ul(dod_lines))
+    if not description and not dod_items:
+        parts.append('<p><em>no data</em></p>')
+
+    # ── Remaining content sections ───────────────────────────────────────────
     SECTIONS: list[tuple[str, str | None]] = [
-        ("Einleitung",           docs.get("description")),
-        ("Zusammenfassung",      docs.get("summary")),
-        ("Akzeptanzkriterien",   docs.get("acceptance_criteria")),
-        ("Technische Details",   docs.get("technical_notes")),
+        ("Business Value",        docs.get("business_value")),
+        ("Zusammenfassung",       docs.get("summary")),
+        ("Akzeptanzkriterien",    docs.get("acceptance_criteria")),
+        ("Technische Details",    docs.get("technical_notes")),
         ("Weitere Informationen", docs.get("doc_additional_info")),
-        ("Workarounds",          docs.get("doc_workarounds")),
+        ("Workarounds",           docs.get("doc_workarounds")),
     ]
 
     for heading, content in SECTIONS:
@@ -227,28 +325,56 @@ def _docs_to_html(title: str, docs: dict) -> str:
         else:
             parts.append(_p(content))
 
-    # ── Definition of Done ──────────────────────────────────────────────────
-    parts.append("<h2>Definition of Done</h2>")
-    dod_raw = docs.get("definition_of_done")
-    dod_rendered = False
-    if dod_raw:
-        try:
-            dod_items = _json.loads(dod_raw) if isinstance(dod_raw, str) else dod_raw
-            if isinstance(dod_items, list) and dod_items:
-                lines = []
-                for item in dod_items:
-                    if isinstance(item, dict):
-                        checked = item.get("passed") or item.get("checked") or item.get("done")
-                        text = item.get("text") or item.get("title") or str(item)
-                        lines.append(f"{'✓' if checked else '○'} {text}")
-                    else:
-                        lines.append(str(item))
-                parts.append(_ul(lines))
-                dod_rendered = True
-        except Exception:
-            pass
-    if not dod_rendered:
-        parts.append('<p><em>no data</em></p>')
+    # ── Aufgaben (Development | Test | Quality / Compliance) ────────────────
+    parts.append("<h2>Aufgaben</h2>")
+
+    # Development — Features
+    parts.append("<h3>Development</h3>")
+    if features:
+        feat_lines = []
+        for f in features:
+            title_f = getattr(f, "title", None) or (f.get("title") if isinstance(f, dict) else "") or "–"
+            desc_f = getattr(f, "description", None) or (f.get("description") if isinstance(f, dict) else "") or ""
+            status_f = getattr(f, "status", None) or (f.get("status") if isinstance(f, dict) else "") or ""
+            label = f"<strong>{title_f}</strong>"
+            if status_f:
+                label += f" <em>({status_f})</em>"
+            if desc_f:
+                label += f" – {desc_f}"
+            feat_lines.append(label)
+        parts.append(_ul(feat_lines) or '<p><em>Keine Features vorhanden</em></p>')
+    else:
+        parts.append('<p><em>Keine Features vorhanden</em></p>')
+
+    # Test — Test Cases
+    parts.append("<h3>Test</h3>")
+    if test_cases:
+        tc_lines = []
+        for tc in test_cases:
+            title_tc = getattr(tc, "title", None) or (tc.get("title") if isinstance(tc, dict) else "") or "–"
+            expected = getattr(tc, "expected_result", None) or (tc.get("expected_result") if isinstance(tc, dict) else "") or ""
+            label = f"<strong>{title_tc}</strong>"
+            if expected:
+                label += f" – {expected}"
+            tc_lines.append(label)
+        parts.append(_ul(tc_lines) or '<p><em>Keine Testfälle vorhanden</em></p>')
+    else:
+        parts.append('<p><em>Keine Testfälle vorhanden</em></p>')
+
+    # Quality / Compliance — DoD-Items mit Status
+    parts.append("<h3>Quality / Compliance</h3>")
+    if dod_items:
+        qc_lines = []
+        for item in dod_items:
+            if isinstance(item, dict):
+                checked = item.get("passed") or item.get("checked") or item.get("done")
+                text = item.get("text") or item.get("title") or str(item)
+                qc_lines.append(f"{'✓' if checked else '○'} {text}")
+            else:
+                qc_lines.append(str(item))
+        parts.append(_ul(qc_lines) or '<p><em>Keine DoD-Kriterien vorhanden</em></p>')
+    else:
+        parts.append('<p><em>Keine DoD-Kriterien vorhanden</em></p>')
 
     # ── Changelog ───────────────────────────────────────────────────────────
     parts.append("<h2>Changelog</h2>")
@@ -322,6 +448,84 @@ async def get_page_content_text(
     return text
 
 
+async def get_page_info(
+    page_id: str,
+    base_url: str,
+    user: str,
+    token: str,
+) -> dict:
+    """Return {id, title, version, parent_id} for a Confluence page."""
+    b = _confluence_api_base(base_url)
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(
+            f"{b}/rest/api/content/{page_id}",
+            headers=_make_headers(b, user, token),
+            params={"expand": "version,ancestors"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    ancestors = data.get("ancestors", [])
+    parent_id = ancestors[-1]["id"] if ancestors else None
+    return {
+        "id": data["id"],
+        "title": data["title"],
+        "version": data.get("version", {}).get("number", 1),
+        "parent_id": parent_id,
+    }
+
+
+async def ensure_hierarchy_page(
+    space_key: str,
+    title: str,
+    parent_id: str | None,
+    description: str,
+    base_url: str,
+    user: str,
+    token: str,
+) -> str:
+    """Find or create a Confluence page with *title* in *space_key*. Returns the page ID.
+
+    If the page does not exist it is created under *parent_id* (when given) with
+    a simple HTML body built from *description*.
+    """
+    b = _confluence_api_base(base_url)
+    headers = _make_headers(b, user, token)
+
+    # Try to find an existing page by exact title in the space
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"{b}/rest/api/content",
+            headers=headers,
+            params={"title": title, "spaceKey": space_key, "type": "page", "limit": 1},
+        )
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
+    if results:
+        return results[0]["id"]
+
+    # Page not found — create it
+    html_body = f"<h1>{title}</h1>"
+    if description:
+        html_body += f"<p>{description}</p>"
+    payload: dict = {
+        "type": "page",
+        "title": title,
+        "space": {"key": space_key},
+        "body": {"storage": {"value": html_body, "representation": "storage"}},
+    }
+    if parent_id:
+        payload["ancestors"] = [{"id": parent_id}]
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.post(
+            f"{b}/rest/api/content",
+            headers=headers,
+            json=payload,
+        )
+        resp.raise_for_status()
+        return resp.json()["id"]
+
+
 async def update_page(
     page_id: str,
     title: str,
@@ -330,16 +534,25 @@ async def update_page(
     base_url: str,
     user: str,
     token: str,
+    features: list | None = None,
+    test_cases: list | None = None,
+    parent_id: str | None = None,
 ) -> str:
-    """Update an existing Confluence page. Returns the full URL."""
+    """Update an existing Confluence page. Returns the full URL.
+
+    When *parent_id* is given the page is moved to that parent in the same
+    request (Confluence accepts ancestor changes in a regular PUT).
+    """
     b = _confluence_api_base(base_url)
-    body = _docs_to_html(title, docs)
+    body = _docs_to_html(title, docs, features=features, test_cases=test_cases)
     payload = {
         "type": "page",
         "title": title,
         "version": {"number": version_number + 1},
         "body": {"storage": {"value": body, "representation": "storage"}},
     }
+    if parent_id:
+        payload["ancestors"] = [{"id": parent_id}]
     async with httpx.AsyncClient(timeout=20) as client:
         resp = await client.put(
             f"{b}/rest/api/content/{page_id}",
@@ -390,6 +603,52 @@ async def publish_page(
         return f"{b}{web_ui}"
 
 
+async def _resolve_story_parent(
+    space_key: str,
+    project_name: str | None,
+    project_description: str | None,
+    epic_title: str | None,
+    epic_description: str | None,
+    default_parent_page_id: str | None,
+    base_url: str,
+    user: str,
+    token: str,
+) -> str | None:
+    """
+    Resolve (and create if missing) the parent page for a story page.
+
+    Hierarchy: default_parent → [Project] → [Epic] → story
+
+    Returns the ID of the immediate parent page that the story should live under,
+    or None if neither project, epic nor default parent is configured.
+    """
+    parent_id = default_parent_page_id
+
+    if project_name:
+        parent_id = await ensure_hierarchy_page(
+            space_key=space_key,
+            title=project_name,
+            parent_id=default_parent_page_id,
+            description=project_description or f"Dokumentation für das Projekt {project_name}",
+            base_url=base_url,
+            user=user,
+            token=token,
+        )
+
+    if epic_title:
+        parent_id = await ensure_hierarchy_page(
+            space_key=space_key,
+            title=epic_title,
+            parent_id=parent_id,
+            description=epic_description or f"Dokumentation für das Epic {epic_title}",
+            base_url=base_url,
+            user=user,
+            token=token,
+        )
+
+    return parent_id
+
+
 async def publish_story_page(
     space_key: str,
     story_title: str,
@@ -400,79 +659,72 @@ async def publish_story_page(
     token: str,
     existing_page_url: str | None = None,
     default_parent_page_id: str | None = None,
+    features: list | None = None,
+    test_cases: list | None = None,
+    project_description: str | None = None,
+    epic_title: str | None = None,
+    epic_description: str | None = None,
 ) -> str:
     """
-    Publish story documentation to Confluence under {project_name} → {story_title}.
+    Publish story documentation to Confluence.
 
-    If the story already has a Confluence page URL, the page ID is extracted
-    directly from the URL and used for an in-place update — no title search needed.
-    Otherwise a new page is created. A project-level parent page is created/found
-    automatically when project_name is provided. If no project parent exists and
-    default_parent_page_id is set, the story is created under that page.
+    Hierarchy: default_parent → [Project] → [Epic] → story_title
+
+    - Project and Epic pages are found by title or created with their descriptions.
+    - If the story already has a Confluence page the page is updated in-place.
+      When the project/epic assignment has changed, the page is also moved to the
+      correct parent in the same PUT request (Confluence accepts ancestor changes
+      alongside content updates).
+    - When no existing page exists a new one is created.
 
     Returns the full URL of the story page.
     """
     import re as _re
     b = _confluence_api_base(base_url)
 
-    # If we have an existing page URL, extract the page ID directly and update
+    # Always resolve the desired parent chain for the current epic/project state
+    desired_parent_id = await _resolve_story_parent(
+        space_key=space_key,
+        project_name=project_name,
+        project_description=project_description,
+        epic_title=epic_title,
+        epic_description=epic_description,
+        default_parent_page_id=default_parent_page_id,
+        base_url=base_url,
+        user=user,
+        token=token,
+    )
+
+    # ── Update existing page (and move it if necessary) ───────────────────────
     if existing_page_url:
         match = _re.search(r"/pages/(\d+)", existing_page_url)
         if match:
             page_id = match.group(1)
             try:
-                async with httpx.AsyncClient(timeout=10) as client:
-                    resp = await client.get(
-                        f"{b}/rest/api/content/{page_id}",
-                        headers=_make_headers(b, user, token),
-                        params={"expand": "version"},
-                    )
-                    resp.raise_for_status()
-                    version_number = resp.json().get("version", {}).get("number", 1)
-                return await update_page(page_id, story_title, docs, version_number, base_url, user, token)
-            except Exception:
-                pass  # fall through to create new page if fetch fails
-
-    # Determine parent page: project level, falling back to default_parent_page_id
-    parent_id: str | None = None
-    if project_name:
-        proj_page = await find_page_by_title(space_key, project_name, base_url, user, token)
-        if proj_page:
-            parent_id = proj_page["id"]
-        else:
-            # Create the project parent page under default_parent_page_id (if set)
-            proj_payload: dict = {
-                "type": "page",
-                "title": project_name,
-                "space": {"key": space_key},
-                "body": {"storage": {
-                    "value": f"<h1>{project_name}</h1><p>Dokumentation für das Projekt {project_name}</p>",
-                    "representation": "storage",
-                }},
-            }
-            if default_parent_page_id:
-                proj_payload["ancestors"] = [{"id": default_parent_page_id}]
-            async with httpx.AsyncClient(timeout=20) as client:
-                resp = await client.post(
-                    f"{b}/rest/api/content",
-                    headers=_make_headers(b, user, token),
-                    json=proj_payload,
+                page_info = await get_page_info(page_id, base_url, user, token)
+                version_number = page_info["version"]
+                # Pass desired_parent_id unconditionally — when it matches the
+                # current parent Confluence treats it as a no-op for positioning.
+                return await update_page(
+                    page_id, story_title, docs, version_number,
+                    base_url, user, token,
+                    features=features,
+                    test_cases=test_cases,
+                    parent_id=desired_parent_id,
                 )
-                resp.raise_for_status()
-                parent_id = resp.json()["id"]
-    elif default_parent_page_id:
-        parent_id = default_parent_page_id
+            except Exception:
+                pass  # fall through to create a fresh page
 
-    # Create story page under project
-    html_body = _docs_to_html(story_title, docs)
+    # ── Create new story page ─────────────────────────────────────────────────
+    html_body = _docs_to_html(story_title, docs, features=features, test_cases=test_cases)
     story_payload: dict = {
         "type": "page",
         "title": story_title,
         "space": {"key": space_key},
         "body": {"storage": {"value": html_body, "representation": "storage"}},
     }
-    if parent_id:
-        story_payload["ancestors"] = [{"id": parent_id}]
+    if desired_parent_id:
+        story_payload["ancestors"] = [{"id": desired_parent_id}]
 
     async with httpx.AsyncClient(timeout=20) as client:
         resp = await client.post(
@@ -483,7 +735,7 @@ async def publish_story_page(
         if not resp.is_success:
             import logging as _logging
             _logging.getLogger(__name__).error(
-                "Confluence create page failed %s: %s | payload ancestors=%s space=%s title=%s",
+                "Confluence create page failed %s: %s | ancestors=%s space=%s title=%s",
                 resp.status_code, resp.text[:500], story_payload.get("ancestors"), space_key, story_title,
             )
         resp.raise_for_status()

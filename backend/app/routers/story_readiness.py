@@ -233,10 +233,11 @@ async def get_story_readiness_history(
 async def evaluate_single_story(
     story_id: uuid.UUID,
     org_id: uuid.UUID = Query(...),
+    force: bool = Query(default=False, description="Erzwingt eine neue Bewertung, auch wenn sich die Story nicht verändert hat"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Evaluate a single story on demand."""
+    """Evaluate a single story on demand. Returns cached result if story content is unchanged."""
     await _assert_member(org_id, current_user, db)
 
     story_res = await db.execute(
@@ -249,6 +250,6 @@ async def evaluate_single_story(
     if story is None:
         raise HTTPException(status_code=404, detail="Story not found")
 
-    ev = await evaluate_story_readiness(story, current_user.id, org_id, db)
+    ev = await evaluate_story_readiness(story, current_user.id, org_id, db, force_refresh=force)
     await db.commit()
     return _ev_to_read(ev)

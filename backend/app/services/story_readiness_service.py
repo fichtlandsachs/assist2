@@ -13,6 +13,7 @@ No information is invented. If data is absent it is flagged as missing.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import uuid
@@ -24,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.context_analyzer import analyze_context
 from app.ai.complexity_scorer import score_complexity
-from app.ai.pipeline import ProviderClient, execute_pipeline
+from app.ai.pipeline import execute_pipeline
 from app.ai.router import route_request
 from app.models.epic import Epic
 from app.models.story_readiness import ReadinessState, StoryReadinessEvaluation
@@ -80,6 +81,8 @@ async def collect_story_context(story: UserStory, db: AsyncSession) -> dict:
         "title": story.title,
         "description": story.description or "",
         "acceptance_criteria": story.acceptance_criteria or "",
+        "target_audience": getattr(story, "target_audience", None) or "",
+        "doc_version": getattr(story, "doc_version", None) or "",
         "status": story.status.value,
         "priority": story.priority.value,
         "story_points": story.story_points,
@@ -94,89 +97,81 @@ async def collect_story_context(story: UserStory, db: AsyncSession) -> dict:
 
 # ── Prompt builder ────────────────────────────────────────────────────────────
 
-_SYSTEM_PROMPT = """Du bist Karl, ein erfahrener Product-Owner-Assistent.
-Du analysierst User Stories auf ihre Umsetzungsreife.
-Du erfindest KEINE Informationen.
-Du unterscheidest klar zwischen:
-- explizit dokumentiert (source: "documented")
-- aus Kontext abgeleitet (source: "inferred")
-- unbekannt / nicht vorhanden (source: "unknown")
-Wenn Informationen fehlen, nennst du sie explizit als fehlend.
-Antworte ausschließlich mit einem validen JSON-Objekt, ohne Markdown.
-"""
+_SYSTEM_PROMPT = """Du bist Karl, ein Product-Owner-Assistent. Analysiere User Stories auf Umsetzungsreife.
+Erfinde KEINE Informationen. Unterscheide: documented|inferred|unknown.
+Antworte ausschließlich mit einem validen JSON-Objekt, kein Markdown."""
+
+
+def _story_content_hash(ctx: dict) -> str:
+    """Short hash of the story fields that drive the evaluation. Used for cache invalidation."""
+    relevant = {
+        "title": ctx.get("title") or "",
+        "description": ctx.get("description") or "",
+        "acceptance_criteria": ctx.get("acceptance_criteria") or "",
+        "target_audience": ctx.get("target_audience") or "",
+        "dod": ctx.get("definition_of_done") or [],
+    }
+    raw = json.dumps(relevant, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
 
 def _build_evaluation_prompt(ctx: dict) -> str:
     epic_block = ""
     if ctx.get("epic_title"):
-        epic_block = f"""
-Epic-Kontext:
-  Titel: {ctx['epic_title']}
-  Beschreibung: {ctx.get('epic_description') or '(nicht vorhanden)'}
-"""
+        epic_block = f"\nEpic: {ctx['epic_title']}"
+        if ctx.get("epic_description"):
+            epic_block += f" — {ctx['epic_description']}"
+        epic_block += "\n"
 
     dod_block = ""
     if ctx.get("definition_of_done"):
-        dod_block = "\nDefinition of Done:\n" + "\n".join(f"  - {d}" for d in ctx["definition_of_done"])
+        dod_block = "\nDoD: " + " | ".join(ctx["definition_of_done"]) + "\n"
 
-    return f"""Bewerte folgende User Story auf ihre Umsetzungsreife.
+    ta_display = ctx.get("target_audience") or "(FEHLT)"
+    dv_display = ctx.get("doc_version") or "(FEHLT)"
 
-## Story-Daten
+    return f"""Bewerte diese User Story auf Umsetzungsreife.
+
+## Story
 
 Titel: {ctx['title']}
-Status: {ctx['status']} | Priorität: {ctx['priority']} | Story Points: {ctx.get('story_points') or 'nicht geschätzt'}
-DoR bestanden: {ctx['dor_passed']} | Qualitäts-Score (vorher): {ctx.get('quality_score') or 'nicht bewertet'}
+Status: {ctx['status']} | Priorität: {ctx['priority']} | Points: {ctx.get('story_points') or '–'}
+Zielgruppe: {ta_display} | Version: {dv_display}
 
 Beschreibung:
-{ctx['description'] or '(KEINE BESCHREIBUNG VORHANDEN)'}
+{ctx['description'] or '(FEHLT)'}
 
 Akzeptanzkriterien:
-{ctx['acceptance_criteria'] or '(KEINE AKZEPTANZKRITERIEN VORHANDEN)'}
+{ctx['acceptance_criteria'] or '(FEHLT)'}
 {epic_block}{dod_block}
+## Dimensionen
 
-## Bewertungsauftrag
+1. Zielgruppe — konkret/spezifisch? Fehlt→max 60. Vage→max 70.
+2. „Als…möchte…damit…"-Format und Zielklarheit
+3. Businessnutzen — echter Outcome (messbar, wer profitiert wie) oder nur Output? Fehlt→max 55. Output/vage→max 70.
+4. Akzeptanzkriterien — messbar und testbar?
+5. Offene fachliche/technische Fragen
+6. Abhängigkeiten und Vorbedingungen
+7. Benötigte Zuarbeiten anderer Teams/Rollen
+8. Blockers (verhindert Start)
+9. Risiken (gefährdet Umsetzung)
 
-Analysiere die Story entlang dieser Dimensionen:
-1. Verständlichkeit und Zielklarheit (hat die Story das „Als … möchte ich … damit …"-Muster? Ist das Ziel klar?)
-2. Qualität und Vollständigkeit der Akzeptanzkriterien
-3. Offene fachliche und technische Fragen
-4. Abhängigkeiten und Vorbedingungen
-5. Notwendige Zuarbeiten anderer Rollen oder Teams
-6. Blockers (was verhindert den Start?)
-7. Risiken (was könnte die Umsetzung gefährden?)
+Score 0–100: not_ready(0–40)|partially_ready(41–60)|mostly_ready(61–80)|implementation_ready(81–100)
+Constraints: Zielgruppe fehlt→≤60 | vage→≤70 | Businessnutzen fehlt→≤55 | Output/vage→≤70
 
-Berechne dann einen Readiness-Score (0-100):
-- 0-40: not_ready
-- 41-60: partially_ready
-- 61-80: mostly_ready
-- 81-100: implementation_ready
-
-## Pflichtformat (reines JSON, kein Markdown)
+## JSON
 
 {{
-  "readiness_score": <integer 0-100>,
+  "readiness_score": <0-100>,
   "readiness_state": "<not_ready|partially_ready|mostly_ready|implementation_ready>",
-  "open_topics": [
-    {{"topic": "<Thema>", "source": "<documented|inferred|unknown>", "detail": "<optional Erläuterung>"}}
-  ],
-  "missing_inputs": [
-    {{"input": "<was fehlt>", "importance": "<high|medium|low>"}}
-  ],
-  "required_preparatory_work": [
-    {{"task": "<Aufgabe>", "owner": "<Rolle oder null>", "urgency": "<high|medium|low>"}}
-  ],
-  "dependencies": [
-    {{"name": "<Name>", "type": "<technical|business|team|external>", "status": "<resolved|pending|unknown>"}}
-  ],
-  "blockers": [
-    {{"description": "<Beschreibung>", "severity": "<critical|major|minor>"}}
-  ],
-  "risks": [
-    {{"description": "<Beschreibung>", "probability": "<high|medium|low>", "impact": "<high|medium|low>"}}
-  ],
-  "recommended_next_steps": [
-    {{"step": "<Schritt>", "priority": <1-10>, "responsible": "<Rolle oder null>"}}
-  ],
-  "summary": "<2-3 Sätze Gesamtzusammenfassung>",
+  "open_topics": [{{"topic":"...","source":"documented|inferred|unknown","detail":"..."}}],
+  "missing_inputs": [{{"input":"...","importance":"high|medium|low"}}],
+  "required_preparatory_work": [{{"task":"...","owner":"...","urgency":"high|medium|low"}}],
+  "dependencies": [{{"name":"...","type":"technical|business|team|external","status":"resolved|pending|unknown"}}],
+  "blockers": [{{"description":"...","severity":"critical|major|minor"}}],
+  "risks": [{{"description":"...","probability":"high|medium|low","impact":"high|medium|low"}}],
+  "recommended_next_steps": [{{"step":"...","priority":<1-10>,"responsible":"..."}}],
+  "summary": "...",
   "confidence": <0.0-1.0>
 }}
 """
@@ -184,36 +179,31 @@ Berechne dann einen Readiness-Score (0-100):
 
 # ── LLM call ──────────────────────────────────────────────────────────────────
 
-async def _call_llm(ctx: dict) -> tuple[StoryReadinessResult, str, int, int]:
-    """Return (result, model_used, input_tokens, output_tokens)."""
+async def _call_llm(ctx: dict, user_id: uuid.UUID) -> tuple[StoryReadinessResult, str, int, int]:
+    """Return (result, model_used, input_tokens, output_tokens).
+
+    *user_id* is forwarded to the LLM provider as the ``user`` attribution
+    field so that LiteLLM / IONOS can track usage per triggering user.
+    """
     story_context = analyze_context(
         title=ctx["title"],
         description=ctx["description"],
         acceptance_criteria=ctx["acceptance_criteria"],
+        target_audience=ctx.get("target_audience"),
     )
     complexity = score_complexity(story_context)
 
-    settings = None
-    try:
-        from app.config import get_settings as _gs
-        settings = _gs()
-    except Exception:
-        pass
+    from app.services.ai_story_service import _make_client
+    client, provider = _make_client("story")
+    decision = route_request(complexity, "evaluate", provider=provider)
+    user_prompt = _build_evaluation_prompt(ctx)
+    full_prompt = f"{_SYSTEM_PROMPT}\n\n{user_prompt}"
 
-    route = route_request(task_type="evaluation", complexity=complexity)
-    client = ProviderClient(settings=settings)
-    prompt = _build_evaluation_prompt(ctx)
-
-    raw, input_tok, output_tok = await execute_pipeline(
-        client=client,
-        route=route,
-        system_prompt=_SYSTEM_PROMPT,
-        user_prompt=prompt,
-    )
+    raw, usage = await execute_pipeline(client, full_prompt, decision, user=str(user_id))
 
     # Robust JSON extraction
     result = _parse_result(raw)
-    return result, route.model, input_tok, output_tok
+    return result, decision.model, usage["input_tokens"], usage["output_tokens"]
 
 
 def _parse_result(raw: str) -> StoryReadinessResult:
@@ -237,11 +227,32 @@ def _parse_result(raw: str) -> StoryReadinessResult:
 
     # Clamp and validate score
     score = max(0, min(100, int(data.get("readiness_score", 50))))
+
+    # Hard-enforce structural constraints regardless of LLM score
+    missing = [m.get("input", "").lower() for m in data.get("missing_inputs", [])]
+    missing_str = " ".join(missing)
+
+    # Zielgruppe constraint — highest priority (same level as Dokumentensteuerung)
+    missing_zielgruppe = any(
+        k in missing_str for k in ("zielgruppe", "target_audience", "zielgruppen")
+    )
+    if missing_zielgruppe and score > 60:
+        score = 60  # missing Zielgruppe caps at partially_ready
+
+    # Businessnutzen constraint
+    vague_nutzen = any(
+        k in missing_str for k in ("businessnutzen", "outcome", "nutzen", "mehrwert")
+    )
+    if vague_nutzen and score > 70:
+        score = 70  # vague/missing Businessnutzen caps at mostly_ready boundary
+
     state = data.get("readiness_state", _score_to_state(score).value)
     # Normalise state to enum value
     valid_states = {"not_ready", "partially_ready", "mostly_ready", "implementation_ready"}
     if state not in valid_states:
         state = _score_to_state(score).value
+    # Re-derive state from capped score to stay consistent
+    state = _score_to_state(score).value
 
     return StoryReadinessResult(
         readiness_score=score,
@@ -295,6 +306,7 @@ async def _persist_evaluation(
             "status": ctx["status"],
             "priority": ctx["priority"],
             "story_points": ctx["story_points"],
+            "content_hash": _story_content_hash(ctx),
             "captured_at": datetime.now(timezone.utc).isoformat(),
         },
         error_message=error_message,
@@ -311,18 +323,40 @@ async def evaluate_story_readiness(
     user_id: uuid.UUID,
     org_id: uuid.UUID,
     db: AsyncSession,
+    force_refresh: bool = False,
 ) -> StoryReadinessEvaluation:
     """
     Evaluate readiness for a single story and persist the result.
     Always creates a new versioned row — old evaluations are retained.
+
+    If force_refresh=False and the story content hasn't changed since the last
+    evaluation, the cached result is returned without an LLM call.
     """
     ctx = await collect_story_context(story, db)
+    current_hash = _story_content_hash(ctx)
+
+    if not force_refresh:
+        # Check for a cached evaluation with the same content hash
+        cached_res = await db.execute(
+            select(StoryReadinessEvaluation)
+            .where(
+                StoryReadinessEvaluation.story_id == story.id,
+                StoryReadinessEvaluation.organization_id == org_id,
+                StoryReadinessEvaluation.error_message.is_(None),
+            )
+            .order_by(StoryReadinessEvaluation.created_at.desc())
+            .limit(1)
+        )
+        latest = cached_res.scalar_one_or_none()
+        if latest and (latest.story_snapshot or {}).get("content_hash") == current_hash:
+            logger.debug("Cache hit for story %s (hash=%s)", story.id, current_hash)
+            return latest
 
     model_used = "unknown"
     error_message = None
 
     try:
-        result, model_used, _, _ = await _call_llm(ctx)
+        result, model_used, _, _ = await _call_llm(ctx, user_id)
     except Exception as exc:
         logger.exception("Readiness LLM call failed for story %s: %s", story.id, exc)
         # Persist a failed evaluation with default/empty data

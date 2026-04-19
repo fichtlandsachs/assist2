@@ -274,7 +274,7 @@ export default function ProjectDetailPage({
 
   const donePct =
     totalStories > 0 ? Math.round(((statusCounts["done"] ?? 0) / totalStories) * 100) : 0;
-  const totalPoints = storyList.reduce((acc, s) => acc + (s.story_points ?? 0), 0);
+  const totalPoints = storyList.reduce((acc, s) => acc + (s.effective_points ?? s.story_points ?? 0), 0);
 
   // Feature status counts
   const featureCounts = Object.fromEntries(
@@ -404,12 +404,21 @@ export default function ProjectDetailPage({
                 User Stories
                 <CountBadge n={totalStories} />
               </h2>
-              <Link
-                href={`/${orgSlug}/stories/board?project_id=${projectId}`}
-                className="text-[11px] text-[var(--btn-primary)] hover:underline flex items-center gap-1"
-              >
-                Board <ExternalLink size={10} />
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/${orgSlug}/stories/new?project_id=${projectId}`}
+                  className="flex items-center gap-1 text-[11px] text-[var(--btn-primary)] hover:underline"
+                >
+                  <Plus size={11} />
+                  Neue Story
+                </Link>
+                <Link
+                  href={`/${orgSlug}/stories/board?project_id=${projectId}`}
+                  className="text-[11px] text-[var(--btn-primary)] hover:underline flex items-center gap-1"
+                >
+                  Board <ExternalLink size={10} />
+                </Link>
+              </div>
             </div>
 
             {totalStories > 0 ? (

@@ -101,13 +101,14 @@ class DocsGenerateResponse(BaseModel):
     pdf_outline: list[str] = []
     summary: str = ""
     technical_notes: str = ""
+    business_value: str = ""
 
     @model_validator(mode="before")
     @classmethod
     def _coerce_string_fields(cls, values: Any) -> Any:
         if not isinstance(values, dict):
             return values
-        for field in ("changelog_entry", "summary", "technical_notes"):
+        for field in ("changelog_entry", "summary", "technical_notes", "business_value"):
             v = values.get(field)
             if v is not None and not isinstance(v, str):
                 values = {**values, field: json.dumps(v, ensure_ascii=False)}
@@ -295,7 +296,7 @@ async def get_story_suggestions(
 
     # 3. Execute via pipeline (single or multi)
     t0 = time.monotonic()
-    raw, usage = execute_pipeline(client, prompt, decision)
+    raw, usage = await execute_pipeline(client, prompt, decision)
     elapsed_ms = int((time.monotonic() - t0) * 1000)
 
     _log_decision("get_story_suggestions", decision, usage, elapsed_ms)
@@ -335,13 +336,25 @@ Akzeptanzkriterien: {data.acceptance_criteria or "(leer)"}
 Du bist ein erfahrener Scrum Master. Prüfe die Story gegen die Definition of Ready (DoR):
 {rules_block}
 
+BUSINESS-VALUE-PRÜFUNG (kritisch, gewichtet doppelt):
+Prüfe den „damit …"-Teil der Beschreibung auf Outcome-Qualität:
+- SCHWACH (Abzug im Score, muss verbessert werden): vage Formulierungen wie „damit es besser wird",
+  „zur Optimierung", „um die UX zu verbessern" — kein messbarer Outcome erkennbar.
+- STARK (kein Abzug): konkrete Nutzenformulierung, z.B. „damit Support-Anfragen um 30 % sinken"
+  oder „damit Nutzer den Prozess ohne Rückfrage abschließen können".
+Wenn der Businessnutzen schwach oder fehlend ist:
+- Trage ihn in `dor_issues` ein (z.B. „Businessnutzen fehlt / nicht messbar")
+- Formuliere in `business_value_feedback` eine konkrete Verbesserung oder Rückfrage
+- Schlage in `description` eine verbesserte Version vor, die den Outcome konkretisiert
+
 Antworte NUR mit einem JSON-Objekt (kein Markdown, kein Text davor oder danach):
 {{
   "title": "Verbesserte Version des Titels oder null wenn gut",
-  "description": "Verbesserte Beschreibung im Format 'Als [Rolle] möchte ich [Funktion], damit [Nutzen]' oder null wenn gut",
+  "description": "Verbesserte Beschreibung im Format 'Als [Rolle] möchte ich [Funktion], damit [messbarer Outcome]' oder null wenn gut",
   "acceptance_criteria": "Verbesserte Akzeptanzkriterien als nummerierte Liste oder null wenn gut",
+  "business_value_feedback": "Bewertung des Businessnutzens: was fehlt, was ist schwach, konkreter Verbesserungsvorschlag oder Rückfrage — oder null wenn der Outcome klar und messbar ist",
   "explanation": "Kurze Erklärung der wichtigsten Verbesserungen",
-  "dor_issues": ["Liste der fehlenden DoR-Kriterien"],
+  "dor_issues": ["Liste der fehlenden DoR-Kriterien — inkl. Businessnutzen wenn schwach/fehlend"],
   "quality_score": 75
 }}"""
 
@@ -372,7 +385,7 @@ async def generate_story_docs(
     prompt = _build_docs_prompt(data)
 
     t0 = time.monotonic()
-    raw, usage = execute_pipeline(client, prompt, decision)
+    raw, usage = await execute_pipeline(client, prompt, decision)
     elapsed_ms = int((time.monotonic() - t0) * 1000)
 
     _log_decision("generate_story_docs", decision, usage, elapsed_ms)
@@ -427,7 +440,7 @@ async def generate_test_case_suggestions(
     prompt = _build_test_cases_prompt(title, acceptance_criteria, rag_context=rag_context_block, rejection_block=rejection_block)
 
     t0 = time.monotonic()
-    raw, usage = execute_pipeline(client, prompt, decision)
+    raw, usage = await execute_pipeline(client, prompt, decision)
     elapsed_ms = int((time.monotonic() - t0) * 1000)
 
     _log_decision("generate_test_case_suggestions", decision, usage, elapsed_ms)
@@ -507,7 +520,7 @@ async def split_story(
     prompt = _build_split_prompt(title, description, acceptance_criteria)
 
     t0 = time.monotonic()
-    raw, usage = execute_pipeline(client, prompt, decision)
+    raw, usage = await execute_pipeline(client, prompt, decision)
     elapsed_ms = int((time.monotonic() - t0) * 1000)
 
     _log_decision("split_story", decision, usage, elapsed_ms)
@@ -547,19 +560,29 @@ Antworte NUR mit einem JSON-Array (kein Markdown):
 
 
 def _build_docs_prompt(data: DocsGenerateRequest) -> str:
-    return f"""Generiere technische Dokumentation für diese User Story.
+    return f"""Generiere vollständige Dokumentation für diese User Story.
 
 Story:
 Titel: {data.title}
 Beschreibung: {data.description or "(keine)"}
 Akzeptanzkriterien: {data.acceptance_criteria or "(keine)"}
 
+BUSINESS-VALUE-KAPITEL (Pflicht):
+Extrahiere oder leite aus dem „damit …"-Teil den Businessnutzen ab.
+Formuliere ihn als eigenständiges Kapitel mit:
+- Wer profitiert (Zielgruppe / Rolle)
+- Was sich messbar ändert (Outcome, keine technischen Outputs)
+- Welchen Wert das für das Business oder die Nutzer erzeugt
+Wenn der Nutzen in der Beschreibung vage ist, formuliere ihn so konkret wie möglich
+und markiere ihn mit „(abgeleitet)" am Ende.
+
 Antworte NUR mit einem JSON-Objekt:
 {{
   "changelog_entry": "### Feature: {data.title}\\n- Kurze Beschreibung was geändert wurde",
-  "pdf_outline": ["Einleitung", "Feature-Übersicht", "Technische Details", "Akzeptanzkriterien", "Testfälle"],
+  "pdf_outline": ["Einleitung", "Business Value", "Feature-Übersicht", "Technische Details", "Akzeptanzkriterien", "Testfälle"],
   "summary": "Kurze Zusammenfassung des Features für nicht-technische Stakeholder (2-3 Sätze)",
-  "technical_notes": "Technische Implementierungshinweise für Entwickler"
+  "technical_notes": "Technische Implementierungshinweise für Entwickler",
+  "business_value": "Wer profitiert, was sich messbar ändert, welchen Wert das erzeugt — konkret und outcome-orientiert"
 }}"""
 
 
@@ -607,7 +630,7 @@ async def generate_dod_suggestions(
     prompt = _build_dod_prompt(title, description, acceptance_criteria, rag_context=rag_context_block, rejection_block=rejection_block)
 
     t0 = time.monotonic()
-    raw, usage = execute_pipeline(client, prompt, decision)
+    raw, usage = await execute_pipeline(client, prompt, decision)
     elapsed_ms = int((time.monotonic() - t0) * 1000)
 
     _log_decision("generate_dod_suggestions", decision, usage, elapsed_ms)
@@ -712,7 +735,7 @@ async def generate_feature_suggestions(
     prompt = _build_feature_suggestions_prompt(title, description, acceptance_criteria, rag_context=rag_context_block, rejection_block=rejection_block)
 
     t0 = time.monotonic()
-    raw, usage = execute_pipeline(client, prompt, decision)
+    raw, usage = await execute_pipeline(client, prompt, decision)
     elapsed_ms = int((time.monotonic() - t0) * 1000)
 
     _log_decision("generate_feature_suggestions", decision, usage, elapsed_ms)

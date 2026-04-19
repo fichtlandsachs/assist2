@@ -1,18 +1,21 @@
 "use client";
 
 import { use, useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { mutate as swrMutate } from "swr";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest } from "@/lib/api/client";
 import type { UserStory, StoryPriority } from "@/types";
 import { AISuggestPanel } from "@/components/stories/AISuggestPanel";
+import { StoryDoDChatPanel } from "@/components/stories/StoryDoDChatPanel";
+import { StoryFeaturesChatPanel } from "@/components/stories/StoryFeaturesChatPanel";
 import { EpicSelector } from "@/components/stories/EpicSelector";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { VoiceRecorder } from "@/components/voice/VoiceRecorder";
-import { ArrowLeft, Save } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, Save, Sparkles, ListChecks, Layers } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+
+type RightTab = "suggest" | "dod" | "features";
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -64,13 +67,11 @@ function DroppableTextarea({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    // Individual criterion drop → append
     if (fieldName === "acceptance_criteria" && e.dataTransfer.types.includes("application/x-story-criterion")) {
       const text = e.dataTransfer.getData("application/x-story-criterion");
       if (text) onChange(value ? `${value}\n${text}` : text);
       return;
     }
-    // Whole-field drop → replace
     const droppedField = e.dataTransfer.getData("application/x-story-field");
     if (droppedField === fieldName) {
       const text = e.dataTransfer.getData("text/plain");
@@ -180,6 +181,7 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useT();
 
   const PRIORITY_OPTIONS: { value: StoryPriority; label: string }[] = [
@@ -189,15 +191,90 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
     { value: "critical", label: t("story_priority_critical") },
   ];
 
+  // ── Form state ─────────────────────────────────────────────────────────────
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [acceptanceCriteria, setAcceptanceCriteria] = useState("");
   const [priority, setPriority] = useState<StoryPriority>("medium");
   const [storyPoints, setStoryPoints] = useState("");
-  const [epicId, setEpicId] = useState<string | null>(null);
-  const [projectId, setProjectId] = useState<string | null>(null);
+  const [epicId, setEpicId] = useState<string | null>(searchParams.get("epic_id"));
+  const [projectId, setProjectId] = useState<string | null>(searchParams.get("project_id"));
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; general?: string }>({});
+  const [rightTab, setRightTab] = useState<RightTab>("suggest");
+
+  // ── Draft story ────────────────────────────────────────────────────────────
+  const [draftStory, setDraftStory] = useState<UserStory | null>(null);
+  const draftIdRef = useRef<string | null>(null);
+  const savedRef = useRef(false);
+  const draftCreatedRef = useRef(false);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Create a draft story as soon as the org is available
+  useEffect(() => {
+    if (!org || draftCreatedRef.current) return;
+    draftCreatedRef.current = true;
+
+    void apiRequest<UserStory>(`/api/v1/user-stories?org_id=${org.id}`, {
+      method: "POST",
+      body: JSON.stringify({ title: "(Entwurf)", priority: "medium" }),
+    })
+      .then((story) => {
+        draftIdRef.current = story.id;
+        setDraftStory(story);
+      })
+      .catch(() => {
+        // silently fail — save will fall back to POST
+      });
+  }, [org?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Delete the draft when the user navigates away without saving
+  useEffect(() => {
+    return () => {
+      if (!savedRef.current && draftIdRef.current) {
+        void apiRequest(`/api/v1/user-stories/${draftIdRef.current}`, {
+          method: "DELETE",
+        }).catch(() => {});
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounced sync: push form changes to the draft so the chat has current content
+  useEffect(() => {
+    if (!draftIdRef.current) return;
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      void apiRequest<UserStory>(`/api/v1/user-stories/${draftIdRef.current}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          title: title.trim() || "(Entwurf)",
+          description: description || null,
+          acceptance_criteria: acceptanceCriteria || null,
+        }),
+      })
+        .then((updated) => setDraftStory(updated as UserStory))
+        .catch(() => {});
+    }, 800);
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, [title, description, acceptanceCriteria]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Merged story for chat panels — form fields take precedence over last synced state
+  const storyForChat: UserStory | null = draftStory
+    ? {
+        ...draftStory,
+        title: title.trim() || draftStory.title,
+        description: description || null,
+        acceptance_criteria: acceptanceCriteria || null,
+        priority,
+        story_points: storyPoints ? parseInt(storyPoints, 10) : null,
+        epic_id: epicId ?? draftStory.epic_id,
+        project_id: projectId ?? draftStory.project_id,
+      }
+    : null;
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
 
   function handleApplySuggestion(
     field: "title" | "description" | "acceptance_criteria",
@@ -225,9 +302,24 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
     setSaving(true);
     setFieldErrors({});
     try {
-      const story = await apiRequest<UserStory>(
-        `/api/v1/user-stories?org_id=${org.id}`,
-        {
+      let story: UserStory;
+      if (draftIdRef.current) {
+        // Update the existing draft with the final form values
+        story = await apiRequest<UserStory>(`/api/v1/user-stories/${draftIdRef.current}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            title,
+            description: description || null,
+            acceptance_criteria: acceptanceCriteria || null,
+            priority,
+            story_points: storyPoints ? parseInt(storyPoints, 10) : null,
+            epic_id: epicId || null,
+            project_id: projectId || null,
+          }),
+        });
+      } else {
+        // Fallback: draft creation failed, create a fresh story
+        story = await apiRequest<UserStory>(`/api/v1/user-stories?org_id=${org.id}`, {
           method: "POST",
           body: JSON.stringify({
             title,
@@ -238,9 +330,9 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
             epic_id: epicId || null,
             project_id: projectId || null,
           }),
-        }
-      );
-      // Pre-seed SWR cache so detail page renders instantly without a loading spinner
+        });
+      }
+      savedRef.current = true;
       await swrMutate(`/api/v1/user-stories/${story.id}`, story, false);
       router.push(`/${resolvedParams.org}/stories/${story.id}`);
     } catch (err: unknown) {
@@ -251,16 +343,29 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
     }
   }
 
+  async function handleCancel() {
+    savedRef.current = true; // prevent cleanup from firing a second DELETE
+    if (draftIdRef.current) {
+      await apiRequest(`/api/v1/user-stories/${draftIdRef.current}`, {
+        method: "DELETE",
+      }).catch(() => {});
+    }
+    router.push(`/${resolvedParams.org}/stories`);
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link
-          href={`/${resolvedParams.org}/stories`}
+        <button
+          type="button"
+          onClick={() => void handleCancel()}
           className="p-2 rounded-sm text-[var(--ink-faint)] hover:text-[var(--ink-mid)] hover:bg-[var(--paper-warm)] transition-colors"
         >
           <ArrowLeft size={18} />
-        </Link>
+        </button>
         <div>
           <h1 className="text-xl font-bold text-[var(--ink)]">{t("story_new_title")}</h1>
           <p className="text-[var(--ink-faint)] text-sm">{t("story_new_subtitle")}</p>
@@ -388,23 +493,78 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
                 </>
               )}
             </button>
-            <Link
-              href={`/${resolvedParams.org}/stories`}
+            <button
+              type="button"
+              onClick={() => void handleCancel()}
               className="px-5 py-2.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-sm font-medium transition-colors"
             >
               {t("common_cancel")}
-            </Link>
+            </button>
           </div>
         </form>
 
-        {/* RIGHT: AI Suggestions */}
-        <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] p-4 sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
-          <AISuggestPanel
-            title={title}
-            description={description}
-            acceptanceCriteria={acceptanceCriteria}
-            onApply={handleApplySuggestion}
-          />
+        {/* RIGHT: AI Assistant */}
+        <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] flex flex-col overflow-hidden">
+          {/* Tab bar */}
+          <div className="flex border-b border-[var(--paper-rule)] shrink-0">
+            {(
+              [
+                { id: "suggest" as RightTab, icon: <Sparkles size={13} />, label: "Assistent" },
+                { id: "dod"     as RightTab, icon: <ListChecks size={13} />, label: "DoD" },
+                { id: "features" as RightTab, icon: <Layers size={13} />, label: "Features" },
+              ] as { id: RightTab; icon: React.ReactNode; label: string }[]
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setRightTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-colors border-b-2 ${
+                  rightTab === tab.id
+                    ? "border-[var(--accent-red)] text-[var(--accent-red)]"
+                    : "border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)]"
+                } ${!draftStory && tab.id !== "suggest" ? "opacity-40 cursor-not-allowed" : ""}`}
+                disabled={!draftStory && tab.id !== "suggest"}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            {rightTab === "suggest" && (
+              <AISuggestPanel
+                title={title}
+                description={description}
+                acceptanceCriteria={acceptanceCriteria}
+                onApply={handleApplySuggestion}
+                storyId={draftStory?.id}
+              />
+            )}
+
+            {rightTab === "dod" && storyForChat && org && (
+              <StoryDoDChatPanel
+                storyId={storyForChat.id}
+                orgId={org.id}
+                story={storyForChat}
+                onAddItem={() => {
+                  // DoD items will be visible after saving and navigating to the detail page
+                }}
+              />
+            )}
+
+            {rightTab === "features" && storyForChat && org && (
+              <StoryFeaturesChatPanel
+                storyId={storyForChat.id}
+                orgId={org.id}
+                story={storyForChat}
+                onAddFeature={() => {
+                  // Features will be visible after saving and navigating to the detail page
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

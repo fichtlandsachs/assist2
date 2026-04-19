@@ -16,16 +16,20 @@ const JIRA_STATUS_COLORS: Record<string, string> = {
 
 function JiraBadge({
   ticketKey,
+  title,
   jiraStatus,
   jiraTicketUrl,
 }: {
   ticketKey: string;
+  title: string;
   jiraStatus: string | null;
   jiraTicketUrl: string | null;
 }) {
   const colorClass = jiraStatus
     ? (JIRA_STATUS_COLORS[jiraStatus] ?? "bg-gray-100 text-gray-500")
     : "bg-gray-100 text-gray-500";
+
+  const label = `${title} (${ticketKey})`;
 
   return (
     <div className="flex items-center gap-1.5 mt-1">
@@ -34,13 +38,13 @@ function JiraBadge({
           href={jiraTicketUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs font-mono text-blue-600 hover:underline"
+          className="text-xs text-blue-600 hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
-          {ticketKey}
+          {label}
         </a>
       ) : (
-        <span className="text-xs font-mono text-gray-500">{ticketKey}</span>
+        <span className="text-xs text-gray-500">{label}</span>
       )}
       {jiraStatus && (
         <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${colorClass}`}>
@@ -161,6 +165,7 @@ export function StoryCard({
       {story.jira_ticket_key && (
         <JiraBadge
           ticketKey={story.jira_ticket_key}
+          title={story.title}
           jiraStatus={story.jira_status ?? null}
           jiraTicketUrl={story.jira_ticket_url ?? null}
         />

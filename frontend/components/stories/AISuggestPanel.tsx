@@ -418,9 +418,6 @@ export function AISuggestPanel({
           <Sparkles size={16} className="text-[var(--accent-red)]" />
           Assistent
         </h2>
-        <p className="text-xs text-[var(--ink-faint)] mt-1">
-          Analysiert Story, DoD, Features und Testfälle und schlägt Verbesserungen vor.
-        </p>
       </div>
 
       <button
@@ -568,6 +565,17 @@ export function AISuggestPanel({
             <div className="h-8 bg-[var(--paper-warm)] rounded-md" />
           )}
         </div>
+
+        {/* Business Value Feedback */}
+        {suggestion?.business_value_feedback && (
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">Business Value</p>
+            <div className="flex items-start gap-2 p-2.5 bg-orange-50 border border-orange-200 rounded-md text-xs text-orange-800">
+              <AlertTriangle size={12} className="mt-0.5 shrink-0 text-orange-500" />
+              <span>{suggestion.business_value_feedback}</span>
+            </div>
+          </div>
+        )}
 
         {/* Story field improvements */}
         <div className="space-y-3">
