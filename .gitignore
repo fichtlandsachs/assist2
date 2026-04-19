@@ -46,3 +46,4 @@ Thumbs.db
 *.override.yml
 infra/.env
 .worktrees
+assist2/
