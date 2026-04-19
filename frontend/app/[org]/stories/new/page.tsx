@@ -177,6 +177,39 @@ function DroppableInput({
   );
 }
 
+
+// ── Voice transcription parser ────────────────────────────────────────────────
+const VOICE_KEYWORD_MAP: Record<string, "title" | "description" | "acceptance_criteria"> = {
+  titel: "title", title: "title",
+  beschreibung: "description", description: "description",
+  akzeptanzkriterien: "acceptance_criteria",
+  akzeptanzkriterium: "acceptance_criteria",
+  kriterien: "acceptance_criteria",
+  criteria: "acceptance_criteria",
+  ac: "acceptance_criteria",
+};
+
+function parseTranscription(raw: string): Partial<Record<"title" | "description" | "acceptance_criteria", string>> {
+  const keys = Object.keys(VOICE_KEYWORD_MAP).join("|");
+  const regex = new RegExp("\\b(" + keys + ")\\s*[:\\-]\\s*", "gi");
+  const segments: { field: "title" | "description" | "acceptance_criteria"; contentStart: number; segmentStart: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(raw)) !== null) {
+    segments.push({ field: VOICE_KEYWORD_MAP[m[1].toLowerCase()], segmentStart: m.index, contentStart: m.index + m[0].length });
+  }
+  if (segments.length === 0) return { description: raw.trim() };
+  const result: Partial<Record<"title" | "description" | "acceptance_criteria", string>> = {};
+  for (let i = 0; i < segments.length; i++) {
+    const { field, contentStart } = segments[i];
+    const end = i + 1 < segments.length ? segments[i + 1].segmentStart : raw.length;
+    const content = raw.slice(contentStart, end).trim();
+    if (content) result[field] = content;
+  }
+  const prefix = raw.slice(0, segments[0].segmentStart).trim();
+  if (prefix) result.description = result.description ? result.description + "\n" + prefix : prefix;
+  return result;
+}
+
 export default function NewStoryPage({ params }: { params: Promise<{ org: string }> }) {
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
@@ -390,7 +423,12 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
             <div className="flex items-center gap-2">
               <span className="text-xs text-[var(--ink-faint)]">{t("story_new_voice")}</span>
               <VoiceRecorder
-                onTranscription={(text) => setDescription((prev) => prev ? `${prev}\n${text}` : text)}
+                onTranscription={(text) => {
+                  const parsed = parseTranscription(text);
+                  if (parsed.title) setTitle(parsed.title);
+                  if (parsed.description) setDescription((prev) => prev ? `${prev}\n${parsed.description!}` : parsed.description!);
+                  if (parsed.acceptance_criteria) setAcceptanceCriteria((prev) => prev ? `${prev}\n${parsed.acceptance_criteria!}` : parsed.acceptance_criteria!);
+                }}
               />
             </div>
 
