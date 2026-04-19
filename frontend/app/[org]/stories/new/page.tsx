@@ -505,65 +505,70 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
 
         {/* RIGHT: AI Assistant */}
         <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] flex flex-col overflow-hidden">
-          {/* Tab bar */}
-          <div className="flex border-b border-[var(--paper-rule)] shrink-0">
-            {(
-              [
-                { id: "suggest" as RightTab, icon: <Sparkles size={13} />, label: "Assistent" },
-                { id: "dod"     as RightTab, icon: <ListChecks size={13} />, label: "DoD" },
-                { id: "features" as RightTab, icon: <Layers size={13} />, label: "Features" },
-              ] as { id: RightTab; icon: React.ReactNode; label: string }[]
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setRightTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-colors border-b-2 ${
-                  rightTab === tab.id
-                    ? "border-[var(--accent-red)] text-[var(--accent-red)]"
-                    : "border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)]"
-                } ${!draftStory ? "opacity-40 cursor-not-allowed" : ""}`}
-                disabled={!draftStory}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          {!draftStory ? (
+            /* Loading state while draft is being created */
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--accent-red)] border-t-transparent" />
+              <p className="text-sm text-[var(--ink-faint)]">Assistent wird vorbereitet…</p>
+            </div>
+          ) : (
+            <>
+              {/* Tab bar */}
+              <div className="flex border-b border-[var(--paper-rule)] shrink-0">
+                {(
+                  [
+                    { id: "suggest" as RightTab, icon: <Sparkles size={13} />, label: "Assistent" },
+                    { id: "dod"     as RightTab, icon: <ListChecks size={13} />, label: "DoD" },
+                    { id: "features" as RightTab, icon: <Layers size={13} />, label: "Features" },
+                  ] as { id: RightTab; icon: React.ReactNode; label: string }[]
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setRightTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-colors border-b-2 ${
+                      rightTab === tab.id
+                        ? "border-[var(--accent-red)] text-[var(--accent-red)]"
+                        : "border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)]"
+                    }`}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-          {/* Tab content */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            {rightTab === "suggest" && storyForChat && org && (
-              <StoryRefinementPanel
-                storyId={storyForChat.id}
-                orgId={org.id}
-                story={storyForChat}
-                onApply={handleApplySuggestion}
-              />
-            )}
+              {/* Tab content */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                {rightTab === "suggest" && storyForChat && org && (
+                  <StoryRefinementPanel
+                    storyId={storyForChat.id}
+                    orgId={org.id}
+                    story={storyForChat}
+                    onApply={handleApplySuggestion}
+                  />
+                )}
 
-            {rightTab === "dod" && storyForChat && org && (
-              <StoryDoDChatPanel
-                storyId={storyForChat.id}
-                orgId={org.id}
-                story={storyForChat}
-                onAddItem={() => {
-                  // DoD items will be visible after saving and navigating to the detail page
-                }}
-              />
-            )}
+                {rightTab === "dod" && storyForChat && org && (
+                  <StoryDoDChatPanel
+                    storyId={storyForChat.id}
+                    orgId={org.id}
+                    story={storyForChat}
+                    onAddItem={() => {}}
+                  />
+                )}
 
-            {rightTab === "features" && storyForChat && org && (
-              <StoryFeaturesChatPanel
-                storyId={storyForChat.id}
-                orgId={org.id}
-                story={storyForChat}
-                onAddFeature={() => {
-                  // Features will be visible after saving and navigating to the detail page
-                }}
-              />
-            )}
-          </div>
+                {rightTab === "features" && storyForChat && org && (
+                  <StoryFeaturesChatPanel
+                    storyId={storyForChat.id}
+                    orgId={org.id}
+                    story={storyForChat}
+                    onAddFeature={() => {}}
+                  />
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
