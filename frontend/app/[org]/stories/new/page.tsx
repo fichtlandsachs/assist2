@@ -6,7 +6,7 @@ import { mutate as swrMutate } from "swr";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest } from "@/lib/api/client";
 import type { UserStory, StoryPriority } from "@/types";
-import { AISuggestPanel } from "@/components/stories/AISuggestPanel";
+import { StoryRefinementPanel } from "@/components/stories/StoryRefinementPanel";
 import { StoryDoDChatPanel } from "@/components/stories/StoryDoDChatPanel";
 import { StoryFeaturesChatPanel } from "@/components/stories/StoryFeaturesChatPanel";
 import { EpicSelector } from "@/components/stories/EpicSelector";
@@ -522,8 +522,8 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
                   rightTab === tab.id
                     ? "border-[var(--accent-red)] text-[var(--accent-red)]"
                     : "border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)]"
-                } ${!draftStory && tab.id !== "suggest" ? "opacity-40 cursor-not-allowed" : ""}`}
-                disabled={!draftStory && tab.id !== "suggest"}
+                } ${!draftStory ? "opacity-40 cursor-not-allowed" : ""}`}
+                disabled={!draftStory}
               >
                 {tab.icon}
                 {tab.label}
@@ -533,13 +533,12 @@ export default function NewStoryPage({ params }: { params: Promise<{ org: string
 
           {/* Tab content */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            {rightTab === "suggest" && (
-              <AISuggestPanel
-                title={title}
-                description={description}
-                acceptanceCriteria={acceptanceCriteria}
+            {rightTab === "suggest" && storyForChat && org && (
+              <StoryRefinementPanel
+                storyId={storyForChat.id}
+                orgId={org.id}
+                story={storyForChat}
                 onApply={handleApplySuggestion}
-                storyId={draftStory?.id}
               />
             )}
 
