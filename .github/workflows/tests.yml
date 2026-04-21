@@ -1,0 +1,196 @@
+# /opt/assist2/.github/workflows/tests.yml
+name: Test Suite
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Test suite to run"
+        required: false
+        default: "all"
+        type: choice
+        options: [smoke, backend, integrations, ghost, e2e, all]
+
+env:
+  TEST_BACKEND_URL: http://localhost:8000
+  TEST_FRONTEND_URL: http://localhost:3000
+  TEST_GHOST_URL: https://heykarl.app
+  TEST_LITELLM_URL: http://localhost:4000
+  TEST_N8N_URL: http://localhost:5678
+  TEST_AUTHENTIK_URL: http://localhost:9000
+  TEST_NEXTCLOUD_URL: http://localhost
+  TEST_STIRLING_URL: http://localhost:8080
+  TEST_TIMEOUT: "20"
+
+jobs:
+  # ── 1. Smoke tests (fast, always run) ──────────────────────────────────────
+  smoke:
+    name: "Smoke Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start services
+        working-directory: infra
+        run: docker compose -f docker-compose.yml up -d
+        env:
+          COMPOSE_FILE: docker-compose.yml
+
+      - name: Wait for services
+        run: |
+          timeout 120 bash -c 'until curl -sf http://localhost:8000/openapi.json; do sleep 3; done'
+          timeout 60  bash -c 'until curl -sf http://localhost:3000; do sleep 3; done'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test deps
+        run: pip install pytest pytest-asyncio httpx PyJWT
+
+      - name: Copy test framework
+        # NOTE: In CI, /opt/test is not available on the GitHub Actions runner.
+        # Option A: add /opt/test as a git submodule at tests/ in this repo.
+        # Option B: clone the test repo here before this step.
+        # The cp below is a local-runner fallback only.
+        run: cp -r /opt/test ${{ github.workspace }}/tests-ext || true
+
+      - name: Run smoke tests
+        working-directory: tests-ext
+        run: python -m pytest smoke/ -v -m smoke --tb=short --junitxml=smoke-results.xml
+        env:
+          TEST_GHOST_ADMIN_API_KEY: ${{ secrets.TEST_GHOST_ADMIN_API_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      - name: Publish smoke results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-results
+          path: tests-ext/smoke-results.xml
+
+  # ── 2. Backend API tests ────────────────────────────────────────────────────
+  backend:
+    name: "Backend API Tests"
+    runs-on: ubuntu-latest
+    needs: smoke
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start backend services
+        working-directory: infra
+        run: docker compose -f docker-compose.yml up -d postgres redis authentik-server authentik-worker backend
+      - name: Wait for backend
+        run: timeout 120 bash -c 'until curl -sf http://localhost:8000/openapi.json; do sleep 3; done'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install deps
+        run: pip install pytest pytest-asyncio httpx PyJWT
+      - name: Copy test framework
+        run: cp -r /opt/test ${{ github.workspace }}/tests-ext || true
+      - name: Run backend tests
+        working-directory: tests-ext
+        run: python -m pytest backend/ -v -m backend --tb=short --junitxml=backend-results.xml
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          TEST_ORG_SLUG: ${{ secrets.TEST_ORG_SLUG }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-results
+          path: tests-ext/backend-results.xml
+
+  # ── 3. Ghost tests (separate, clearly identified block) ────────────────────
+  ghost:
+    name: "Ghost CMS Tests"
+    runs-on: ubuntu-latest
+    needs: smoke
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pytest pytest-asyncio httpx PyJWT
+      - name: Copy test framework
+        run: cp -r /opt/test ${{ github.workspace }}/tests-ext || true
+      - name: Run Ghost tests
+        working-directory: tests-ext
+        run: python -m pytest ghost/ -v -m ghost --tb=short --junitxml=ghost-results.xml
+        env:
+          TEST_GHOST_URL: ${{ vars.TEST_GHOST_URL }}
+          TEST_GHOST_ADMIN_API_KEY: ${{ secrets.TEST_GHOST_ADMIN_API_KEY }}
+          TEST_GHOST_CONTENT_API_KEY: ${{ secrets.TEST_GHOST_CONTENT_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ghost-results
+          path: tests-ext/ghost-results.xml
+
+  # ── 4. Integration tests ────────────────────────────────────────────────────
+  integrations:
+    name: "Integration Tests"
+    runs-on: ubuntu-latest
+    needs: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pytest pytest-asyncio httpx PyJWT
+      - name: Copy test framework
+        run: cp -r /opt/test ${{ github.workspace }}/tests-ext || true
+      - name: Run integration tests
+        working-directory: tests-ext
+        run: python -m pytest integrations/ -v -m integration --tb=short --junitxml=integration-results.xml
+        env:
+          TEST_LITELLM_API_KEY: ${{ secrets.TEST_LITELLM_API_KEY }}
+          TEST_N8N_API_KEY: ${{ secrets.TEST_N8N_API_KEY }}
+          TEST_AUTHENTIK_API_TOKEN: ${{ secrets.TEST_AUTHENTIK_API_TOKEN }}
+          TEST_NEXTCLOUD_USER: ${{ secrets.TEST_NEXTCLOUD_USER }}
+          TEST_NEXTCLOUD_PASSWORD: ${{ secrets.TEST_NEXTCLOUD_PASSWORD }}
+          TEST_STIRLING_USERNAME: ${{ secrets.TEST_STIRLING_USERNAME }}
+          TEST_STIRLING_PASSWORD: ${{ secrets.TEST_STIRLING_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-results
+          path: tests-ext/integration-results.xml
+
+  # ── 5. E2E tests ─────────────────────────────────────────────────────────────
+  e2e:
+    name: "E2E Tests (Playwright)"
+    runs-on: ubuntu-latest
+    needs: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start full stack
+        working-directory: infra
+        run: docker compose -f docker-compose.yml up -d
+      - name: Wait for frontend
+        run: |
+          timeout 120 bash -c 'until curl -sf http://localhost:8000/openapi.json; do sleep 3; done'
+          timeout 120 bash -c 'until curl -sf http://localhost:3000; do sleep 3; done'
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Copy test framework
+        run: cp -r /opt/test ${{ github.workspace }}/tests-ext || true
+      - name: Install Playwright
+        working-directory: tests-ext/frontend
+        run: npm ci && npx playwright install chromium --with-deps
+      - name: Run E2E tests
+        working-directory: tests-ext/frontend
+        run: npx playwright test
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          TEST_ORG_SLUG: ${{ vars.TEST_ORG_SLUG }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: tests-ext/reports/playwright/
