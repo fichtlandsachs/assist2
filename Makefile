@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate makemigrations test shell format lint help
+.PHONY: up down logs migrate makemigrations test shell format lint help test-smoke test-backend test-ghost test-integrations test-e2e test-all
 
 COMPOSE_FILE = infra/docker-compose.yml
 COMPOSE_DEV_FILE = infra/docker-compose.dev.yml
@@ -67,3 +67,24 @@ restart-backend: ## Restart backend service
 
 seed: ## Seed initial data (system roles and permissions)
 	$(COMPOSE) exec $(BACKEND_CONTAINER) python -m app.scripts.seed
+
+# ── External test suite (/opt/test/) ─────────────────────────────────────────
+TEST_ROOT := /opt/test
+
+test-smoke: ## Run smoke tests
+	@cd $(TEST_ROOT) && bash run_tests.sh smoke
+
+test-backend: ## Run backend tests
+	@cd $(TEST_ROOT) && bash run_tests.sh backend
+
+test-ghost: ## Run ghost tests
+	@cd $(TEST_ROOT) && bash run_tests.sh ghost
+
+test-integrations: ## Run integration tests
+	@cd $(TEST_ROOT) && bash run_tests.sh integrations
+
+test-e2e: ## Run E2E tests (Playwright)
+	@cd $(TEST_ROOT) && bash run_tests.sh e2e
+
+test-all: ## Run all test suites
+	@cd $(TEST_ROOT) && bash run_tests.sh all
