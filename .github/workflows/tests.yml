@@ -193,4 +193,6 @@ jobs:
         if: always()
         with:
           name: playwright-report
-          path: tests-ext/reports/playwright/
+          path: |
+            tests-ext/reports/playwright/
+            tests-ext/reports/playwright-junit.xml
