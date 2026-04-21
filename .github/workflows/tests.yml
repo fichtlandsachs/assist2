@@ -37,8 +37,6 @@ jobs:
       - name: Start services
         working-directory: infra
         run: docker compose -f docker-compose.yml up -d
-        env:
-          COMPOSE_FILE: docker-compose.yml
 
       - name: Wait for services
         run: |
@@ -53,12 +51,20 @@ jobs:
       - name: Install test deps
         run: pip install pytest pytest-asyncio httpx PyJWT
 
-      - name: Copy test framework
-        # NOTE: In CI, /opt/test is not available on the GitHub Actions runner.
-        # Option A: add /opt/test as a git submodule at tests/ in this repo.
-        # Option B: clone the test repo here before this step.
-        # The cp below is a local-runner fallback only.
-        run: cp -r /opt/test ${{ github.workspace }}/tests-ext || true
+      - name: Prepare test framework
+        # /opt/test is not available on GitHub-hosted runners.
+        # Option A (recommended): add /opt/test as a git submodule at tests/ in this repo,
+        #   then replace this step with: actions/checkout@v4 + submodules: true
+        # Option B: clone the test repo in a prior step, e.g.
+        #   git clone https://github.com/your-org/heykarl-tests.git tests-ext
+        # The cp below works only on a self-hosted runner that has /opt/test mounted.
+        run: |
+          if [ -d /opt/test ]; then
+            cp -r /opt/test "$GITHUB_WORKSPACE/tests-ext"
+          else
+            echo "ERROR: /opt/test not found. See the 'Prepare test framework' step comment for setup options."
+            exit 1
+          fi
 
       - name: Run smoke tests
         working-directory: tests-ext
@@ -92,15 +98,21 @@ jobs:
         with: { python-version: "3.11" }
       - name: Install deps
         run: pip install pytest pytest-asyncio httpx PyJWT
-      - name: Copy test framework
-        run: cp -r /opt/test ${{ github.workspace }}/tests-ext || true
+      - name: Prepare test framework
+        run: |
+          if [ -d /opt/test ]; then
+            cp -r /opt/test "$GITHUB_WORKSPACE/tests-ext"
+          else
+            echo "ERROR: /opt/test not found. See smoke job comment for setup options."
+            exit 1
+          fi
       - name: Run backend tests
         working-directory: tests-ext
         run: python -m pytest backend/ -v -m backend --tb=short --junitxml=backend-results.xml
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-          TEST_ORG_SLUG: ${{ secrets.TEST_ORG_SLUG }}
+          TEST_ORG_SLUG: ${{ vars.TEST_ORG_SLUG }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -117,13 +129,21 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pytest pytest-asyncio httpx PyJWT
-      - name: Copy test framework
-        run: cp -r /opt/test ${{ github.workspace }}/tests-ext || true
+      - name: Prepare test framework
+        run: |
+          if [ -d /opt/test ]; then
+            cp -r /opt/test "$GITHUB_WORKSPACE/tests-ext"
+          else
+            echo "ERROR: /opt/test not found. See smoke job comment for setup options."
+            exit 1
+          fi
       - name: Run Ghost tests
         working-directory: tests-ext
+        # TEST_GHOST_URL defaults to https://heykarl.app via workflow-level env.
+        # Override via GitHub Actions variable TEST_GHOST_URL only if needed.
         run: python -m pytest ghost/ -v -m ghost --tb=short --junitxml=ghost-results.xml
         env:
-          TEST_GHOST_URL: ${{ vars.TEST_GHOST_URL }}
+          TEST_GHOST_URL: ${{ vars.TEST_GHOST_URL || 'https://heykarl.app' }}
           TEST_GHOST_ADMIN_API_KEY: ${{ secrets.TEST_GHOST_ADMIN_API_KEY }}
           TEST_GHOST_CONTENT_API_KEY: ${{ secrets.TEST_GHOST_CONTENT_API_KEY }}
       - uses: actions/upload-artifact@v4
@@ -132,7 +152,7 @@ jobs:
           name: ghost-results
           path: tests-ext/ghost-results.xml
 
-  # ── 4. Integration tests ────────────────────────────────────────────────────
+  # ── 4. Integration tests (runs after backend; external services, no local wait needed) ──
   integrations:
     name: "Integration Tests"
     runs-on: ubuntu-latest
@@ -142,8 +162,14 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install pytest pytest-asyncio httpx PyJWT
-      - name: Copy test framework
-        run: cp -r /opt/test ${{ github.workspace }}/tests-ext || true
+      - name: Prepare test framework
+        run: |
+          if [ -d /opt/test ]; then
+            cp -r /opt/test "$GITHUB_WORKSPACE/tests-ext"
+          else
+            echo "ERROR: /opt/test not found. See smoke job comment for setup options."
+            exit 1
+          fi
       - name: Run integration tests
         working-directory: tests-ext
         run: python -m pytest integrations/ -v -m integration --tb=short --junitxml=integration-results.xml
@@ -177,8 +203,14 @@ jobs:
           timeout 120 bash -c 'until curl -sf http://localhost:3000; do sleep 3; done'
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
-      - name: Copy test framework
-        run: cp -r /opt/test ${{ github.workspace }}/tests-ext || true
+      - name: Prepare test framework
+        run: |
+          if [ -d /opt/test ]; then
+            cp -r /opt/test "$GITHUB_WORKSPACE/tests-ext"
+          else
+            echo "ERROR: /opt/test not found. See smoke job comment for setup options."
+            exit 1
+          fi
       - name: Install Playwright
         working-directory: tests-ext/frontend
         run: npm ci && npx playwright install chromium --with-deps
