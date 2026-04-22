@@ -282,6 +282,42 @@ TEMPLATE_ROWS: dict[str, list[dict[str, Any]]] = {
         {"capability": "Sicherheit", "level_1": "Identity & Access", "level_2": "SSO", "level_3": None, "description": None, "external_key": None, "is_active": True},
         {"capability": "Sicherheit", "level_1": "Compliance", "level_2": "Audit", "level_3": None, "description": None, "external_key": None, "is_active": True},
     ],
+    "energy_utility": [
+        # Erzeugung & Beschaffung
+        {"capability": "Erzeugung & Beschaffung", "level_1": "Stromerzeugung", "level_2": "Konventionelle Erzeugung", "level_3": "Gas & Dampf", "description": "GuD-Kraftwerke", "external_key": None, "is_active": True},
+        {"capability": "Erzeugung & Beschaffung", "level_1": "Stromerzeugung", "level_2": "Konventionelle Erzeugung", "level_3": "Pumpspeicher", "description": None, "external_key": None, "is_active": True},
+        {"capability": "Erzeugung & Beschaffung", "level_1": "Stromerzeugung", "level_2": "Erneuerbare Energien", "level_3": "Wind", "description": None, "external_key": None, "is_active": True},
+        {"capability": "Erzeugung & Beschaffung", "level_1": "Stromerzeugung", "level_2": "Erneuerbare Energien", "level_3": "Solar / PV", "description": None, "external_key": None, "is_active": True},
+        {"capability": "Erzeugung & Beschaffung", "level_1": "Energiebeschaffung", "level_2": "Portfoliomanagement", "level_3": None, "description": "Optimierung Erzeugungsportfolio", "external_key": None, "is_active": True},
+        {"capability": "Erzeugung & Beschaffung", "level_1": "Energiebeschaffung", "level_2": "Lieferantenmanagement", "level_3": None, "description": None, "external_key": None, "is_active": True},
+        # Handel & Märkte
+        {"capability": "Handel & Märkte", "level_1": "Energiehandel", "level_2": "Spotmarkt", "level_3": "Day-Ahead", "description": None, "external_key": None, "is_active": True},
+        {"capability": "Handel & Märkte", "level_1": "Energiehandel", "level_2": "Spotmarkt", "level_3": "Intraday", "description": None, "external_key": None, "is_active": True},
+        {"capability": "Handel & Märkte", "level_1": "Energiehandel", "level_2": "Terminmarkt", "level_3": None, "description": "Forwards, Futures, Optionen", "external_key": None, "is_active": True},
+        {"capability": "Handel & Märkte", "level_1": "Risikomanagement", "level_2": "Marktpreisrisiko", "level_3": None, "description": None, "external_key": None, "is_active": True},
+        {"capability": "Handel & Märkte", "level_1": "Risikomanagement", "level_2": "Mengenrisiko", "level_3": None, "description": None, "external_key": None, "is_active": True},
+        # Netz & Infrastruktur
+        {"capability": "Netz & Infrastruktur", "level_1": "Netzbetrieb", "level_2": "Übertragungsnetz", "level_3": None, "description": "Hochspannung", "external_key": None, "is_active": True},
+        {"capability": "Netz & Infrastruktur", "level_1": "Netzbetrieb", "level_2": "Verteilnetz", "level_3": "Mittelspannung", "description": None, "external_key": None, "is_active": True},
+        {"capability": "Netz & Infrastruktur", "level_1": "Netzbetrieb", "level_2": "Verteilnetz", "level_3": "Niederspannung", "description": None, "external_key": None, "is_active": True},
+        {"capability": "Netz & Infrastruktur", "level_1": "Netzplanung", "level_2": "Investitionsplanung", "level_3": None, "description": None, "external_key": None, "is_active": True},
+        {"capability": "Netz & Infrastruktur", "level_1": "Netzplanung", "level_2": "Kapazitätsplanung", "level_3": None, "description": None, "external_key": None, "is_active": True},
+        {"capability": "Netz & Infrastruktur", "level_1": "Smart Grid", "level_2": "Smart Metering", "level_3": None, "description": "Intelligente Messsysteme", "external_key": None, "is_active": True},
+        {"capability": "Netz & Infrastruktur", "level_1": "Smart Grid", "level_2": "Netzautomatisierung", "level_3": None, "description": "SCADA / EMS", "external_key": None, "is_active": True},
+        # Vertrieb & Kundenservice
+        {"capability": "Vertrieb & Kundenservice", "level_1": "Kundenverwaltung", "level_2": "Vertragsmanagement", "level_3": None, "description": None, "external_key": None, "is_active": True},
+        {"capability": "Vertrieb & Kundenservice", "level_1": "Kundenverwaltung", "level_2": "Kundenkommunikation", "level_3": None, "description": None, "external_key": None, "is_active": True},
+        {"capability": "Vertrieb & Kundenservice", "level_1": "Abrechnung", "level_2": "Messstellenbetrieb", "level_3": None, "description": "Zählerwesen & Datenvalidierung", "external_key": None, "is_active": True},
+        {"capability": "Vertrieb & Kundenservice", "level_1": "Abrechnung", "level_2": "Rechnungsstellung", "level_3": None, "description": None, "external_key": None, "is_active": True},
+        {"capability": "Vertrieb & Kundenservice", "level_1": "Produktmanagement", "level_2": "Tarifgestaltung", "level_3": None, "description": None, "external_key": None, "is_active": True},
+        {"capability": "Vertrieb & Kundenservice", "level_1": "Produktmanagement", "level_2": "Ökostromprodukte", "level_3": None, "description": None, "external_key": None, "is_active": True},
+        # Regulierung & Compliance
+        {"capability": "Regulierung & Compliance", "level_1": "Regulatorisches Management", "level_2": "Behördenkommunikation", "level_3": None, "description": "BNetzA, Landesregulierung", "external_key": None, "is_active": True},
+        {"capability": "Regulierung & Compliance", "level_1": "Regulatorisches Management", "level_2": "Netzentgelte", "level_3": None, "description": "Genehmigungsverfahren", "external_key": None, "is_active": True},
+        {"capability": "Regulierung & Compliance", "level_1": "Compliance", "level_2": "Energierecht", "level_3": None, "description": "EnWG, EEG, KWKG", "external_key": None, "is_active": True},
+        {"capability": "Regulierung & Compliance", "level_1": "Compliance", "level_2": "Datenschutz & IT-Sicherheit", "level_3": None, "description": "KRITIS, ISMS", "external_key": None, "is_active": True},
+        {"capability": "Regulierung & Compliance", "level_1": "Reporting", "level_2": "Markttransparenz", "level_3": None, "description": "REMIT-Meldepflichten", "external_key": None, "is_active": True},
+    ],
 }
 
 
@@ -300,6 +336,7 @@ def list_templates() -> list[dict]:
     meta: dict[str, dict] = {
         "software_product": {"label": "Software-Produkt", "description": "Strategie, Entwicklung, Betrieb"},
         "it_operations":    {"label": "IT-Betrieb",       "description": "Infrastruktur, Sicherheit"},
+        "energy_utility":   {"label": "Energiewirtschaft", "description": "Erzeugung, Handel, Netz, Vertrieb, Regulierung"},
     }
     return [
         {
