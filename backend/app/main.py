@@ -31,6 +31,8 @@ from app.routers.story_readiness import router as story_readiness_router
 from app.routers.billing import router as billing_router
 from app.routers.refinement import router as refinement_router
 from app.routers.story_assistant import router as story_assistant_router
+from app.routers.rag_zones import router as rag_zones_router
+from app.routers.capabilities import router as capabilities_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -138,3 +140,5 @@ app.include_router(story_readiness_router, prefix="/api/v1", tags=["Story Readin
 app.include_router(billing_router, prefix="/api/v1", tags=["Billing"])
 app.include_router(refinement_router, prefix="/api/v1", tags=["Refinement"])
 app.include_router(story_assistant_router, prefix="/api/v1", tags=["StoryAssistant"])
+app.include_router(rag_zones_router, prefix="/api/v1", tags=["RAG Zones"])
+app.include_router(capabilities_router, prefix="/api/v1", tags=["Capabilities"])
