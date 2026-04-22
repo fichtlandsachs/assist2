@@ -19,7 +19,7 @@ class NodeType(str, enum.Enum):
     level_3 = "level_3"
 
 
-# Allowed standard assignment levels per artifact type (enforced in router)
+# Allowed standard assignment levels per artifact type (enforced in service/router)
 ALLOWED_ASSIGNMENT_LEVELS: dict[str, list[NodeType]] = {
     "project":    [NodeType.capability, NodeType.level_1],
     "epic":       [NodeType.level_1, NodeType.level_2, NodeType.level_3],
@@ -30,6 +30,13 @@ ALLOWED_ASSIGNMENT_LEVELS: dict[str, list[NodeType]] = {
 EXCEPTION_ALLOWED_LEVELS: dict[str, list[NodeType]] = {
     "epic":       [NodeType.level_1],
     "user_story": [NodeType.level_1],
+}
+
+# Allowed parent node types per level (for tree validation)
+ALLOWED_PARENTS: dict[NodeType, list[NodeType]] = {
+    NodeType.level_1: [NodeType.capability],
+    NodeType.level_2: [NodeType.level_1],
+    NodeType.level_3: [NodeType.level_2],
 }
 
 
@@ -68,7 +75,7 @@ class CapabilityNode(Base):
         "CapabilityNode",
         back_populates="parent",
         cascade="all, delete-orphan",
-        order_by="CapabilityNode.sort_order",
+        order_by=lambda: CapabilityNode.sort_order,
     )
     assignments: Mapped[List["ArtifactAssignment"]] = relationship(
         "ArtifactAssignment",
