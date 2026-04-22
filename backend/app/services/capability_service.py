@@ -145,24 +145,28 @@ async def delete_org_nodes(db: AsyncSession, org_id: uuid.UUID) -> None:
 async def bulk_create_nodes(
     db: AsyncSession, org_id: uuid.UUID, nodes: list[dict[str, Any]]
 ) -> int:
-    """Insert pre-validated node dicts. Returns count inserted."""
-    objs = [
-        CapabilityNode(
-            org_id=org_id,
-            parent_id=n.get("parent_id"),
-            node_type=n["node_type"],
-            title=n["title"],
-            description=n.get("description"),
-            sort_order=n.get("sort_order", 0),
-            external_import_key=n.get("external_import_key"),
-            source_type=n.get("source_type"),
-            is_active=n.get("is_active", True),
-        )
-        for n in nodes
-    ]
-    db.add_all(objs)
+    """Insert pre-validated node dicts level by level to satisfy FK constraints."""
+    level_order = ["capability", "level_1", "level_2", "level_3"]
+    total = 0
+    for level in level_order:
+        batch = [n for n in nodes if n.get("node_type") == level]
+        for n in batch:
+            db.add(CapabilityNode(
+                org_id=org_id,
+                parent_id=n.get("parent_id"),
+                node_type=n["node_type"],
+                title=n["title"],
+                description=n.get("description"),
+                sort_order=n.get("sort_order", 0),
+                external_import_key=n.get("external_import_key"),
+                source_type=n.get("source_type"),
+                is_active=n.get("is_active", True),
+            ))
+        if batch:
+            await db.flush()
+        total += len(batch)
     await db.commit()
-    return len(objs)
+    return total
 
 
 async def get_org_init_status(db: AsyncSession, org: Organization) -> dict[str, Any]:
