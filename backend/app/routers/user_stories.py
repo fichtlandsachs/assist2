@@ -67,7 +67,10 @@ from app.tasks.rag_tasks import index_story_knowledge
 from app.models.pdf_settings import PdfSettings
 from app.models.feature import Feature
 from app.models.project import Project
+from app.models.artifact_assignment import ArtifactAssignment
+from app.models.capability_node import CapabilityNode
 from app.services.pdf_service import pdf_service
+from fastapi.responses import Response
 from app.services.jira_service import jira_service
 from app.services.jira_sync_service import JiraSyncService
 from app.config import get_settings
@@ -77,6 +80,21 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _JIRA_SYNC_TTL_MINUTES = 5
+
+
+async def _compute_node_path(node_id: uuid.UUID, org_id: uuid.UUID, db: AsyncSession) -> str:
+    result = await db.execute(
+        select(CapabilityNode).where(CapabilityNode.org_id == org_id)
+    )
+    nodes = result.scalars().all()
+    by_id = {n.id: n for n in nodes}
+    path: list[str] = []
+    current_id: uuid.UUID | None = node_id
+    while current_id and current_id in by_id:
+        node = by_id[current_id]
+        path.insert(0, node.title)
+        current_id = node.parent_id
+    return " › ".join(path)
 
 
 # ---------------------------------------------------------------------------
@@ -472,10 +490,12 @@ async def validate_user_story(
                 )
     # ─────────────────────────────────────────────────────────────────────────
 
-    story.quality_score = suggestion.quality_score
+    if suggestion.quality_score is not None:
+        story.quality_score = suggestion.quality_score
     story.ai_suggestions = json.dumps(suggestion.model_dump(), ensure_ascii=False)
     # Auto-set dor_passed: no DoR issues AND quality_score meets threshold
-    story.dor_passed = len(suggestion.dor_issues) == 0 and (suggestion.quality_score or 0) >= 80
+    effective_score = suggestion.quality_score if suggestion.quality_score is not None else story.quality_score
+    story.dor_passed = len(suggestion.dor_issues) == 0 and (effective_score or 0) >= 80
     await db.commit()
     await db.refresh(story)
 
@@ -1066,17 +1086,20 @@ async def publish_docs_to_confluence(
     conf_settings = integrations_svc.get_confluence_settings(org)
     default_parent_page_id = conf_settings.get("default_parent_page_id") or None
 
-    # Resolve space key: explicit > org default > derived from parent page
-    space_key = (data.space_key or "").strip()
-    if not space_key:
-        space_key = conf_settings.get("default_space_key", "")
-    if not space_key and default_parent_page_id:
+    # Resolve space key: parent page space takes priority to avoid cross-space errors.
+    # Explicit request value and org default are only used as fallback when no parent is configured.
+    space_key = ""
+    if default_parent_page_id:
         try:
             space_key = await confluence_service.get_space_key_for_page(
                 default_parent_page_id, b_url, b_user, b_token
             )
         except Exception:
             pass
+    if not space_key:
+        space_key = (data.space_key or "").strip()
+    if not space_key:
+        space_key = conf_settings.get("default_space_key", "")
     if not space_key:
         raise HTTPException(status_code=422, detail="Kein Confluence Space-Key angegeben.")
 
@@ -1349,3 +1372,112 @@ async def ai_generate_docs(
 ) -> DocsGenerateResponse:
     """Generate changelog, PDF outline, and summary for a user story."""
     return await generate_story_docs(data)
+
+
+# ── Capability Assignment ─────────────────────────────────────────────────────
+
+class CapabilityAssignmentResponse(BaseModel):
+    assignment_id: str
+    node_id: str
+    node_path: str
+
+
+class CapabilityAssignmentPatch(BaseModel):
+    node_id: str
+
+
+@router.get("/{story_id}/capability-assignment")
+async def get_capability_assignment(
+    story_id: uuid.UUID,
+    org_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Optional[CapabilityAssignmentResponse]:
+    org_uuid = uuid.UUID(org_id)
+    result = await db.execute(
+        select(ArtifactAssignment).where(
+            ArtifactAssignment.artifact_type == "user_story",
+            ArtifactAssignment.artifact_id == story_id,
+            ArtifactAssignment.org_id == org_uuid,
+        )
+    )
+    assignment = result.scalar_one_or_none()
+    if not assignment:
+        return None
+    path = await _compute_node_path(assignment.node_id, org_uuid, db)
+    return CapabilityAssignmentResponse(
+        assignment_id=str(assignment.id),
+        node_id=str(assignment.node_id),
+        node_path=path,
+    )
+
+
+@router.patch("/{story_id}/capability-assignment")
+async def set_capability_assignment(
+    story_id: uuid.UUID,
+    body: CapabilityAssignmentPatch,
+    org_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CapabilityAssignmentResponse:
+    org_uuid = uuid.UUID(org_id)
+    node_uuid = uuid.UUID(body.node_id)
+
+    node_result = await db.execute(
+        select(CapabilityNode).where(
+            CapabilityNode.id == node_uuid,
+            CapabilityNode.org_id == org_uuid,
+        )
+    )
+    if not node_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Capability-Knoten nicht gefunden")
+
+    existing = await db.execute(
+        select(ArtifactAssignment).where(
+            ArtifactAssignment.artifact_type == "user_story",
+            ArtifactAssignment.artifact_id == story_id,
+            ArtifactAssignment.org_id == org_uuid,
+        )
+    )
+    for old in existing.scalars().all():
+        await db.delete(old)
+
+    assignment = ArtifactAssignment(
+        org_id=org_uuid,
+        artifact_type="user_story",
+        artifact_id=story_id,
+        node_id=node_uuid,
+        relation_type="primary",
+        created_by_id=current_user.id,
+    )
+    db.add(assignment)
+    await db.commit()
+    await db.refresh(assignment)
+
+    path = await _compute_node_path(node_uuid, org_uuid, db)
+    return CapabilityAssignmentResponse(
+        assignment_id=str(assignment.id),
+        node_id=str(assignment.node_id),
+        node_path=path,
+    )
+
+
+@router.delete("/{story_id}/capability-assignment")
+async def delete_capability_assignment(
+    story_id: uuid.UUID,
+    org_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    org_uuid = uuid.UUID(org_id)
+    existing = await db.execute(
+        select(ArtifactAssignment).where(
+            ArtifactAssignment.artifact_type == "user_story",
+            ArtifactAssignment.artifact_id == story_id,
+            ArtifactAssignment.org_id == org_uuid,
+        )
+    )
+    for old in existing.scalars().all():
+        await db.delete(old)
+    await db.commit()
+    return Response(status_code=204)
