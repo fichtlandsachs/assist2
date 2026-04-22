@@ -152,6 +152,7 @@ async def bulk_create_nodes(
         batch = [n for n in nodes if n.get("node_type") == level]
         for n in batch:
             db.add(CapabilityNode(
+                id=n["id"] if n.get("id") else None,
                 org_id=org_id,
                 parent_id=n.get("parent_id"),
                 node_type=n["node_type"],
