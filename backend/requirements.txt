@@ -21,3 +21,5 @@ python-docx==1.1.2
 pgvector==0.3.6
 stripe==11.1.0
 python-dateutil>=2.9
+json-repair==0.30.3
+openpyxl==3.1.5
