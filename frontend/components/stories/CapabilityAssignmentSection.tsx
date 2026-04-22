@@ -30,11 +30,13 @@ export function CapabilityAssignmentSection({ storyId, orgId, story }: Props) {
 
   const handleRemove = async () => {
     try {
+      await mutate(null, false);
       await apiRequest(`/api/v1/user-stories/${storyId}/capability-assignment?org_id=${orgId}`, {
         method: "DELETE",
       });
-      await mutate(null, false);
-    } catch { /* ignore */ }
+    } catch {
+      await mutate();
+    }
   };
 
   const handleAssigned = async () => {
@@ -55,15 +57,19 @@ export function CapabilityAssignmentSection({ storyId, orgId, story }: Props) {
             </p>
           </div>
         </div>
-        {!chatOpen && (
-          <button
-            onClick={() => setChatOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:border-[var(--btn-primary)] hover:text-[var(--btn-primary)] transition-colors"
-          >
-            <MessageSquare size={12} />
-            {assignment ? "Ändern" : "Via Chat zuweisen"}
-          </button>
-        )}
+        <button
+          onClick={() => setChatOpen((v) => !v)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:border-[var(--btn-primary)] hover:text-[var(--btn-primary)] transition-colors"
+        >
+          {chatOpen ? (
+            <X size={12} />
+          ) : (
+            <>
+              <MessageSquare size={12} />
+              {assignment ? "Ändern" : "Via Chat zuweisen"}
+            </>
+          )}
+        </button>
       </div>
 
       {/* Content */}
@@ -104,7 +110,6 @@ export function CapabilityAssignmentSection({ storyId, orgId, story }: Props) {
               orgId={orgId}
               story={story}
               onAssigned={handleAssigned}
-              onClose={() => setChatOpen(false)}
             />
           </div>
         )}

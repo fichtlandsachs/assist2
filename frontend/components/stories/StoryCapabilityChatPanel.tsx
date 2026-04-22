@@ -15,10 +15,9 @@ interface Props {
   orgId: string;
   story: UserStory;
   onAssigned: () => void;
-  onClose: () => void;
 }
 
-export function StoryCapabilityChatPanel({ storyId, orgId, story, onAssigned, onClose }: Props) {
+export function StoryCapabilityChatPanel({ storyId, orgId, story, onAssigned }: Props) {
   const handleAccept = async (item: unknown) => {
     const proposal = item as CapabilityProposalItem;
     try {
