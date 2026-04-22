@@ -260,8 +260,17 @@ def get_template_nodes(template_key: str) -> list[dict[str, Any]]:
     return build_nodes_from_rows(rows, source_type="template")
 
 
-def list_templates() -> list[dict[str, str]]:
+def list_templates() -> list[dict]:
+    meta: dict[str, dict] = {
+        "software_product": {"label": "Software-Produkt", "description": "Strategie, Entwicklung, Betrieb"},
+        "it_operations":    {"label": "IT-Betrieb",       "description": "Infrastruktur, Sicherheit"},
+    }
     return [
-        {"key": "software_product", "label": "Software-Produkt"},
-        {"key": "it_operations", "label": "IT-Betrieb"},
+        {
+            "key": key,
+            "label": meta[key]["label"],
+            "description": meta[key]["description"],
+            "node_count": len(rows),
+        }
+        for key, rows in TEMPLATE_ROWS.items()
     ]

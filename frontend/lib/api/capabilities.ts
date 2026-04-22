@@ -29,11 +29,10 @@ export async function fetchCapabilityTree(orgId: string): Promise<CapabilityTree
   return data.items;
 }
 
-export async function fetchCapabilityTemplates(): Promise<CapabilityTemplate[]> {
-  const data = await apiRequest<{ items: CapabilityTemplate[] }>(
-    `/api/v1/capabilities/templates`,
+export async function fetchCapabilityTemplates(orgId: string): Promise<CapabilityTemplate[]> {
+  return apiRequest<CapabilityTemplate[]>(
+    `/api/v1/capabilities/orgs/${orgId}/import/templates`,
   );
-  return data.items;
 }
 
 export async function importDemo(orgId: string, dryRun: boolean): Promise<ImportValidationResult> {

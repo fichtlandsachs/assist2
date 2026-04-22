@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ElementType } from "react";
 import { Upload, Layers, Sparkles, CheckCircle, AlertTriangle, ChevronRight } from "lucide-react";
 import {
   importDemo,
@@ -32,13 +32,13 @@ export function CapabilitySetupScreen({ orgId, onDone }: Props) {
 
   // Load templates
   useEffect(() => {
-    fetchCapabilityTemplates()
+    fetchCapabilityTemplates(orgId)
       .then((items) => {
         setTemplates(items);
         if (items.length > 0) setSelectedTemplate(items[0].key);
       })
       .catch(() => {/* non-critical */});
-  }, []);
+  }, [orgId]);
 
   // Auto-preview for demo tab
   useEffect(() => {
@@ -128,7 +128,7 @@ export function CapabilitySetupScreen({ orgId, onDone }: Props) {
             { id: "demo" as TabId, label: "Demo-Daten", icon: Sparkles },
             { id: "template" as TabId, label: "Vorlage", icon: Layers },
             { id: "excel" as TabId, label: "Excel-Upload", icon: Upload },
-          ] as { id: TabId; label: string; icon: React.ElementType }[]).map(({ id, label, icon: Icon }) => (
+          ] as { id: TabId; label: string; icon: ElementType }[]).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
