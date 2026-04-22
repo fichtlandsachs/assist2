@@ -562,3 +562,87 @@ export interface CapabilityTemplate {
   description: string;
   node_count: number;
 }
+
+// ─── Governance: Controls ─────────────────────────────────────────────────────
+export interface Control {
+  id: string;
+  org_id: string;
+  title: string;
+  description: string | null;
+  control_type: "preventive" | "detective" | "corrective" | "compensating";
+  implementation_status: "not_started" | "in_progress" | "implemented" | "verified";
+  owner_id: string | null;
+  review_interval_days: number;
+  last_reviewed_at: string | null;
+  next_review_due: string | null;
+  is_active: boolean;
+  framework_refs: string[];
+  version: number;
+  created_at: string;
+  updated_at: string;
+  user_title?: string | null;
+  user_explanation?: string | null;
+  user_action?: string | null;
+  user_guiding_questions?: string[] | null;
+  user_evidence_needed?: string[] | null;
+}
+
+export interface ControlUserView {
+  id: string;
+  user_title: string;
+  title: string;
+  user_explanation?: string | null;
+  user_action?: string | null;
+  user_guiding_questions?: string[];
+  user_evidence_needed?: string[];
+  is_inherited: boolean;
+  applies_via_node_id: string;
+}
+
+export interface ControlCapabilityAssignment {
+  id: string;
+  org_id: string;
+  control_id: string;
+  capability_node_id: string;
+  maturity_level: 1 | 2 | 3 | 4 | 5;
+  effectiveness: "not_assessed" | "not_effective" | "partially_effective" | "effective" | "fully_effective";
+  coverage_note: string | null;
+  gap_description: string | null;
+  assessor_id: string | null;
+  last_assessed_at: string | null;
+  next_assessment_due: string | null;
+  is_inherited: boolean;
+  inherited_from_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ControlWithAssessment {
+  control: Control;
+  assessment: ControlCapabilityAssignment;
+  applies_via_node_id: string;
+}
+
+export interface ControlCoverageStats {
+  node_id: string;
+  node_title: string;
+  control_count: number;
+  avg_maturity: number;
+  coverage_pct: number;
+}
+
+export const MATURITY_CONFIG: Record<number, { label: string; color: string; bg: string; border: string }> = {
+  1: { label: "Initial",     color: "text-red-600",    bg: "bg-red-50",    border: "border-red-300" },
+  2: { label: "Developing",  color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-300" },
+  3: { label: "Defined",     color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-300" },
+  4: { label: "Managed",     color: "text-blue-600",   bg: "bg-blue-50",   border: "border-blue-300" },
+  5: { label: "Optimizing",  color: "text-green-600",  bg: "bg-green-50",  border: "border-green-300" },
+};
+
+export const EFFECTIVENESS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
+  not_assessed:        { label: "Nicht bewertet",    color: "text-[var(--ink-faint)]", dot: "bg-gray-300" },
+  not_effective:       { label: "Nicht wirksam",     color: "text-red-600",            dot: "bg-red-500" },
+  partially_effective: { label: "Teilweise wirksam", color: "text-orange-600",         dot: "bg-orange-400" },
+  effective:           { label: "Wirksam",            color: "text-blue-600",           dot: "bg-blue-500" },
+  fully_effective:     { label: "Voll wirksam",       color: "text-green-600",          dot: "bg-green-500" },
+};
