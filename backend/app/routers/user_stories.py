@@ -1481,3 +1481,31 @@ async def delete_capability_assignment(
         await db.delete(old)
     await db.commit()
     return Response(status_code=204)
+
+
+@router.get("/user-stories/{story_id}/relevant-controls")
+async def get_relevant_controls(
+    story_id: uuid.UUID,
+    org_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[dict]:
+    """Return user-layer compliance hints relevant to this story's capability."""
+    from app.services import control_service as control_svc
+    rows = await control_svc.get_controls_for_story(db, org_id, story_id)
+    result = []
+    for row in rows:
+        ctrl = row["control"]
+        assessment = row["assessment"]
+        result.append({
+            "id": str(ctrl.id),
+            "user_title": ctrl.user_title or ctrl.title,
+            "title": ctrl.title,
+            "user_explanation": ctrl.user_explanation,
+            "user_action": ctrl.user_action,
+            "user_guiding_questions": ctrl.user_guiding_questions or [],
+            "user_evidence_needed": ctrl.user_evidence_needed or [],
+            "is_inherited": assessment.is_inherited,
+            "applies_via_node_id": str(row["applies_via_node_id"]),
+        })
+    return result
