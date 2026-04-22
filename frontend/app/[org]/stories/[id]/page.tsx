@@ -9,6 +9,7 @@ import type { UserStory, StoryStatus, StoryPriority, TestCase, TestResult, DoDIt
 import { StoryRefinementPanel } from "@/components/stories/StoryRefinementPanel";
 import { StoryDoDChatPanel } from "@/components/stories/StoryDoDChatPanel";
 import { StoryFeaturesChatPanel } from "@/components/stories/StoryFeaturesChatPanel";
+import { CapabilityAssignmentSection } from "@/components/stories/CapabilityAssignmentSection";
 import { EpicSelector } from "@/components/stories/EpicSelector";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { DoDItem as DoDItemComponent } from "@/components/stories/DoDItem";
@@ -1223,7 +1224,7 @@ function StoryDocsSection({ storyId, story, refreshTrigger }: { storyId: string;
     try {
       const updated = await apiRequest<StoryDocsData>(`/api/v1/user-stories/${storyId}/docs/publish-confluence`, {
         method: "POST",
-        body: JSON.stringify({ space_key: confluenceSpaceKey.trim().toUpperCase() || null, org_id: story.organization_id }),
+        body: JSON.stringify({ space_key: confluenceSpaceKey.trim() || null, org_id: story.organization_id }),
       });
       mutate(updated, false);
     } catch (err: unknown) {
@@ -2438,12 +2439,12 @@ const DEMO_ROLES: { id: DemoRole; label: string; description: string; color: str
 ];
 
 const ROLE_TABS: Record<DemoRole, ActiveTab[]> = {
-  user:      ["story", "dod", "tests", "features", "docs", "processes"],
-  ba:        ["story", "dod", "tests", "features", "docs", "processes"],
-  architect: ["story", "dod", "features", "docs", "prompt", "processes"],
-  developer: ["story", "dod", "tests", "features", "prompt", "processes"],
+  user:      ["story", "processes", "dod", "tests", "features", "docs"],
+  ba:        ["story", "processes", "dod", "tests", "features", "docs"],
+  architect: ["story", "processes", "dod", "features", "docs", "prompt"],
+  developer: ["story", "processes", "dod", "tests", "features", "prompt"],
   tester:    ["story", "tests"],
-  release:   ["story", "tests", "features", "docs", "processes"],
+  release:   ["story", "processes", "tests", "features", "docs"],
 };
 
 export default function StoryDetailPage({
@@ -2529,17 +2530,21 @@ export default function StoryDetailPage({
           setProjectId(data.project_id);
           setJiraTicketKey(data.jira_ticket_key ?? "");
           setInitialized(true);
-          // Restore persisted score panel if score was previously saved
+          // Restore score panel with real heuristic values if story was previously scored
           if (data.quality_score !== null && data.quality_score !== undefined) {
-            const q = data.quality_score;
-            setScore({
-              level: q >= 80 ? "low" : q >= 50 ? "medium" : "high",
-              confidence: q / 100,
-              clarity: q / 100,
-              complexity: 1 - q / 100,
-              risk: q < 50 ? 0.7 : q < 80 ? 0.4 : 0.1,
-              domain: "",
-            });
+            apiRequest<{ level: string; confidence: number; clarity: number; complexity: number; risk: number; domain: string }>(
+              `/api/v1/user-stories/${data.id}/score`,
+              { method: "POST" }
+            ).then(h => {
+              setScore({
+                level: h.level as "low" | "medium" | "high",
+                confidence: h.confidence,
+                clarity: h.clarity,
+                complexity: h.complexity,
+                risk: h.risk,
+                domain: h.domain,
+              });
+            }).catch(() => {/* ignore, panel stays hidden */});
           }
         }
       },
@@ -2636,21 +2641,25 @@ export default function StoryDetailPage({
     setIsScoring(true);
     setScore(null);
     try {
-      const result = await apiRequest<UserStory>(
-        `/api/v1/user-stories/${resolvedParams.id}/validate`,
-        { method: "POST" }
-      );
+      const [result, heuristic] = await Promise.all([
+        apiRequest<UserStory>(
+          `/api/v1/user-stories/${resolvedParams.id}/validate`,
+          { method: "POST" }
+        ),
+        apiRequest<{ level: string; confidence: number; clarity: number; complexity: number; risk: number; domain: string }>(
+          `/api/v1/user-stories/${resolvedParams.id}/score`,
+          { method: "POST" }
+        ),
+      ]);
       // Update SWR cache with new quality_score without refetch
       void mutate(result, false);
-      // Derive display score from persisted quality_score
-      const q = result.quality_score ?? 0;
       setScore({
-        level: q >= 80 ? "low" : q >= 50 ? "medium" : "high",
-        confidence: q / 100,
-        clarity: q / 100,
-        complexity: 1 - q / 100,
-        risk: q < 50 ? 0.7 : q < 80 ? 0.4 : 0.1,
-        domain: "",
+        level: heuristic.level as "low" | "medium" | "high",
+        confidence: heuristic.confidence,
+        clarity: heuristic.clarity,
+        complexity: heuristic.complexity,
+        risk: heuristic.risk,
+        domain: heuristic.domain,
       });
     } catch {
       setFieldErrors({ general: "Prüfung fehlgeschlagen." });
@@ -2808,12 +2817,12 @@ export default function StoryDetailPage({
 
   const ALL_TABS: { id: ActiveTab; label: string }[] = [
     { id: "story",     label: t("story_detail_tab_story") },
+    { id: "processes", label: t("process_tab") },
     { id: "features",  label: t("story_detail_tab_features") },
     { id: "tests",     label: t("story_detail_tab_tests") },
     { id: "dod",       label: t("story_detail_tab_dod") },
     { id: "docs",      label: t("story_detail_tab_docs") },
     { id: "prompt",    label: t("story_detail_tab_prompt") },
-    { id: "processes", label: t("process_tab") },
   ];
 
   const visibleTabIds = ROLE_TABS[demoRole];
@@ -3555,7 +3564,14 @@ export default function StoryDetailPage({
 
       {/* Processes tab */}
       {activeTab === "processes" && (
-        <StoryProcessSection storyId={resolvedParams.id} orgId={story.organization_id} />
+        <div className="space-y-6">
+          <CapabilityAssignmentSection
+            storyId={resolvedParams.id}
+            orgId={story.organization_id}
+            story={story}
+          />
+          <StoryProcessSection storyId={resolvedParams.id} orgId={story.organization_id} />
+        </div>
       )}
     </div>
   );
