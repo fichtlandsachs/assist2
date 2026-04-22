@@ -1462,7 +1462,7 @@ async def set_capability_assignment(
     )
 
 
-@router.delete("/{story_id}/capability-assignment")
+@router.delete("/{story_id}/capability-assignment", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_capability_assignment(
     story_id: uuid.UUID,
     org_id: str,
