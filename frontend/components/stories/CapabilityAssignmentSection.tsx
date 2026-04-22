@@ -13,6 +13,58 @@ interface CapabilityAssignment {
   node_path: string;
 }
 
+const LEVEL_STYLES = [
+  { label: "Capability",  border: "border-[var(--navy,#2d3a8c)]",           bg: "bg-[rgba(45,58,140,.04)]",  text: "text-[var(--navy,#2d3a8c)]"  },
+  { label: "Level 1",    border: "border-[var(--accent-orange,#f97316)]",   bg: "bg-[rgba(249,115,22,.04)]", text: "text-[var(--accent-orange,#f97316)]" },
+  { label: "Level 2",    border: "border-[var(--green,#527b5e)]",           bg: "bg-[rgba(82,123,94,.04)]",  text: "text-[var(--green,#527b5e)]"  },
+  { label: "Level 3",    border: "border-[var(--accent-orange,#f97316)]",   bg: "bg-[rgba(249,115,22,.10)]", text: "text-[var(--accent-orange,#f97316)]" },
+];
+
+function CapabilityHierarchy({ path, onRemove }: { path: string; onRemove: () => void }) {
+  const parts = path.split(" › ");
+  return (
+    <div className="relative">
+      {parts.map((part, i) => {
+        const style = LEVEL_STYLES[Math.min(i, LEVEL_STYLES.length - 1)];
+        const isLeaf = i === parts.length - 1;
+        return (
+          <div
+            key={i}
+            className={`border-2 rounded-lg p-2.5 ${style.border} ${style.bg}`}
+            style={{ marginLeft: i * 12, marginTop: i === 0 ? 0 : 6 }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`text-[10px] font-semibold uppercase tracking-wide shrink-0 ${style.text}`}>
+                  {style.label}
+                </span>
+                <span className={`text-sm font-medium text-[var(--ink)] truncate ${isLeaf ? "font-semibold" : ""}`}>
+                  {part}
+                </span>
+                {isLeaf && (
+                  <span className="shrink-0 flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--accent-orange,#f97316)] text-white font-semibold">
+                    <MapPin size={9} />
+                    Zugewiesen
+                  </span>
+                )}
+              </div>
+              {isLeaf && (
+                <button
+                  onClick={onRemove}
+                  className="shrink-0 text-[var(--ink-faint)] hover:text-rose-500 transition-colors"
+                  aria-label="Zuweisung entfernen"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface Props {
   storyId: string;
   orgId: string;
@@ -81,21 +133,7 @@ export function CapabilityAssignmentSection({ storyId, orgId, story }: Props) {
             Lade…
           </div>
         ) : assignment ? (
-          <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-[var(--paper-warm)] border border-[var(--paper-rule2)]">
-            <div className="flex items-center gap-2 min-w-0">
-              <MapPin size={13} className="text-[var(--accent-orange)] shrink-0" />
-              <span className="text-sm font-medium text-[var(--ink)] truncate">
-                {assignment.node_path}
-              </span>
-            </div>
-            <button
-              onClick={handleRemove}
-              className="shrink-0 text-[var(--ink-faint)] hover:text-rose-500 transition-colors"
-              aria-label="Zuweisung entfernen"
-            >
-              <X size={14} />
-            </button>
-          </div>
+          <CapabilityHierarchy path={assignment.node_path} onRemove={handleRemove} />
         ) : (
           <p className="text-sm text-[var(--ink-faint)]">
             Noch keine Capability zugewiesen. Nutze den Chat, um die passende Capability zu ermitteln.
