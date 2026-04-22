@@ -19,7 +19,7 @@ interface Props {
   storyId: string;
   orgId: string;
   story: UserStory;
-  sessionType: "dod" | "features";
+  sessionType: "dod" | "features" | "capability";
   panelTitle: string;
   emptyTitle: string;
   emptyDesc: string;
