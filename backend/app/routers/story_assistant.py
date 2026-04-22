@@ -25,8 +25,6 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import re as _re
-
 from app.database import AsyncSessionLocal
 from app.deps import get_current_user, get_db
 from app.models.user import User
@@ -51,7 +49,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _ALLOWED_TYPES = {"dod", "features", "capability"}
-_MARKER_RE = _re.compile(r"<!--(?:proposal[\s\S]*?|score:-?\d+)-->", _re.DOTALL)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -95,17 +92,25 @@ async def _resolve_project_name(project_id, db: AsyncSession) -> str | None:
 async def _build_capability_tree_text(org_id: _uuid_module.UUID, db: AsyncSession) -> str:
     result = await db.execute(
         select(CapabilityNode)
-        .where(CapabilityNode.org_id == org_id, CapabilityNode.is_active == True)
+        .where(CapabilityNode.org_id == org_id, CapabilityNode.is_active.is_(True))
         .order_by(CapabilityNode.sort_order)
     )
     nodes = result.scalars().all()
-    indent = {"capability": "", "level_1": "  ", "level_2": "    ", "level_3": "      "}
-    order = {"capability": 0, "level_1": 1, "level_2": 2, "level_3": 3}
-    sorted_nodes = sorted(nodes, key=lambda n: (order.get(n.node_type, 9), n.sort_order))
-    lines = []
-    for n in sorted_nodes:
-        prefix = indent.get(n.node_type, "        ")
-        lines.append(f"{prefix}[{n.id}] {n.title}")
+
+    by_parent: dict = {}
+    for n in nodes:
+        by_parent.setdefault(n.parent_id, []).append(n)
+
+    indent_map = {"capability": "", "level_1": "  ", "level_2": "    ", "level_3": "      "}
+    lines: list[str] = []
+
+    def _walk(parent_id: _uuid_module.UUID | None) -> None:
+        for n in sorted(by_parent.get(parent_id, []), key=lambda x: x.sort_order):
+            prefix = indent_map.get(n.node_type, "        ")
+            lines.append(f"{prefix}[{n.id}] {n.title}")
+            _walk(n.id)
+
+    _walk(None)
     return "\n".join(lines)
 
 

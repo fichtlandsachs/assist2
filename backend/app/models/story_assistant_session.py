@@ -32,7 +32,7 @@ class StoryAssistantSession(Base):
     created_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    # "dod" or "features"
+    # "dod", "features", or "capability"
     session_type: Mapped[str] = mapped_column(String(30), nullable=False)
     messages: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     # JSON array: list of DoDItem or FeatureItem dicts
