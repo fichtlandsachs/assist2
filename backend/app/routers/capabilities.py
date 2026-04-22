@@ -6,6 +6,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -31,6 +32,7 @@ from app.services.capability_import_service import (
     get_demo_nodes,
     get_template_nodes,
     list_templates,
+    _build_preview_tree,
 )
 
 router = APIRouter(prefix="/capabilities", tags=["Capabilities"])
@@ -156,18 +158,19 @@ async def update_node(
     return CapabilityNodeRead.model_validate(updated)
 
 
-@router.delete("/orgs/{org_id}/nodes/{node_id}", status_code=204)
+@router.delete("/orgs/{org_id}/nodes/{node_id}")
 async def delete_node(
     org_id: uuid.UUID,
     node_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
-) -> None:
+):
     node = await svc.get_node(db, org_id, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     await db.delete(node)
     await db.commit()
+    return Response(status_code=204)
 
 
 # ── Import ────────────────────────────────────────────────────────────────────
@@ -215,8 +218,10 @@ async def apply_template(
         level_1_count=sum(1 for n in nodes if n["node_type"] == "level_1"),
         level_2_count=sum(1 for n in nodes if n["node_type"] == "level_2"),
         level_3_count=sum(1 for n in nodes if n["node_type"] == "level_3"),
+        node_count=len(nodes),
         issues=[],
         nodes=nodes,
+        preview=_build_preview_tree(nodes),
     )
     if not dry_run:
         await svc.delete_org_nodes(db, org_id)
@@ -242,8 +247,10 @@ async def apply_demo(
         level_1_count=sum(1 for n in nodes if n["node_type"] == "level_1"),
         level_2_count=sum(1 for n in nodes if n["node_type"] == "level_2"),
         level_3_count=sum(1 for n in nodes if n["node_type"] == "level_3"),
+        node_count=len(nodes),
         issues=[],
         nodes=nodes,
+        preview=_build_preview_tree(nodes),
     )
     if not dry_run:
         await svc.delete_org_nodes(db, org_id)
@@ -307,13 +314,13 @@ async def list_assignments(
     return [ArtifactAssignmentRead.model_validate(a) for a in result.scalars().all()]
 
 
-@router.delete("/orgs/{org_id}/assignments/{assignment_id}", status_code=204)
+@router.delete("/orgs/{org_id}/assignments/{assignment_id}")
 async def delete_assignment(
     org_id: uuid.UUID,
     assignment_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
-) -> None:
+):
     result = await db.execute(
         select(ArtifactAssignment).where(
             ArtifactAssignment.org_id == org_id,
@@ -325,3 +332,4 @@ async def delete_assignment(
         raise HTTPException(status_code=404, detail="Assignment not found")
     await db.delete(obj)
     await db.commit()
+    return Response(status_code=204)

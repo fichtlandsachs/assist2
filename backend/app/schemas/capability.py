@@ -109,6 +109,17 @@ class ImportIssue(BaseModel):
     field: Optional[str] = None
 
 
+class ImportPreviewNode(BaseModel):
+    """Lightweight node for the dry-run preview tree (no org_id, no timestamps)."""
+    id: str
+    node_type: str
+    title: str
+    description: Optional[str] = None
+    sort_order: int = 0
+    is_active: bool = True
+    children: list[ImportPreviewNode] = []
+
+
 class ImportValidationResult(BaseModel):
     is_valid: bool
     error_count: int
@@ -117,8 +128,10 @@ class ImportValidationResult(BaseModel):
     level_1_count: int
     level_2_count: int
     level_3_count: int
+    node_count: int = 0
     issues: list[ImportIssue]
     nodes: list[dict[str, Any]] = []
+    preview: list[ImportPreviewNode] = []
 
 
 class OrgInitStatusRead(BaseModel):

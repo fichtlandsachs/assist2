@@ -50,6 +50,7 @@ def validate_rows(rows: list[dict[str, Any]]) -> ImportValidationResult:
             l3s.add(f"{cap}||{l1}||{l2}||{l3}")
 
     is_valid = len(errors) == 0
+    nodes = build_nodes_from_rows(rows, source_type="import") if is_valid else []
     return ImportValidationResult(
         is_valid=is_valid,
         error_count=len(errors),
@@ -58,8 +59,10 @@ def validate_rows(rows: list[dict[str, Any]]) -> ImportValidationResult:
         level_1_count=len(l1s),
         level_2_count=len(l2s),
         level_3_count=len(l3s),
+        node_count=len(nodes),
         issues=errors + warnings,
-        nodes=build_nodes_from_rows(rows, source_type="import") if is_valid else [],
+        nodes=nodes,
+        preview=_build_preview_tree(nodes),
     )
 
 
@@ -88,6 +91,7 @@ def build_nodes_from_rows(
             tid = str(uuid.uuid4())
             caps[cap] = tid
             nodes.append({
+                "id": tid,
                 "node_type": "capability",
                 "title": cap,
                 "description": None,
@@ -104,6 +108,7 @@ def build_nodes_from_rows(
                 tid = str(uuid.uuid4())
                 l1s[l1_key] = tid
                 nodes.append({
+                    "id": tid,
                     "node_type": "level_1",
                     "title": l1,
                     "description": None,
@@ -120,6 +125,7 @@ def build_nodes_from_rows(
                     tid = str(uuid.uuid4())
                     l2s[l2_key] = tid
                     nodes.append({
+                        "id": tid,
                         "node_type": "level_2",
                         "title": l2,
                         "description": desc,
@@ -131,7 +137,9 @@ def build_nodes_from_rows(
                     })
 
                 if l3:
+                    tid = str(uuid.uuid4())
                     nodes.append({
+                        "id": tid,
                         "node_type": "level_3",
                         "title": l3,
                         "description": desc,
@@ -143,6 +151,34 @@ def build_nodes_from_rows(
                     })
 
     return nodes
+
+
+def _build_preview_tree(flat_nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Convert flat node list (with id, parent_id) into nested tree dicts."""
+    by_id: dict[str, dict[str, Any]] = {}
+    for n in flat_nodes:
+        node_id = n.get("id")
+        if node_id:
+            by_id[node_id] = {
+                "id": node_id,
+                "node_type": n["node_type"],
+                "title": n["title"],
+                "description": n.get("description"),
+                "sort_order": n.get("sort_order", 0),
+                "is_active": n.get("is_active", True),
+                "children": [],
+            }
+    roots: list[dict[str, Any]] = []
+    for n in flat_nodes:
+        node_id = n.get("id")
+        if not node_id or node_id not in by_id:
+            continue
+        parent_id = n.get("parent_id")
+        if parent_id and parent_id in by_id:
+            by_id[parent_id]["children"].append(by_id[node_id])
+        else:
+            roots.append(by_id[node_id])
+    return roots
 
 
 def parse_excel(file_bytes: bytes) -> ImportValidationResult:
