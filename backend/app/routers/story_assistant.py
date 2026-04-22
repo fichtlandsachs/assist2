@@ -34,8 +34,10 @@ from app.models.user_story import UserStory
 from app.models.epic import Epic
 from app.models.project import Project
 from app.models.story_assistant_session import StoryAssistantSession
+from app.models.capability_node import CapabilityNode
 from app.services.story_assistant_service import (
     build_system_prompt,
+    build_capability_system_prompt,
     extract_proposal,
     extract_score,
 )
@@ -48,7 +50,7 @@ _MARKER_RE = _re.compile(r"<!--(?:proposal[\s\S]*?|score:-?\d+)-->", _re.DOTALL)
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-_ALLOWED_TYPES = {"dod", "features"}
+_ALLOWED_TYPES = {"dod", "features", "capability"}
 _MARKER_RE = _re.compile(r"<!--(?:proposal[\s\S]*?|score:-?\d+)-->", _re.DOTALL)
 
 
@@ -88,6 +90,23 @@ async def _resolve_project_name(project_id, db: AsyncSession) -> str | None:
         return None
     res = await db.execute(select(Project.name).where(Project.id == project_id))
     return res.scalar_one_or_none()
+
+
+async def _build_capability_tree_text(org_id: _uuid_module.UUID, db: AsyncSession) -> str:
+    result = await db.execute(
+        select(CapabilityNode)
+        .where(CapabilityNode.org_id == org_id, CapabilityNode.is_active == True)
+        .order_by(CapabilityNode.sort_order)
+    )
+    nodes = result.scalars().all()
+    indent = {"capability": "", "level_1": "  ", "level_2": "    ", "level_3": "      "}
+    order = {"capability": 0, "level_1": 1, "level_2": 2, "level_3": 3}
+    sorted_nodes = sorted(nodes, key=lambda n: (order.get(n.node_type, 9), n.sort_order))
+    lines = []
+    for n in sorted_nodes:
+        prefix = indent.get(n.node_type, "        ")
+        lines.append(f"{prefix}[{n.id}] {n.title}")
+    return "\n".join(lines)
 
 
 def _session_to_dict(s: StoryAssistantSession) -> dict:
@@ -201,19 +220,28 @@ async def chat_stream(
         raise HTTPException(status_code=404, detail="Keine aktive Session")
 
     runtime_settings = await get_runtime_settings(db)
-    epic_title = await _resolve_epic_title(story.epic_id, db)
-    project_name = await _resolve_project_name(story.project_id, db)
 
-    system_prompt = build_system_prompt(
-        session_type=session_type,
-        title=story.title,
-        description=story.description,
-        acceptance_criteria=story.acceptance_criteria,
-        priority=story.priority.value if story.priority else "medium",
-        status=story.status.value if story.status else "draft",
-        epic_title=epic_title,
-        project_name=project_name,
-    )
+    if session_type == "capability":
+        cap_tree = await _build_capability_tree_text(org_uuid, db)
+        system_prompt = build_capability_system_prompt(
+            title=story.title,
+            description=story.description,
+            acceptance_criteria=story.acceptance_criteria,
+            capability_tree=cap_tree,
+        )
+    else:
+        epic_title = await _resolve_epic_title(story.epic_id, db)
+        project_name = await _resolve_project_name(story.project_id, db)
+        system_prompt = build_system_prompt(
+            session_type=session_type,
+            title=story.title,
+            description=story.description,
+            acceptance_criteria=story.acceptance_criteria,
+            priority=story.priority.value if story.priority else "medium",
+            status=story.status.value if story.status else "draft",
+            epic_title=epic_title,
+            project_name=project_name,
+        )
 
     # RAG retrieval (800ms timeout, non-blocking)
     rag_context = ""

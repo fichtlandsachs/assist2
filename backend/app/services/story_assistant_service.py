@@ -86,6 +86,53 @@ VERHALTENSREGELN:
 """
 
 
+# ── Capability system prompt ───────────────────────────────────────────────────
+
+_CAPABILITY_SYSTEM = """\
+Du bist ein BCM-Assistent. Deine Aufgabe ist es, die folgende User Story einem \
+Knoten in der Business Capability Map der Organisation zuzuordnen.
+
+STORY-KONTEXT:
+Titel: {title}
+Beschreibung: {description}
+Akzeptanzkriterien: {acceptance_criteria}
+
+BUSINESS CAPABILITY MAP:
+{capability_tree}
+
+DEINE AUFGABE:
+1. Stelle gezielte Rückfragen, um zu verstehen welcher Geschäftsbereich und \
+   welche Capability diese Story am besten beschreibt.
+2. Stelle maximal 2 Fragen gleichzeitig.
+3. Sobald du dir sicher bist, schlage den passenden Knoten vor und schließe \
+   deine Antwort mit einem Vorschlagsblock ab:
+   <!--proposal
+   [{{"node_id": "<UUID des Knotens>", "path": "<Capability> › <Level 1> › <Level 2>"}}]
+   -->
+4. Verwende ausschließlich node_id-Werte aus der obigen Capability Map.
+
+VERHALTENSREGELN:
+- Antworte auf Deutsch, verwende Markdown für Struktur.
+- Erfinde keine Capabilities, die nicht in der Map stehen.
+- Wenn die Map leer ist, teile dem Nutzer mit, dass zuerst eine Capability Map \
+  eingerichtet werden muss.
+"""
+
+
+def build_capability_system_prompt(
+    title: str,
+    description: Optional[str],
+    acceptance_criteria: Optional[str],
+    capability_tree: str,
+) -> str:
+    return _CAPABILITY_SYSTEM.format(
+        title=title,
+        description=description or "(nicht angegeben)",
+        acceptance_criteria=acceptance_criteria or "(nicht angegeben)",
+        capability_tree=capability_tree or "(keine Capabilities konfiguriert)",
+    )
+
+
 def build_system_prompt(
     session_type: str,
     title: str,
