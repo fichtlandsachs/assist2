@@ -7,6 +7,8 @@ import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
 import { Breadcrumb } from "@/components/shell/Breadcrumb";
 import { useOrg } from "@/lib/hooks/useOrg";
+import { useInitStatus } from "@/lib/hooks/useInitStatus";
+import { SetupWizard } from "@/components/setup/SetupWizard";
 
 export default function OrgLayout({
   children,
@@ -20,6 +22,7 @@ export default function OrgLayout({
   const router = useRouter();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { org } = useOrg(resolvedParams.org);
+  const { needsSetup, initStatus, mutate: mutateInitStatus } = useInitStatus(org?.id);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -58,8 +61,19 @@ export default function OrgLayout({
           <div className="dot-grid-overlay pointer-events-none absolute inset-0 opacity-[0.03]"
             style={{ backgroundImage: "radial-gradient(#000 0.5px, transparent 0.5px)", backgroundSize: "30px 30px" }} />
           <div className="relative min-h-full flex flex-col">
-            <Breadcrumb orgSlug={resolvedParams.org} />
-            {children}
+            {needsSetup && org && initStatus ? (
+              <SetupWizard
+                orgId={org.id}
+                orgName={org.name}
+                currentStatus={initStatus.initialization_status}
+                onComplete={() => mutateInitStatus()}
+              />
+            ) : (
+              <>
+                <Breadcrumb orgSlug={resolvedParams.org} />
+                {children}
+              </>
+            )}
           </div>
         </main>
       </div>
