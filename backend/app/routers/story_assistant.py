@@ -7,7 +7,7 @@ Routes (all prefixed /api/v1):
   POST   /stories/{story_id}/assistant/{session_type}/dismiss
   DELETE /stories/{story_id}/assistant/{session_type}       → delete session
 
-session_type: "dod" | "features"
+session_type: "dod" | "features" | "capability"
 """
 from __future__ import annotations
 
