@@ -30,6 +30,14 @@ export interface User {
   github_email?: string | null;
 }
 
+// ─── Capability Map ───────────────────────────────────────────────────────────
+export type OrgInitializationStatus =
+  | "not_initialized"
+  | "capability_setup_in_progress"
+  | "capability_setup_validated"
+  | "entry_chat_in_progress"
+  | "initialized";
+
 // ─── Organization ────────────────────────────────────────────────
 export interface Organization {
   id: string;
@@ -41,6 +49,7 @@ export interface Organization {
   is_active: boolean;
   max_members: number | null;
   created_at: string;
+  initialization_status: OrgInitializationStatus;
 }
 
 // ─── Membership ──────────────────────────────────────────────────
@@ -468,7 +477,7 @@ export interface RefinementMessage {
 export interface RefinementProposal {
   title?: string;
   description?: string;
-  acceptance_criteria?: string;
+  acceptance_criteria?: string | string[];
 }
 
 export interface StoryRefinementSession {
@@ -507,4 +516,49 @@ export interface StoryAssistantSession {
   last_proposal: DoDProposalItem[] | FeaturesProposalItem[] | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface OrgInitStatus {
+  initialization_status: OrgInitializationStatus;
+  initialization_completed_at: string | null;
+  capability_map_version: number;
+}
+
+export type NodeType = "capability" | "level_1" | "level_2" | "level_3";
+
+export interface CapabilityTreeNode {
+  id: string;
+  node_type: NodeType;
+  title: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+  story_count?: number;
+  children: CapabilityTreeNode[];
+}
+
+export interface ImportIssue {
+  row: number | null;
+  level: "error" | "warning";
+  message: string;
+}
+
+export interface ImportValidationResult {
+  is_valid: boolean;
+  error_count: number;
+  warning_count: number;
+  capability_count: number;
+  level_1_count: number;
+  level_2_count: number;
+  level_3_count: number;
+  node_count: number;
+  issues: ImportIssue[];
+  preview: CapabilityTreeNode[];
+}
+
+export interface CapabilityTemplate {
+  key: string;
+  label: string;
+  description: string;
+  node_count: number;
 }
