@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Any, Dict, Optional
 from datetime import datetime, date
 import uuid
 from app.models.project import ProjectStatus, EffortLevel, ComplexityLevel
@@ -14,6 +14,19 @@ class ProjectCreate(BaseModel):
     effort: Optional[EffortLevel] = None
     complexity: Optional[ComplexityLevel] = None
     owner_id: Optional[uuid.UUID] = None
+    # Project brief & timeline
+    project_brief: Optional[str] = None
+    planned_start_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
+    # Jira reference fields
+    jira_project_id: Optional[str] = None
+    jira_project_key: Optional[str] = None
+    jira_project_name: Optional[str] = None
+    jira_project_url: Optional[str] = None
+    jira_project_type: Optional[str] = None
+    jira_project_lead: Optional[str] = None
+    jira_board_id: Optional[str] = None
+    jira_source_metadata: Optional[Dict[str, Any]] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -25,6 +38,19 @@ class ProjectUpdate(BaseModel):
     effort: Optional[EffortLevel] = None
     complexity: Optional[ComplexityLevel] = None
     owner_id: Optional[uuid.UUID] = None
+    # Project brief & timeline
+    project_brief: Optional[str] = None
+    planned_start_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
+    # Jira reference fields
+    jira_project_id: Optional[str] = None
+    jira_project_key: Optional[str] = None
+    jira_project_name: Optional[str] = None
+    jira_project_url: Optional[str] = None
+    jira_project_type: Optional[str] = None
+    jira_project_lead: Optional[str] = None
+    jira_board_id: Optional[str] = None
+    jira_source_metadata: Optional[Dict[str, Any]] = None
 
 
 class ProjectSummary(BaseModel):
@@ -52,3 +78,19 @@ class ProjectRead(BaseModel):
     complexity: Optional[ComplexityLevel]
     created_at: datetime
     updated_at: datetime
+    # Project brief & timeline
+    project_brief: Optional[str] = None
+    planned_start_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
+    actual_start_date: Optional[date] = None
+    actual_end_date: Optional[date] = None
+    # Jira reference fields
+    jira_project_id: Optional[str] = None
+    jira_project_key: Optional[str] = None
+    jira_project_name: Optional[str] = None
+    jira_project_url: Optional[str] = None
+    jira_project_type: Optional[str] = None
+    jira_project_lead: Optional[str] = None
+    jira_board_id: Optional[str] = None
+    jira_synced_at: Optional[datetime] = None
+    jira_source_metadata: Optional[Dict[str, Any]] = None

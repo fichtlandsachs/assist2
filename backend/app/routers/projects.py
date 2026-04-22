@@ -50,6 +50,17 @@ async def create_project(
         color=data.color,
         effort=data.effort,
         complexity=data.complexity,
+        project_brief=data.project_brief,
+        planned_start_date=data.planned_start_date,
+        planned_end_date=data.planned_end_date,
+        jira_project_id=data.jira_project_id,
+        jira_project_key=data.jira_project_key,
+        jira_project_name=data.jira_project_name,
+        jira_project_url=data.jira_project_url,
+        jira_project_type=data.jira_project_type,
+        jira_project_lead=data.jira_project_lead,
+        jira_board_id=data.jira_board_id,
+        jira_source_metadata=data.jira_source_metadata,
     )
     db.add(project)
     await db.commit()
