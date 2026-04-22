@@ -36,6 +36,12 @@ from app.models.billing import (
 )
 from app.models.story_refinement import StoryRefinementSession
 from app.models.story_assistant_session import StoryAssistantSession
+from app.models.rag_zone import RagZone, RagZoneMembership
+from app.models.user_zone_access import UserZoneAccess
+from app.models.hk_role import HkRoleAssignment, HkRoleZoneGrant
+from app.models.capability_node import CapabilityNode, NodeType
+from app.models.artifact_assignment import ArtifactAssignment, ArtifactType, RelationType
+from app.models.organization import OrgInitializationStatus
 
 __all__ = [
     "User",
@@ -101,4 +107,15 @@ __all__ = [
     "PaymentStatus",
     "StoryRefinementSession",
     "StoryAssistantSession",
+    "RagZone",
+    "RagZoneMembership",
+    "UserZoneAccess",
+    "HkRoleAssignment",
+    "HkRoleZoneGrant",
+    "CapabilityNode",
+    "NodeType",
+    "ArtifactAssignment",
+    "ArtifactType",
+    "RelationType",
+    "OrgInitializationStatus",
 ]
