@@ -13,6 +13,7 @@ from app.routers.nextcloud import router as nextcloud_router
 from app.routers.ai import router as ai_router
 from app.routers.superadmin import router as superadmin_router
 from app.routers.superadmin_config import router as superadmin_config_router
+from app.routers.external_sources import router as external_sources_router
 from app.routers.auth_atlassian import router as auth_atlassian_router
 from app.routers.auth_github import router as auth_github_router
 from app.routers.jira import router as jira_router
@@ -33,6 +34,7 @@ from app.routers.refinement import router as refinement_router
 from app.routers.story_assistant import router as story_assistant_router
 from app.routers.rag_zones import router as rag_zones_router
 from app.routers.capabilities import router as capabilities_router
+from app.routers.controls import router as controls_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -122,6 +124,7 @@ app.include_router(nextcloud_router, prefix="/api/v1", tags=["Nextcloud"])
 app.include_router(ai_router, prefix="/api/v1", tags=["AI"])
 app.include_router(superadmin_router)
 app.include_router(superadmin_config_router)
+app.include_router(external_sources_router, prefix="/api/v1/superadmin")
 app.include_router(auth_atlassian_router, prefix="/api/v1")
 app.include_router(auth_github_router, prefix="/api/v1")
 app.include_router(jira_router, prefix="/api/v1", tags=["Jira"])
@@ -142,3 +145,4 @@ app.include_router(refinement_router, prefix="/api/v1", tags=["Refinement"])
 app.include_router(story_assistant_router, prefix="/api/v1", tags=["StoryAssistant"])
 app.include_router(rag_zones_router, prefix="/api/v1", tags=["RAG Zones"])
 app.include_router(capabilities_router, prefix="/api/v1", tags=["Capabilities"])
+app.include_router(controls_router, tags=["Controls"])

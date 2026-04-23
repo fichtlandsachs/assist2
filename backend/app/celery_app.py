@@ -16,6 +16,7 @@ celery = Celery(
         "app.tasks.sync_dispatcher",
         "app.tasks.rag_tasks",
         "app.tasks.embedding_tasks",
+        "app.tasks.external_ingest_tasks",
     ]
 )
 
