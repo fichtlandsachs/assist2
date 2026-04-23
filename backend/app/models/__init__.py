@@ -42,6 +42,7 @@ from app.models.hk_role import HkRoleAssignment, HkRoleZoneGrant
 from app.models.capability_node import CapabilityNode, NodeType
 from app.models.artifact_assignment import ArtifactAssignment, ArtifactType, RelationType
 from app.models.organization import OrgInitializationStatus
+from app.models.external_source import ExternalSource, ExternalSourceRun, ExternalSourcePage  # noqa: F401
 
 __all__ = [
     "User",
@@ -118,4 +119,7 @@ __all__ = [
     "ArtifactType",
     "RelationType",
     "OrgInitializationStatus",
+    "ExternalSource",
+    "ExternalSourceRun",
+    "ExternalSourcePage",
 ]
