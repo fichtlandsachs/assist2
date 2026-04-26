@@ -34,6 +34,7 @@ const NAV_COLORS: Record<string, { icon: string; bg: string }> = {
   docs:           { icon: "text-orange-500",  bg: "bg-orange-50" },
   settings:       { icon: "text-slate-500",   bg: "bg-slate-50" },
   admin:          { icon: "text-red-500",     bg: "bg-red-50" },
+  governance:     { icon: "text-violet-500", bg: "bg-violet-50" },
   dateien:        { icon: "text-cyan-500",    bg: "bg-cyan-50" },
 };
 
@@ -86,6 +87,9 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
       : []),
     ...(user?.is_superuser
       ? [{ id: "admin", label: t("nav_admin"), icon: Shield, route: `/${orgSlug}/admin` }]
+      : []),
+    ...(user?.is_superuser
+      ? [{ id: "governance", label: "Product Governance", icon: ShieldCheck, route: `/${orgSlug}/admin/governance` }]
       : []),
   ];
 
@@ -602,11 +606,17 @@ export function Sidebar({ orgSlug, orgId, orgName, mobileOpen = false, onMobileC
 
   return (
     <>
-      <div className="hidden md:flex shrink-0">{sidebarContent}</div>
+      <div className={isPaperwork ? "hidden md:flex shrink-0" : "hidden lg:flex shrink-0"}>{sidebarContent}</div>
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/50" onClick={onMobileClose} aria-hidden="true" />
-          <div className="relative z-10 flex shrink-0">{sidebarContent}</div>
+        <div
+          className={isPaperwork ? "md:hidden fixed inset-0 z-50 flex bg-black/50" : "lg:hidden fixed inset-0 z-50 flex bg-black/50"}
+          onClick={onMobileClose}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative flex shrink-0" onClick={(e) => e.stopPropagation()}>
+            {sidebarContent}
+          </div>
         </div>
       )}
     </>

@@ -68,45 +68,57 @@ function ProposalCard({
   onDismiss: () => void;
 }) {
   const { t } = useT();
+  const normalize = (v?: string | string[]) =>
+    Array.isArray(v) ? v.join("\n") : v;
   const fields = [
-    { key: "title" as const, label: t("refinement_field_title"), value: proposal.title },
-    { key: "description" as const, label: t("refinement_field_description"), value: proposal.description },
-    { key: "acceptance_criteria" as const, label: t("refinement_field_ac"), value: proposal.acceptance_criteria },
+    { key: "title" as const, label: t("refinement_field_title"), value: normalize(proposal.title) },
+    { key: "description" as const, label: t("refinement_field_description"), value: normalize(proposal.description) },
+    { key: "acceptance_criteria" as const, label: t("refinement_field_ac"), value: normalize(proposal.acceptance_criteria) },
   ].filter((f) => !!f.value);
 
   if (!fields.length) return null;
 
   return (
-    <div className="rounded-lg border border-[var(--accent-blue,#3b82f6)] bg-blue-50 p-3 space-y-2 my-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-[var(--accent-blue,#3b82f6)] uppercase tracking-wide">
+    <div className="rounded-lg border border-[var(--btn-primary)] bg-[var(--paper-warm)] my-2 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--paper-rule2)]">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-[var(--btn-primary)] uppercase tracking-wide">
+          <Sparkles size={11} />
           {t("refinement_proposal_title")}
         </span>
         <button
           onClick={onDismiss}
-          className="text-[var(--ink-faint)] hover:text-[var(--ink-mid)] transition-colors"
+          className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition-colors"
           aria-label={t("refinement_dismiss_button")}
         >
-          <X size={14} />
+          <X size={13} />
         </button>
       </div>
-      {fields.map(({ key, label, value }) => (
-        <div key={key} className="space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[var(--ink-mid)] font-medium">{label}</span>
-            <button
-              onClick={() => onApply(key, value!)}
-              className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-[var(--btn-primary)] text-white hover:opacity-90 transition-opacity"
-            >
-              <Check size={10} />
-              {t("refinement_apply_button")}
-            </button>
+
+      {/* Fields */}
+      <div className="divide-y divide-[var(--paper-rule2)]">
+        {fields.map(({ key, label, value }) => (
+          <div key={key} className="px-3 py-2.5 space-y-2">
+            {/* Field label + apply button */}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wider font-[var(--font-mono)]">
+                {label}
+              </span>
+              <button
+                onClick={() => onApply(key, value!)}
+                className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-[var(--btn-primary)] text-[var(--paper)] hover:opacity-85 active:opacity-75 transition-opacity shrink-0"
+              >
+                <Check size={10} />
+                {t("refinement_apply_button")}
+              </button>
+            </div>
+            {/* Field value — full text, no clamp */}
+            <p className="text-[13px] leading-relaxed text-[var(--ink-body)] bg-[var(--paper)] rounded border border-[var(--paper-rule2)] px-2.5 py-2 whitespace-pre-wrap font-[var(--font-body)]">
+              {value}
+            </p>
           </div>
-          <p className="text-xs text-[var(--ink-body)] bg-white rounded p-1.5 border border-blue-100 whitespace-pre-wrap line-clamp-3">
-            {value}
-          </p>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -210,10 +222,11 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
     field: "title" | "description" | "acceptance_criteria",
     value: string
   ) => {
-    onApply(field, value);
+    const safeValue = Array.isArray(value) ? (value as string[]).join("\n") : value;
+    onApply(field, safeValue);
     await authFetch(`${API_BASE}/api/v1/stories/${storyId}/refinement/apply`, {
       method: "POST",
-      body: JSON.stringify({ field, value, org_id: orgId }),
+      body: JSON.stringify({ field, value: safeValue, org_id: orgId }),
     });
     // Remove only the applied field; keep proposal visible if other fields remain
     setSession((prev) => {
@@ -404,7 +417,7 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
                   : "bg-[var(--paper-warm)] text-[var(--ink-body)]"
               }`}>
                 {msg.role === "assistant" ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <div className="markdown-body text-[var(--ink-body)] text-sm [&_p]:mb-1.5 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mb-0.5 [&_strong]:font-semibold [&_code]:bg-[var(--paper-rule2)] [&_code]:px-1 [&_code]:rounded [&_code]:text-[0.8em] [&_h1]:font-bold [&_h1]:text-base [&_h2]:font-semibold [&_h3]:font-medium">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {stripHiddenMarkers(msg.content)}
                     </ReactMarkdown>
@@ -437,7 +450,7 @@ export function StoryRefinementPanel({ storyId, orgId, story, onApply }: Props) 
         {streaming && streamingContent && (
           <div className="flex flex-col items-start">
             <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-[var(--paper-warm)] text-[var(--ink-body)]">
-              <div className="prose prose-sm max-w-none dark:prose-invert">
+              <div className="markdown-body text-[var(--ink-body)] text-sm [&_p]:mb-1.5 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mb-0.5 [&_strong]:font-semibold [&_code]:bg-[var(--paper-rule2)] [&_code]:px-1 [&_code]:rounded [&_code]:text-[0.8em] [&_h1]:font-bold [&_h1]:text-base [&_h2]:font-semibold [&_h3]:font-medium">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {stripHiddenMarkers(streamingContent)}
                 </ReactMarkdown>

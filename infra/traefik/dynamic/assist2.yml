@@ -41,6 +41,7 @@ http:
       rule: "Host(`heykarl.app`) && (PathPrefix(`/ghost`) || PathPrefix(`/content`) || PathPrefix(`/assets`))"
       entryPoints: [websecure]
       service: ghost-svc
+      middlewares: [ghost-strip-trailing-slash]
       priority: 500
       tls:
         certResolver: letsencrypt
@@ -72,21 +73,20 @@ http:
       tls:
         certResolver: letsencrypt
 
+    # ── Stirling PDF ─────────────────────────────────────────────────────
+    stirling-pdf:
+      rule: "Host(`admin.heykarl.app`) && PathPrefix(`/pdf`)"
+      entryPoints: [websecure]
+      service: stirling-pdf-svc
+      priority: 100
+      tls:
+        certResolver: letsencrypt
+
     # ── pgAdmin ───────────────────────────────────────────────────────────
     pgadmin:
       rule: "Host(`admin.heykarl.app`) && PathPrefix(`/pgadmin`)"
       entryPoints: [websecure]
       service: pgadmin-svc
-      priority: 100
-      tls:
-        certResolver: letsencrypt
-
-    # ── VS Code Server ────────────────────────────────────────────────────
-    vscode:
-      rule: "Host(`admin.heykarl.app`) && PathPrefix(`/code`)"
-      entryPoints: [websecure]
-      service: vscode-svc
-      middlewares: [authentik]
       priority: 100
       tls:
         certResolver: letsencrypt
@@ -121,6 +121,11 @@ http:
         certResolver: letsencrypt
 
   middlewares:
+    ghost-strip-trailing-slash:
+      replacePathRegex:
+        regex: "^(/(?:assets|content|ghost)/.+)/$"
+        replacement: "${1}"
+
     whisper-strip:
       stripPrefix:
         prefixes:
@@ -186,6 +191,11 @@ http:
         servers:
           - url: "http://heykarl-phpmyadmin:80"
 
+    stirling-pdf-svc:
+      loadBalancer:
+        servers:
+          - url: "http://heykarl-stirling-pdf:8080"
+
     pgadmin-svc:
       loadBalancer:
         servers:
@@ -195,8 +205,3 @@ http:
       loadBalancer:
         servers:
           - url: "http://heykarl-redis-commander:8081"
-
-    vscode-svc:
-      loadBalancer:
-        servers:
-          - url: "http://heykarl-vscode:3000"

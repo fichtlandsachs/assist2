@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import AsyncSessionLocal
 from app.deps import get_current_user, get_db
 from app.models.user import User
+from app.core.story_filter import active_stories
 from app.models.user_story import UserStory
 from app.models.epic import Epic
 from app.models.project import Project

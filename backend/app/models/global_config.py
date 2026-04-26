@@ -55,6 +55,13 @@ ALLOWED_KEYS: frozenset[str] = frozenset({
     "web_search.api_key",
     "web_search.google_cx",
     "web_search.monthly_budget_usd",
+    # Plan limits
+    "plans.free.stories",
+    "plans.free.members",
+    "plans.pro.stories",
+    "plans.pro.members",
+    "plans.enterprise.stories",
+    "plans.enterprise.members",
 })
 
 SECRET_KEYS: frozenset[str] = frozenset({

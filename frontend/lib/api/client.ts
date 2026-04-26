@@ -66,6 +66,10 @@ export async function apiRequest<T>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Unknown error", code: "UNKNOWN", details: {} }));
+    // Normalize FastAPI's `detail` field into `error` so callers get a consistent string
+    if (!err.error && err.detail) {
+      err.error = typeof err.detail === "string" ? err.detail : JSON.stringify(err.detail);
+    }
     throw err;
   }
 
@@ -75,3 +79,36 @@ export async function apiRequest<T>(
 
 // SWR fetcher
 export const fetcher = <T>(path: string) => apiRequest<T>(path);
+
+/**
+ * Low-level authenticated fetch — returns raw Response.
+ * Automatically adds Authorization + Content-Type headers.
+ * Attempts token refresh on 401 before returning the response.
+ */
+export async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const isAbsolute = path.startsWith("http");
+  const url = isAbsolute ? path : `${API_BASE}${path}`;
+
+  function buildHeaders(token: string | null): Record<string, string> {
+    const h: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(options.headers as Record<string, string>),
+    };
+    if (token) h["Authorization"] = `Bearer ${token}`;
+    return h;
+  }
+
+  let token = getAccessToken();
+  let res = await fetch(url, { ...options, headers: buildHeaders(token) });
+
+  // On 401 try a token refresh once
+  if (res.status === 401) {
+    const refreshed = await refreshTokens();
+    if (refreshed) {
+      token = getAccessToken();
+      res = await fetch(url, { ...options, headers: buildHeaders(token) });
+    }
+  }
+
+  return res;
+}

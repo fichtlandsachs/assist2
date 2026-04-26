@@ -9,6 +9,7 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models.project import Project
 from app.models.epic import Epic
+from app.core.story_filter import active_stories
 from app.models.user_story import UserStory
 from app.models.user import User
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate

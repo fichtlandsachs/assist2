@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# heykarl + Ghost + Traefik — Full-Stack Installer
+# heykarl + Ghost + Traefik — Full-Stack Installer (eigenständig inkl. Authentik IDP)
 # Reproduced from production layout on a fresh Debian VM.
 #
 # Usage:
 #   curl -fsSL https://<repo>/infra/scripts/install.sh | bash
 #   -- or --
-#   bash infra/scripts/install.sh
+#   HEYKARL_ROOT=/opt/heykarl bash infra/scripts/install.sh
 #
 # Requirements:
 #   - Debian 11/12 (root or sudo)
@@ -33,6 +33,11 @@ NO_TLS=false
 SKIP_BUILD=false
 REPO_URL=""
 GIT_BRANCH="main"
+HEYKARL_ROOT="${HEYKARL_ROOT:-/opt/heykarl}"
+# Festes Authentik-Bootstrap-Passwort (z. B. admin123) nur zusammen mit --new-install / HEYKARL_NEW_INSTALL=1
+NEW_INSTALL=false
+[[ "${HEYKARL_NEW_INSTALL:-}" == "1" || "${HEYKARL_NEW_INSTALL:-}" =~ ^(true|yes)$ ]] && NEW_INSTALL=true
+INITIAL_ADMIN_PASSWORD="${INITIAL_ADMIN_PASSWORD:-}"
 
 for arg in "$@"; do
   case $arg in
@@ -40,16 +45,30 @@ for arg in "$@"; do
     --skip-build)  SKIP_BUILD=true ;;
     --repo=*)      REPO_URL="${arg#*=}" ;;
     --branch=*)    GIT_BRANCH="${arg#*=}" ;;
+    --heykarl-root=*) HEYKARL_ROOT="${arg#*=}" ;;
+    --new-install) NEW_INSTALL=true ;;
+    --initial-admin-password=*) INITIAL_ADMIN_PASSWORD="${arg#*=}" ;;
     --help|-h)
-      echo "Usage: $0 [--no-tls] [--skip-build] [--repo=<url>] [--branch=<name>]"
-      echo "  --no-tls      Use self-signed certs (no Let's Encrypt, no Cloudflare token needed)"
-      echo "  --skip-build  Skip Docker image builds (use cached images)"
-      echo "  --repo=URL    Git repository URL (defaults to interactive prompt)"
-      echo "  --branch=NAME Git branch to check out (default: main)"
+      echo "Usage: $0 [--no-tls] [--skip-build] [--repo=<url>] [--branch=<name>] [--heykarl-root=<path>] [--new-install] [--initial-admin-password=<pw>]"
+      echo "  --no-tls           Use self-signed certs (no Let's Encrypt, no Cloudflare token needed)"
+      echo "  --skip-build       Skip Docker image builds (use cached images)"
+      echo "  --repo=URL         Git repository URL (defaults to interactive prompt)"
+      echo "  --branch=NAME      Git branch to check out (default: main)"
+      echo "  --heykarl-root=DIR          Install application tree here (default: /opt/heykarl)"
+      echo "  --new-install               Neuinstallation: Authentik-Bootstrap-Passwort wählbar (Default: admin123)"
+      echo "  --initial-admin-password=PW Nur mit --new-install: Passwort für Authentik akadmin (env: INITIAL_ADMIN_PASSWORD)"
+      echo "  Env HEYKARL_NEW_INSTALL=1   Wie --new-install"
       exit 0
       ;;
   esac
 done
+
+if [[ -n "$INITIAL_ADMIN_PASSWORD" && "$NEW_INSTALL" != "true" ]]; then
+  fatal "--initial-admin-password bzw. INITIAL_ADMIN_PASSWORD ist nur bei Neuinstallation erlaubt (zusätzlich --new-install oder HEYKARL_NEW_INSTALL=1)."
+fi
+
+export HEYKARL_ROOT
+export NEW_INSTALL
 
 # ── Root check ───────────────────────────────────────────────────────────────
 if [[ $EUID -ne 0 ]]; then
@@ -61,12 +80,18 @@ section "Welcome to the heykarl installer"
 # ─────────────────────────────────────────────────────────────────────────────
 echo -e "This script will:"
 echo -e "  1. Install Docker + dependencies"
-echo -e "  2. Check out the heykarl and Ghost repositories"
+echo -e "  2. Check out the heykarl and Ghost repositories under ${HEYKARL_ROOT}"
 echo -e "  3. Generate secrets and write .env files"
-echo -e "  4. Start Traefik → heykarl → Ghost"
-echo -e "  5. Run database migrations and seed data"
-echo -e "  6. Optionally run the Nextcloud post-install wizard"
+echo -e "  4. Start Traefik → Authentik (IDP) + HeyKarl Stack → Ghost"
+echo -e "  5. Provision OIDC clients in Authentik (Backend + Admin) and merge into .env"
+echo -e "  6. Run database migrations and seed data"
+echo -e "  7. Optionally run the Nextcloud post-install wizard"
 echo ""
+if [[ "$NEW_INSTALL" == "true" ]]; then
+  echo -e "${YELLOW}Modus: Neuinstallation — Authentik-Bootstrap-Passwort wie gewählt (Default admin123).${NC}"
+else
+  echo -e "${YELLOW}Kein --new-install: Authentik-Bootstrap-Passwort wird zufällig gesetzt (kein admin123).${NC}"
+fi
 echo -e "${YELLOW}Estimated time: 15-30 min (depending on image pull speed)${NC}"
 echo ""
 
@@ -141,6 +166,31 @@ wait_healthy() {
   return 1
 }
 
+merge_oidc_credentials_into_env() {
+  local env_file="${HEYKARL_ROOT}/infra/.env"
+  local py="${HEYKARL_ROOT}/infra/scripts/authentik_provision_oidc.py"
+  [[ -f "$py" ]] || fatal "Missing Authentik provisioning script: $py"
+  info "Provisioning Authentik OAuth applications (HeyKarl Backend + Admin)…"
+  docker cp "$py" heykarl-authentik-server:/tmp/authentik_provision_oidc.py
+  local json
+  json="$(docker exec -e DOMAIN="$DOMAIN" heykarl-authentik-server \
+    ak shell -c "exec(open('/tmp/authentik_provision_oidc.py').read())" 2>/dev/null | grep '^{' | tail -1 || true)"
+  [[ -n "$json" ]] || fatal "Authentik OIDC provision did not return JSON (see: docker logs heykarl-authentik-server)"
+  local k v
+  for k in AUTHENTIK_BACKEND_CLIENT_ID AUTHENTIK_BACKEND_CLIENT_SECRET AUTHENTIK_ADMIN_CLIENT_ID AUTHENTIK_ADMIN_CLIENT_SECRET; do
+    v="$(echo "$json" | jq -r --arg k "$k" '.[$k] // empty')"
+    [[ -n "$v" ]] || fatal "Missing key $k in provisioner output"
+    if [[ "$v" == "__PRESERVE__" ]]; then
+      warn "Authentik application already exists for $k — leaving existing .env value untouched."
+      continue
+    fi
+    grep -q "^${k}=" "$env_file" && sed -i "/^${k}=/d" "$env_file"
+    printf '%s=%s\n' "$k" "$v" >> "$env_file"
+  done
+  chmod 0600 "$env_file" || true
+  ok "Authentik OIDC credentials merged into ${env_file}"
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 section "Step 1 — System prerequisites"
 # ─────────────────────────────────────────────────────────────────────────────
@@ -200,6 +250,15 @@ ATLASSIAN_CLIENT_SECRET=$(prompt_optional "Atlassian OAuth Client Secret")
 
 echo ""
 info "Generating secrets…"
+if [[ "$NEW_INSTALL" == "true" ]]; then
+  INITIAL_ADMIN_PASSWORD="${INITIAL_ADMIN_PASSWORD:-admin123}"
+  if [[ "$INITIAL_ADMIN_PASSWORD" == "admin123" ]]; then
+    warn "Authentik-Bootstrap nutzt das Default-Passwort „admin123“ — nach erstem Login ändern."
+  fi
+  AUTHENTIK_BOOTSTRAP_PASSWORD="${INITIAL_ADMIN_PASSWORD}"
+else
+  AUTHENTIK_BOOTSTRAP_PASSWORD=$(gen_secret 20)
+fi
 
 # Core secrets
 SECRET_KEY=$(gen_secret 48)
@@ -211,7 +270,7 @@ POSTGRES_PASSWORD=$(gen_secret 32)
 REDIS_PASSWORD=$(gen_secret 32)
 AUTHENTIK_DB_PASSWORD=$(gen_secret 32)
 AUTHENTIK_SECRET_KEY=$(gen_secret 50)
-AUTHENTIK_BOOTSTRAP_PASSWORD=$(gen_secret 20)
+AUTHENTIK_BOOTSTRAP_TOKEN=$(gen_secret 48)
 LITELLM_MASTER_KEY="sk-$(gen_secret 32)"
 LITELLM_DB_PASSWORD=$(gen_secret 32)
 N8N_ENCRYPTION_KEY=$(gen_secret 32)
@@ -235,13 +294,13 @@ if [[ -z "$REPO_URL" ]]; then
   REPO_URL=$(prompt REPO_URL "Git repository URL for heykarl" "")
 fi
 
-if [[ ! -d /opt/assist2/.git ]]; then
-  info "Cloning heykarl into /opt/assist2…"
-  git clone --branch "$GIT_BRANCH" "$REPO_URL" /opt/assist2
+if [[ ! -d "${HEYKARL_ROOT}/.git" ]]; then
+  info "Cloning heykarl into ${HEYKARL_ROOT}…"
+  git clone --branch "$GIT_BRANCH" "$REPO_URL" "${HEYKARL_ROOT}"
   ok "Cloned."
 else
-  info "/opt/assist2 already exists — pulling latest…"
-  git -C /opt/assist2 pull --ff-only
+  info "${HEYKARL_ROOT} already exists — pulling latest…"
+  git -C "${HEYKARL_ROOT}" pull --ff-only
   ok "Up to date."
 fi
 
@@ -306,8 +365,8 @@ services:
       - "443:443"
       - "8080:8080"
     volumes:
-      - /opt/assist2/infra/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - /opt/assist2/infra/traefik/dynamic:/etc/traefik/dynamic:ro
+      - ${HEYKARL_ROOT}/infra/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ${HEYKARL_ROOT}/infra/traefik/dynamic:/etc/traefik/dynamic:ro
       - traefik-certs:/certs
     networks:
       - proxy
@@ -335,6 +394,13 @@ volumes:
 TRAEFIK_EOF
 
   ok "Traefik stack created."
+fi
+
+# Keep Traefik volume paths in sync when HEYKARL_ROOT changes between installs
+if [[ -f /opt/traefik/docker-compose.yml ]]; then
+  sed -i "s#/opt/assist2/infra/traefik#${HEYKARL_ROOT}/infra/traefik#g" /opt/traefik/docker-compose.yml 2>/dev/null || true
+  sed -i "s#/opt/heykarl_cloud/infra/traefik#${HEYKARL_ROOT}/infra/traefik#g" /opt/traefik/docker-compose.yml 2>/dev/null || true
+  sed -i "s#/opt/heykarl/infra/traefik#${HEYKARL_ROOT}/infra/traefik#g" /opt/traefik/docker-compose.yml 2>/dev/null || true
 fi
 
 # Ghost stack
@@ -445,15 +511,15 @@ MAIL_FROM=noreply@${DOMAIN}
 EOF
 
 # Update Traefik static config with correct email and cert resolver
-sed -i "s/email: .*/email: ${ACME_EMAIL}/" /opt/assist2/infra/traefik/traefik.yml || true
+sed -i "s/email: .*/email: ${ACME_EMAIL}/" "${HEYKARL_ROOT}/infra/traefik/traefik.yml" || true
 
 # Update Traefik dynamic config domain references
-find /opt/assist2/infra/traefik/dynamic -name "*.yml" \
+find "${HEYKARL_ROOT}/infra/traefik/dynamic" -name "*.yml" \
   -exec sed -i "s/heykarl\.app/${DOMAIN}/g" {} \; \
   -exec sed -i "s/certresolver: letsencrypt/certresolver: ${CERT_RESOLVER}/g" {} \;
 
 # heykarl .env
-cat > /opt/assist2/infra/.env << EOF
+cat > "${HEYKARL_ROOT}/infra/.env" << EOF
 # ── Core ──────────────────────────────────────────────────────────────────────
 DOMAIN=${DOMAIN}
 ENVIRONMENT=production
@@ -493,13 +559,15 @@ AI_FEATURE_FLAGS=streaming,embeddings
 N8N_API_KEY=$(gen_secret 40)
 N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 
-# ── Authentik ─────────────────────────────────────────────────────────────────
+# ── Authentik (IDP) ───────────────────────────────────────────────────────────
 AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
 AUTHENTIK_DB_PASSWORD=${AUTHENTIK_DB_PASSWORD}
 AUTHENTIK_BOOTSTRAP_EMAIL=${ADMIN_EMAIL}
 AUTHENTIK_BOOTSTRAP_PASSWORD=${AUTHENTIK_BOOTSTRAP_PASSWORD}
-# Fill these after Authentik first-run setup:
-AUTHENTIK_API_TOKEN=
+AUTHENTIK_BOOTSTRAP_TOKEN=${AUTHENTIK_BOOTSTRAP_TOKEN}
+# Bootstrap token doubles as API token until you create a dedicated token in Authentik
+AUTHENTIK_API_TOKEN=${AUTHENTIK_BOOTSTRAP_TOKEN}
+# OIDC clients (filled by install.sh after Authentik is up — see authentik_provision_oidc.py)
 AUTHENTIK_BACKEND_CLIENT_ID=
 AUTHENTIK_BACKEND_CLIENT_SECRET=
 AUTHENTIK_JWKS_URL=https://authentik.${DOMAIN}/application/o/backend/jwks/
@@ -557,24 +625,7 @@ docker volume create assist_traefik-certs 2>/dev/null && ok "Created volume: ass
   || ok "Volume assist_traefik-certs already exists."
 
 # ─────────────────────────────────────────────────────────────────────────────
-section "Step 6 — Build Docker images"
-# ─────────────────────────────────────────────────────────────────────────────
-if [[ "$SKIP_BUILD" == false ]]; then
-  info "Clearing BuildKit cache to avoid stale layer errors…"
-  docker builder prune -f --filter type=exec.cachemount 2>/dev/null || docker builder prune -f 2>/dev/null || true
-  info "Building backend image…"
-  docker compose -f /opt/assist2/infra/docker-compose.yml --env-file /opt/assist2/infra/.env build --no-cache backend 2>&1 | tail -5
-  info "Building frontend image…"
-  docker compose -f /opt/assist2/infra/docker-compose.yml --env-file /opt/assist2/infra/.env build --no-cache frontend 2>&1 | tail -5
-  info "Building admin-frontend image…"
-  docker compose -f /opt/assist2/infra/docker-compose.yml --env-file /opt/assist2/infra/.env build --no-cache admin-frontend 2>&1 | tail -5
-  ok "All images built."
-else
-  info "Skipping build (--skip-build)."
-fi
-
-# ─────────────────────────────────────────────────────────────────────────────
-section "Step 7 — Start Traefik"
+section "Step 6 — Start Traefik"
 # ─────────────────────────────────────────────────────────────────────────────
 info "Starting Traefik reverse proxy…"
 docker compose -f /opt/traefik/docker-compose.yml --env-file /opt/traefik/.env up -d
@@ -582,37 +633,62 @@ ok "Traefik started."
 sleep 3
 
 # ─────────────────────────────────────────────────────────────────────────────
-section "Step 8 — Start heykarl core services"
+section "Step 7 — Authentik (IDP) + Datenbasis"
 # ─────────────────────────────────────────────────────────────────────────────
-info "Starting PostgreSQL, Redis, Authentik…"
-docker compose -f /opt/assist2/infra/docker-compose.yml \
-  --env-file /opt/assist2/infra/.env \
+info "Starting PostgreSQL, Redis, Authentik (Server + Worker)…"
+docker compose -f "${HEYKARL_ROOT}/infra/docker-compose.yml" \
+  --env-file "${HEYKARL_ROOT}/infra/.env" \
   up -d postgres redis authentik-db authentik-server authentik-worker
 
 wait_healthy heykarl-postgres 120
 wait_healthy heykarl-redis 60
+wait_healthy heykarl-authentik-server 180
+info "Waiting for Authentik worker bootstrap…"
+sleep 15
 
+merge_oidc_credentials_into_env
+
+# ─────────────────────────────────────────────────────────────────────────────
+section "Step 8 — Build Docker images (nach OIDC-Provision)"
+# ─────────────────────────────────────────────────────────────────────────────
+if [[ "$SKIP_BUILD" == false ]]; then
+  info "Clearing BuildKit cache to avoid stale layer errors…"
+  docker builder prune -f --filter type=exec.cachemount 2>/dev/null || docker builder prune -f 2>/dev/null || true
+  info "Building backend image…"
+  docker compose -f "${HEYKARL_ROOT}/infra/docker-compose.yml" --env-file "${HEYKARL_ROOT}/infra/.env" build --no-cache backend 2>&1 | tail -5
+  info "Building frontend image…"
+  docker compose -f "${HEYKARL_ROOT}/infra/docker-compose.yml" --env-file "${HEYKARL_ROOT}/infra/.env" build --no-cache frontend 2>&1 | tail -5
+  info "Building admin-frontend image…"
+  docker compose -f "${HEYKARL_ROOT}/infra/docker-compose.yml" --env-file "${HEYKARL_ROOT}/infra/.env" build --no-cache admin-frontend 2>&1 | tail -5
+  ok "All images built."
+else
+  info "Skipping build (--skip-build)."
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+section "Step 9 — HeyKarl Anwendungs-Stack"
+# ─────────────────────────────────────────────────────────────────────────────
 info "Starting LiteLLM…"
-docker compose -f /opt/assist2/infra/docker-compose.yml \
-  --env-file /opt/assist2/infra/.env \
+docker compose -f "${HEYKARL_ROOT}/infra/docker-compose.yml" \
+  --env-file "${HEYKARL_ROOT}/infra/.env" \
   up -d litellm-postgres litellm
 
-info "Starting backend, worker, frontend…"
-docker compose -f /opt/assist2/infra/docker-compose.yml \
-  --env-file /opt/assist2/infra/.env \
+info "Starting Backend, Worker, Frontends…"
+docker compose -f "${HEYKARL_ROOT}/infra/docker-compose.yml" \
+  --env-file "${HEYKARL_ROOT}/infra/.env" \
   up -d backend worker frontend admin-frontend
 
-wait_healthy heykarl-backend 120
+wait_healthy heykarl-backend 180
 
-info "Starting remaining services (n8n, Nextcloud, Whisper, Stirling-PDF)…"
-docker compose -f /opt/assist2/infra/docker-compose.yml \
-  --env-file /opt/assist2/infra/.env \
+info "Starting remaining services (n8n, Nextcloud, Whisper, Stirling-PDF, …)…"
+docker compose -f "${HEYKARL_ROOT}/infra/docker-compose.yml" \
+  --env-file "${HEYKARL_ROOT}/infra/.env" \
   up -d
 
 ok "All heykarl services started."
 
 # ─────────────────────────────────────────────────────────────────────────────
-section "Step 9 — Database migrations and seed"
+section "Step 10 — Database migrations and seed"
 # ─────────────────────────────────────────────────────────────────────────────
 info "Running Alembic migrations…"
 docker exec heykarl-backend \
@@ -626,7 +702,7 @@ docker exec heykarl-backend \
 ok "Seed complete."
 
 # ─────────────────────────────────────────────────────────────────────────────
-section "Step 10 — Start Ghost CMS"
+section "Step 11 — Start Ghost CMS"
 # ─────────────────────────────────────────────────────────────────────────────
 info "Starting Ghost CMS…"
 docker compose -f /opt/ghost/docker-compose.yml \
@@ -635,26 +711,26 @@ docker compose -f /opt/ghost/docker-compose.yml \
 ok "Ghost started."
 
 # ─────────────────────────────────────────────────────────────────────────────
-section "Step 11 — Optional: Nextcloud post-install"
+section "Step 12 — Optional: Nextcloud post-install"
 # ─────────────────────────────────────────────────────────────────────────────
 echo ""
 read -rp "$(echo -e "${BOLD}Run Nextcloud post-install wizard now? [y/N]:${NC} ")" run_nc </dev/tty
 if [[ "${run_nc,,}" == "y" ]]; then
   wait_healthy heykarl-nextcloud 180
   info "Running Nextcloud init script…"
-  source /opt/assist2/infra/.env
-  bash /opt/assist2/infra/nextcloud/init.sh
+  source "${HEYKARL_ROOT}/infra/.env"
+  bash "${HEYKARL_ROOT}/infra/nextcloud/init.sh"
   ok "Nextcloud configured."
 else
-  info "Skipped. Run later: source /opt/assist2/infra/.env && bash /opt/assist2/infra/nextcloud/init.sh"
+  info "Skipped. Run later: source ${HEYKARL_ROOT}/infra/.env && bash ${HEYKARL_ROOT}/infra/nextcloud/init.sh"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-section "Step 12 — Health check"
+section "Step 13 — Health check"
 # ─────────────────────────────────────────────────────────────────────────────
 info "Checking service health…"
-docker compose -f /opt/assist2/infra/docker-compose.yml \
-  --env-file /opt/assist2/infra/.env ps \
+docker compose -f "${HEYKARL_ROOT}/infra/docker-compose.yml" \
+  --env-file "${HEYKARL_ROOT}/infra/.env" ps \
   --format "table {{.Name}}\t{{.Status}}"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -669,33 +745,27 @@ ${BOLD}━━━ Access URLs ━━━━━━━━━━━━━━━━━
   Traefik:    https://traefik.${DOMAIN}
 
 ${BOLD}━━━ Credentials ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}
-  Authentik admin:
-    Email:    ${ADMIN_EMAIL}
-    Password: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
+  Authentik (akadmin / Bootstrap, https://authentik.${DOMAIN}):
+    E-Mail:    ${ADMIN_EMAIL}
+    Passwort:  ${AUTHENTIK_BOOTSTRAP_PASSWORD}
+    Hinweis:   Passwort aus .env nur bei neuem Authentik-DB-Volume wirksam; bei Neuinstallation mit --new-install ggf. bekanntes Initialpasswort (Default admin123).
 
   Traefik dashboard:
     User:     admin
     Password: ${TRAEFIK_ADMIN_PASS}
 
-  All secrets saved to:  /opt/assist2/infra/.env
+  All secrets saved to:  ${HEYKARL_ROOT}/infra/.env
                          /opt/ghost/.env
                          /opt/traefik/.env
 
+${BOLD}━━━ Authentik (IDP) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}
+  OAuth2-Anwendungen „backend“ (API/ROPC) und „heykarl-admin“ (Admin-UI) wurden angelegt.
+  AUTHENTIK_API_TOKEN ist zunächst identisch mit AUTHENTIK_BOOTSTRAP_TOKEN (API-Zugriff).
+  Optional: In Authentik einen dedizierten API-Token anlegen, in .env eintragen, Backend neu starten.
+
 ${BOLD}━━━ Manual steps still needed ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}
-  1. Log in to Authentik (https://authentik.${DOMAIN})
-     → Create OAuth2 provider "backend"
-     → Create OAuth2 provider "admin"
-     → Create OAuth2 provider "nextcloud" (optional)
-     → Copy Client IDs + Secrets into /opt/assist2/infra/.env
-     → Create API token in Authentik → paste as AUTHENTIK_API_TOKEN
+  1. Ghost admin setup:  https://${DOMAIN}/ghost  (first-run wizard)
 
-  2. Restart backend after filling Authentik credentials:
-     docker compose -f /opt/assist2/infra/docker-compose.yml \\
-       --env-file /opt/assist2/infra/.env restart backend
-
-  3. Ghost admin setup:
-     https://${DOMAIN}/ghost  (first-run wizard)
-
-  4. For Nextcloud OIDC: run init.sh after filling NEXTCLOUD_OIDC_* vars
+  2. Nextcloud (optional): NEXTCLOUD_OIDC_* in .env setzen, dann init.sh ausführen
 
 SUMMARY

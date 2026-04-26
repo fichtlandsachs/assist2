@@ -27,6 +27,8 @@ from app.schemas.capability import (
     OrgInitAdvance,
 )
 from app.services import capability_service as svc
+from app.services import control_service as control_svc
+from app.schemas.control import ControlCoverageStats
 from app.services.capability_import_service import (
     parse_excel,
     get_demo_nodes,
@@ -333,3 +335,38 @@ async def delete_assignment(
     await db.delete(obj)
     await db.commit()
     return Response(status_code=204)
+
+
+# ── Controls on nodes ─────────────────────────────────────────────────────────
+
+@router.get("/orgs/{org_id}/nodes/{node_id}/controls")
+async def list_controls_for_node(
+    org_id: uuid.UUID,
+    node_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> list[dict]:
+    """List controls directly assigned to this capability node (no ancestor traversal)."""
+    rows = await control_svc.get_controls_for_capability(
+        db, org_id, node_id, include_ancestors=False
+    )
+    return [
+        {
+            "control": row["control"].__dict__,
+            "assessment": row["assessment"].__dict__,
+            "applies_via_node_id": str(row["applies_via_node_id"]),
+        }
+        for row in rows
+    ]
+
+
+@router.get("/orgs/{org_id}/nodes/{node_id}/coverage", response_model=ControlCoverageStats)
+async def get_node_coverage(
+    org_id: uuid.UUID,
+    node_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> ControlCoverageStats:
+    """Get control coverage statistics for a capability node."""
+    stats = await control_svc.get_coverage_stats_for_node(db, org_id, node_id)
+    return ControlCoverageStats(**stats)

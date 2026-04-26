@@ -20,6 +20,8 @@ export interface OrgMetrics {
   member_usage_pct: number;
   warning: boolean;
   created_at: string;
+  last_login_at: string | null;
+  last_active_user: string | null;
 }
 
 export interface AdminSession {
@@ -54,6 +56,16 @@ export interface OrgSSOSettings {
   enabled: boolean;
   client_id: string;
   client_secret_set: boolean;
+}
+
+export interface UserWithOrgs {
+  id: string;
+  email: string;
+  display_name: string;
+  is_active: boolean;
+  is_superuser: boolean;
+  created_at: string;
+  organizations: { id: string; name: string; slug: string }[];
 }
 
 export interface OrgIntegrationSettings {

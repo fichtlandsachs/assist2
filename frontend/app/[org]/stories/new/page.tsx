@@ -191,7 +191,7 @@ const VOICE_KEYWORD_MAP: Record<string, "title" | "description" | "acceptance_cr
 
 function parseTranscription(raw: string): Partial<Record<"title" | "description" | "acceptance_criteria", string>> {
   const keys = Object.keys(VOICE_KEYWORD_MAP).join("|");
-  const regex = new RegExp("\\b(" + keys + ")\\s*[:\\-]\\s*", "gi");
+  const regex = new RegExp("\\b(" + keys + ")\\s*[:\\-,.]?\\s*", "gi");
   const segments: { field: "title" | "description" | "acceptance_criteria"; contentStart: number; segmentStart: number }[] = [];
   let m: RegExpExecArray | null;
   while ((m = regex.exec(raw)) !== null) {

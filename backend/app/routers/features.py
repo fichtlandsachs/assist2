@@ -10,6 +10,7 @@ from app.deps import get_current_user
 from app.core.billing_guard import require_active_subscription
 from app.models.feature import Feature
 from app.models.user import User
+from app.core.story_filter import active_stories
 from app.models.user_story import UserStory
 from app.schemas.feature import FeatureCreate, FeatureRead, FeatureUpdate
 from app.core.exceptions import NotFoundException

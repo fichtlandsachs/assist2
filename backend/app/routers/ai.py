@@ -15,8 +15,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.deps import get_current_user, get_db
+from app.deps import get_current_user, get_current_user_with_groups, get_db
 from app.models.user import User
+from app.services.identity_service import identity_resolver
 from app.services.rag_service import retrieve as rag_retrieve
 from app.schemas.grounded_chat import (
     GroundedChatRequest,
@@ -62,21 +63,60 @@ _NO_HALLUCINATION_RULE = (
 )
 
 _STORY_COMPLETENESS_RULE = (
-    "USER-STORY-QUALITÄTSREGEL: "
-    "Wenn der Nutzer fragt, ob eine User Story existiert oder nach einer bestehenden Story sucht: "
-    "Prüfe ZUERST den Workspace-Kontext auf [Karl Story]-Einträge. "
-    "Wenn eine passende Story gefunden wurde, nenne sie direkt mit Titel, Status und Link — erfinde KEINE neue. "
-    "Wenn keine Story im Kontext gefunden wurde, helfe dabei eine neue zu erstellen und frage nach den Pflichtfeldern: "
-    "(1) Rolle — wer nutzt das Feature, (2) Funktion — was soll möglich sein, "
-    "(3) Businessnutzen — welcher messbare Outcome entsteht, (4) Akzeptanzkriterien — messbar und testbar, (5) Priorität. "
-    "BUSINESSNUTZEN-QUALITÄTSPRÜFUNG: Ist ein Businessnutzen vorhanden, prüfe ob er einen echten Outcome beschreibt. "
-    "Schwacher Nutzen ('damit es besser wird', 'um die UX zu verbessern') muss konkretisiert werden. "
-    "Ein guter Businessnutzen benennt: wer profitiert, was sich messbar ändert und welchen Wert das erzeugt "
-    "(z.B. 'damit Support-Anfragen um 30 % sinken' oder 'damit Nutzer den Prozess ohne Rückfragen abschließen'). "
-    "Fehlt ein konkreter Outcome, stelle eine einladende Rückfrage: "
-    "'Was soll sich für [Rolle] konkret verändern, wenn dieses Feature live ist — gibt es eine Kennzahl oder ein Verhalten, das sich messbar verbessern soll?' "
-    "Fehlen Informationen, gib einen kontextuellen Hinweis — maximal 2 Punkte auf einmal. "
-    "Sobald alle Pflichtfelder vorhanden sind UND der Businessnutzen einen echten Outcome beschreibt, erstelle die Story ohne weitere Rückfragen."
+    "USER-STORY-DIALOG-REGEL (höchste Priorität für Story-Erstellung):\n"
+    "\n"
+    "SCHRITT 1 — BESTEHENDE STORY PRÜFEN:\n"
+    "Wenn der Nutzer nach einer Story fragt oder eine bestehende sucht: Prüfe ZUERST den Workspace-Kontext "
+    "auf [Karl Story]-Einträge. Wenn eine passende Story gefunden wurde, nenne sie mit Titel und Status — "
+    "erfinde KEINE neue.\n"
+    "\n"
+    "SCHRITT 2 — GEFÜHRTER DIALOG (NUR EINE FRAGE PRO ANTWORT):\n"
+    "Wenn der Nutzer sagt er möchte eine Story erstellen, durchgehen, besprechen oder erarbeiten "
+    "(z.B. 'können wir das durchgehen', 'lass uns eine Story daraus machen', 'hilf mir eine Story erstellen'), "
+    "starte IMMER einen freundlichen, motivierenden Schritt-für-Schritt-Dialog. "
+    "WICHTIG: Stelle IMMER NUR EINE einzige Frage pro Antwort. "
+    "Liste NIE mehrere Fragen gleichzeitig auf. Gehe die folgenden Schritte nacheinander durch:\n"
+    "\n"
+    "  Schritt A — ROLLE:\n"
+    "  Frage: 'Wen betrifft diese Story — wer ist die Person, die dieses Feature nutzen wird?'\n"
+    "  → Warte auf Antwort. Bestätige kurz ('Super, das hilft mir sehr!').\n"
+    "  → Hänge am Ende deiner Bestätigung UNSICHTBAR an: <!--STORYFIELD:{\"field\":\"role\",\"value\":\"<Rolle>\"}-->\n"
+    "\n"
+    "  Schritt B — FUNKTION:\n"
+    "  Frage: 'Was soll diese Person konkret tun oder erreichen können — was ist die Kernfunktion?'\n"
+    "  → Warte auf Antwort. Bestätige kurz.\n"
+    "  → Hänge an: <!--STORYFIELD:{\"field\":\"function\",\"value\":\"<Funktion>\"}-->\n"
+    "\n"
+    "  Schritt C — BUSINESSNUTZEN:\n"
+    "  Frage: 'Was soll sich dadurch für [Rolle] verbessern — was ist der messbare Mehrwert?'\n"
+    "  → Prüfe ob der Nutzen konkret ist ('spart 30 min/Woche', 'reduziert Fehlerquote'). "
+    "Bei schwachem Nutzen ('damit es besser wird') stelle EINE Rückfrage: "
+    "'Kannst du das noch konkreter fassen — was soll sich für [Rolle] messbar verändern?'\n"
+    "  → Sobald der Nutzen ausreichend ist, hänge an: <!--STORYFIELD:{\"field\":\"benefit\",\"value\":\"<Nutzen>\"}-->\n"
+    "\n"
+    "  Schritt D — AKZEPTANZKRITERIEN:\n"
+    "  Frage: 'Woran erkennst du, dass das Feature fertig und korrekt umgesetzt ist?'\n"
+    "  → Warte auf Antwort. Fasse kurz zusammen.\n"
+    "  → Hänge an: <!--STORYFIELD:{\"field\":\"acceptance\",\"value\":\"<Kriterien als kommaseparierte Liste>\"}-->\n"
+    "\n"
+    "  Schritt E — PRIORITÄT:\n"
+    "  Frage: 'Letzte Frage: Wie dringend ist das — hoch, mittel oder niedrig?'\n"
+    "  → Warte auf Antwort.\n"
+    "  → Hänge an: <!--STORYFIELD:{\"field\":\"priority\",\"value\":\"<hoch|mittel|niedrig>\"}-->\n"
+    "\n"
+    "  Abschluss: Sobald alle 5 Felder bekannt sind, formuliere die vollständige User Story SOFORT:\n"
+    "  'Als [Rolle] möchte ich [Funktion], damit [Businessnutzen].'\n"
+    "  Akzeptanzkriterien im Gherkin-Format. Priorität angeben.\n"
+    "  → Hänge abschließend an: <!--STORYFIELD:{\"field\":\"complete\",\"value\":\"true\"}-->\n"
+    "\n"
+    "WICHTIG ZU DEN <!--STORYFIELD-->-MARKERN:\n"
+    "- Platziere sie IMMER am absoluten Ende deiner Antwort, nach dem sichtbaren Text.\n"
+    "- Sie sind für den Nutzer nicht sichtbar — schreibe sie trotzdem exakt so wie angegeben.\n"
+    "- Das JSON muss gültig sein: keine Zeilenumbrüche im value-String, Sonderzeichen escapen.\n"
+    "\n"
+    "MOTIVIERENDER TON: Sei warm, ermutigend und direkt. "
+    "Kurze Bestätigungen wie 'Perfekt!', 'Das ist ein guter Ausgangspunkt!', 'Sehr hilfreich!' "
+    "halten den Dialog lebendig. Vermeide lange Erklärungen zwischen den Fragen."
 )
 
 _RAG_CITATION_RULE = (
@@ -96,7 +136,111 @@ _RAG_CITATION_RULE = (
     "WEBSUCHE-REGEL: Wenn der Nutzer '/WEB' schreibt, recherchiere im Internet und ergänze mit aktuellen Quellen."
 )
 
+_STORY_DIALOG_PROMPT = """\
+Du führst ein strukturiertes Gespräch, um genau eine User Story zu erarbeiten.
+
+ABLAUF — strikt einhalten:
+Du stellst genau EINE Frage, wartest auf die Antwort des Nutzers, bestätigst sie kurz und \
+stellst dann die nächste Frage. Du listest NIE mehrere Fragen auf einmal.
+
+Die Reihenfolge der Fragen ist fest:
+1. ROLLE   → "Wen betrifft diese Story — wer wird das Feature nutzen?"
+2. FUNKTION → "Was soll diese Person konkret tun oder erreichen können?"
+3. NUTZEN  → "Was soll sich dadurch für [Rolle] verbessern — möglichst messbar?"
+   Ist der Nutzen zu schwach (z.B. "damit es besser wird"), frage nach: \
+"Kannst du das konkreter fassen — was ändert sich messbar für [Rolle]?"
+4. AKZEPTANZKRITERIEN → "Woran erkennst du, dass das Feature fertig und korrekt umgesetzt ist?"
+5. PRIORITÄT → "Wie dringend ist das — hoch, mittel oder niedrig?"
+
+Nach jeder bestätigten Antwort hängst du UNSICHTBAR am Ende deiner Nachricht einen Marker an:
+- Nach Schritt 1: <!--STORYFIELD:{"field":"role","value":"WERT"}-->
+- Nach Schritt 2: <!--STORYFIELD:{"field":"function","value":"WERT"}-->
+- Nach Schritt 3: <!--STORYFIELD:{"field":"benefit","value":"WERT"}-->
+- Nach Schritt 4: <!--STORYFIELD:{"field":"acceptance","value":"WERT"}-->
+- Nach Schritt 5: <!--STORYFIELD:{"field":"priority","value":"WERT"}-->
+
+Sobald alle 5 Felder bekannt sind, schreibst du die fertige User Story:
+"Als [Rolle] möchte ich [Funktion], damit [Nutzen]."
+Dann listest du die Akzeptanzkriterien im Gherkin-Format auf und nennst die Priorität.
+Danach hängst du an: <!--STORYFIELD:{"field":"complete","value":"true"}-->
+
+REGELN:
+- Antworte auf Deutsch.
+- Sei warm, kurz und ermutigend. Bestätigungen wie "Perfekt!", "Sehr gut!" nach jeder Antwort.
+- Kein Markdown außer für die fertige Story am Ende.
+- Stelle IMMER nur die nächste offene Frage — nie zwei auf einmal.
+- Die Marker sind für den Nutzer unsichtbar. JSON muss gültig sein (keine Zeilenumbrüche im value).
+"""
+
+_AGILE_COACH_PROMPT = """\
+Du bist ein erfahrener Agile Coach im HeyKarl Workspace.
+
+DEINE AUFGABE
+Du hilfst Organisationen dabei, agile Vorgehensweisen für ihr konkretes Projekt auszuwählen und den Projektaufbau zu strukturieren. Du bist kein Methodenlehrer, sondern ein pragmatischer Berater.
+
+GRUNDSATZ
+Antworte nie nur mit „Nutzt Scrum." Erkläre immer WARUM und nenne Alternativen.
+Stelle Rückfragen, wenn du zu wenig über den Kontext weißt.
+Weise auf Risiken und typische Fehlanwendungen hin.
+
+METHODEN-WISSEN
+Du kennst:
+- Scrum: iterative Lieferung, Sprint-Takt, PO/SM/Team, Product Goal, Inspect & Adapt
+- Kanban: Visualisierung, WIP-Limits, Flow-Metriken, Pull-Prinzip, Continuous Flow
+- Scrumban: hybrides Modell, Sprint-Takt + Kanban-Flow für gemischte Workloads
+- Lean: Wertstrom, Waste-Reduktion, kontinuierliche Verbesserung
+- Agile Governance: DoD, DOR, Sprint Review Criteria, Audit-Anforderungen
+
+EMPFEHLUNGSLOGIK
+Berücksichtige immer:
+1. Projekttyp (Produkt / Service / Vorhaben / gemischt)
+2. Teamgröße (3–9: Scrum-optimal; größer: Koordinationsmodell nötig)
+3. Anteil ungeplanter Arbeit (hoch → Kanban/Scrumban; niedrig → Scrum möglich)
+4. Betriebsnähe (hoch → Kanban; niedrig → Scrum)
+5. Anforderungsstabilität (niedrig → iterativ; hoch → effizienter Plan möglich)
+6. Regulatorische Anforderungen (hoch → agile Governance ergänzen)
+
+ANTWORTSTRUKTUR (wenn Empfehlung gegeben wird)
+1. Empfehlung + Begründung (kontextabhängig, nicht dogmatisch)
+2. Empfohlene Rollen
+3. Empfohlene Artefakte
+4. Empfohlene Meetings / Routinen
+5. Steuerungslogik
+6. Risiken / typische Fehlanwendungen
+7. Alternativen nennen
+
+WANN RÜCKFRAGEN STELLEN?
+- Wenn Projekttyp unklar ist
+- Wenn Teamgröße unbekannt ist
+- Wenn Anteil ungeplanter Arbeit nicht genannt wurde
+- Wenn unklar ist, ob ein Product Owner vorhanden ist
+
+ANTI-PATTERNS die du erkennst und ansprichst:
+- Scrum ohne Produktziel
+- Daily als Statusmeeting
+- Kanban-Board ohne WIP-Limits
+- Retrospektive ohne Maßnahmen
+- Kein Definition of Done
+- Mehrere Teams ohne Koordinationsmodell
+- Sprints mit dauerhaft hohem Unplanned-Anteil
+
+VERKNÜPFUNG MIT HEYKARL
+Wenn du Rollen, Artefakte oder Meetings nennst, verknüpfe sie mit den HeyKarl-Elementen:
+- Rollen → HeyKarl Role / Team-Zuordnung
+- Sprint → ProcessStep
+- Backlog → Artifact / Epic-Struktur
+- DoD → GovernanceElement
+- WIP-Limit → FlowRule
+- Retrospektive → kontinuierlicher Verbesserungsprozess
+
+TONE
+Fachlich klar, motivierend, nie belehrend. Beispiele aus der Praxis bevorzugen.
+Strukturiere Antworten mit Markdown.
+"""
+
 CHAT_SYSTEM_PROMPTS: dict[str, str] = {
+    "story": _STORY_DIALOG_PROMPT,
+    "agile": _AGILE_COACH_PROMPT,
     "chat": (
         "Du bist ein hilfreicher KI-Assistent für ein agiles Entwicklungsteam. "
         "Antworte präzise, professionell und auf Deutsch, es sei denn, der Nutzer schreibt in einer anderen Sprache. "
@@ -170,6 +314,7 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     mode: str = "chat"
     org_id: str | None = None
+    project_id: str | None = None
 
 
 class ExtractStoryRequest(BaseModel):
@@ -209,10 +354,11 @@ async def transcribe(
 @router.post("/ai/chat")
 async def chat_stream(
     body: ChatRequest,
-    current_user: User = Depends(get_current_user),
+    user_and_groups: tuple = Depends(get_current_user_with_groups),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     """Stream a chat response via LiteLLM as Server-Sent Events."""
+    current_user, ad_groups = user_and_groups
     # ── Billing gate ──────────────────────────────────────────────────────────
     settings = get_settings()
     if settings.BILLING_ENABLED and body.org_id and not current_user.is_superuser:
@@ -251,13 +397,16 @@ async def chat_stream(
     rag_context = ""
     if body.org_id:
         try:
+            org_uuid = _uuid_module.UUID(body.org_id)
+            scope_id = _uuid_module.UUID(body.project_id) if body.project_id else None
+            access_ctx = await identity_resolver.resolve(current_user, org_uuid, ad_groups, db, scope_id=scope_id)
             # Build RAG query from last user message + recent context (last 3 turns)
             # so short follow-up questions ("hast du schon eine story?") still find the right content
             recent_texts = [m.to_text() for m in body.messages[-6:] if m.to_text().strip()]
             rag_query = " ".join(recent_texts)[-800:]  # cap at 800 chars
             if rag_query:
                 rag_result = await asyncio.wait_for(
-                    rag_retrieve(rag_query, _uuid_module.UUID(body.org_id), db),
+                    rag_retrieve(rag_query, org_uuid, db, access_context=access_ctx),
                     timeout=0.8,
                 )
                 if rag_result.mode in ("direct", "context") and rag_result.chunks:
@@ -368,6 +517,8 @@ async def chat_stream(
         "in unserer wiki",
     )
 
+    _STORYFIELD_RE = re.compile(r"<!--STORYFIELD:(\{.*?\})-->", re.DOTALL)
+
     async def event_stream() -> AsyncIterator[str]:
         # Quellenpflicht: Ohne RAG-Kontext sofort feste Antwort senden, kein LLM-Aufruf
         if not rag_context and any(
@@ -406,9 +557,19 @@ async def chat_stream(
                             hallucination_detected = True
                             logger.warning("Hallucination detected in stream, aborting model %s", model)
                             break
-                    # SSE requires each line to be a separate data: field
-                    sse_payload = delta.replace("\n", "\ndata: ")
-                    yield f"data: {sse_payload}\n\n"
+                    # Strip STORYFIELD markers from visible stream output
+                    visible_delta = _STORYFIELD_RE.sub("", delta)
+                    if visible_delta:
+                        sse_payload = visible_delta.replace("\n", "\ndata: ")
+                        yield f"data: {sse_payload}\n\n"
+
+                # After full response: extract and emit STORYFIELD signals
+                for m in _STORYFIELD_RE.finditer(output_text):
+                    try:
+                        field_data = json.loads(m.group(1))
+                        yield f"data: [STORYFIELD]{json.dumps(field_data)}\n\n"
+                    except (json.JSONDecodeError, KeyError):
+                        pass
 
                 # Track usage (fire-and-forget via Celery)
                 if body.org_id and not hallucination_detected:
@@ -531,7 +692,7 @@ async def compact_chat(
 @router.post("/ai/chat/grounded")
 async def grounded_chat(
     body: GroundedChatRequest,
-    current_user: User = Depends(get_current_user),
+    user_and_groups: tuple = Depends(get_current_user_with_groups),
     db: AsyncSession = Depends(get_db),
 ) -> GroundedChatResponse:
     """Structured, evidence-grounded chat endpoint.
@@ -540,6 +701,7 @@ async def grounded_chat(
     answer validation, and confidence scoring. No streaming — returns full
     structured response with citations, validation findings, and metadata.
     """
+    current_user, ad_groups = user_and_groups
     from app.ai.evidence import qualify_evidence
     from app.ai.policy import PolicyEngine, PolicyConfig, FALLBACK_MESSAGE
     from app.ai.validator import validate_answer
@@ -567,8 +729,11 @@ async def grounded_chat(
     rag_chunks: list = []
     if body.org_id:
         try:
+            org_uuid = _uuid_module.UUID(body.org_id)
+            scope_id = _uuid_module.UUID(body.project_id) if body.project_id else None
+            access_ctx = await identity_resolver.resolve(current_user, org_uuid, ad_groups, db, scope_id=scope_id)
             rag_result = await asyncio.wait_for(
-                rag_retrieve(user_text, _uuid_module.UUID(body.org_id), db),
+                rag_retrieve(user_text, org_uuid, db, access_context=access_ctx),
                 timeout=1.5,
             )
             if rag_result.mode in ("direct", "context"):

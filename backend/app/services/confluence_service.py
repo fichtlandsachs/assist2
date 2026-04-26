@@ -316,12 +316,52 @@ def _docs_to_html(
         ("Workarounds",           docs.get("doc_workarounds")),
     ]
 
+    def _render_business_value(raw: str) -> str:
+        """Render structured business_value dict as human-readable HTML."""
+        import json as _json
+        try:
+            bv = _json.loads(raw) if isinstance(raw, str) else raw
+        except (ValueError, TypeError):
+            bv = None
+        if isinstance(bv, dict):
+            label_map = {
+                "wer_profitiert": "Wer profitiert",
+                "was_sich_messbar_aendert": "Was sich messbar ändert",
+                "welchen_wert_das_erzeugt": "Welchen Wert das erzeugt",
+            }
+            rows = []
+            for key, label in label_map.items():
+                val = bv.get(key, "")
+                if val:
+                    rows.append(
+                        f'<tr><th style="width:200px;background:#f4f5f7;padding:4px 8px;'
+                        f'border:1px solid #dfe1e6;vertical-align:top;">{label}</th>'
+                        f'<td style="padding:4px 8px;border:1px solid #dfe1e6;">{val}</td></tr>'
+                    )
+            # Any extra keys not in label_map
+            for key, val in bv.items():
+                if key not in label_map and val:
+                    label = key.replace("_", " ").capitalize()
+                    rows.append(
+                        f'<tr><th style="width:200px;background:#f4f5f7;padding:4px 8px;'
+                        f'border:1px solid #dfe1e6;vertical-align:top;">{label}</th>'
+                        f'<td style="padding:4px 8px;border:1px solid #dfe1e6;">{val}</td></tr>'
+                    )
+            if rows:
+                return (
+                    '<table style="border-collapse:collapse;font-size:13px;margin-bottom:8px;">'
+                    + "".join(rows) + "</table>"
+                )
+        return _p(raw)
+
     for heading, content in SECTIONS:
         parts.append(f"<h2>{heading}</h2>")
         if not content:
             parts.append('<p><em>no data</em></p>')
         elif heading == "Akzeptanzkriterien":
             parts.append(_ul(_criteria_lines(content)))
+        elif heading == "Business Value":
+            parts.append(_render_business_value(content))
         else:
             parts.append(_p(content))
 
@@ -522,6 +562,11 @@ async def ensure_hierarchy_page(
             headers=headers,
             json=payload,
         )
+        if not resp.is_success:
+            logger.error(
+                "Confluence create page failed %s: payload=%r body=%s",
+                resp.status_code, payload, resp.text[:1000],
+            )
         resp.raise_for_status()
         return resp.json()["id"]
 

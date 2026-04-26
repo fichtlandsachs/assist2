@@ -57,7 +57,7 @@ export function StoryFeaturesChatPanel({ storyId, orgId, story, onAddFeature }: 
         },
         emptyLabel: "",
       }}
-      onProposalItemAdd={(item) => onAddFeature(item as FeaturesProposalItem)}
+      onProposalItemAdd={async (item) => onAddFeature(item as FeaturesProposalItem)}
     />
   );
 }

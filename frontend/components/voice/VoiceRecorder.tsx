@@ -7,7 +7,6 @@ interface VoiceRecorderProps {
   onTranscription: (text: string) => void;
 }
 
-/** Encode raw PCM samples (Float32, mono) as a 16-bit PCM WAV blob. */
 function encodeWav(samples: Float32Array, sampleRate: number): Blob {
   const numSamples = samples.length;
   const buffer = new ArrayBuffer(44 + numSamples * 2);
@@ -19,13 +18,13 @@ function encodeWav(samples: Float32Array, sampleRate: number): Blob {
   view.setUint32(4, 36 + numSamples * 2, true);
   write(8, "WAVE");
   write(12, "fmt ");
-  view.setUint32(16, 16, true);       // subchunk1 size
+  view.setUint32(16, 16, true);
   view.setUint16(20, 1, true);        // PCM
   view.setUint16(22, 1, true);        // mono
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true); // byte rate
-  view.setUint16(32, 2, true);        // block align
-  view.setUint16(34, 16, true);       // bits per sample
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
   write(36, "data");
   view.setUint32(40, numSamples * 2, true);
   let offset = 44;
@@ -40,47 +39,60 @@ function encodeWav(samples: Float32Array, sampleRate: number): Blob {
 export function VoiceRecorder({ onTranscription }: VoiceRecorderProps) {
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
-  const samplesRef = useRef<Float32Array[]>([]);
 
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     streamRef.current = stream;
-    samplesRef.current = [];
+    chunksRef.current = [];
 
-    const ctx = new AudioContext({ sampleRate: 16000 });
-    audioCtxRef.current = ctx;
-    const source = ctx.createMediaStreamSource(stream);
-    const processor = ctx.createScriptProcessor(4096, 1, 1);
-    processorRef.current = processor;
-
-    processor.onaudioprocess = (e) => {
-      const data = e.inputBuffer.getChannelData(0);
-      samplesRef.current.push(new Float32Array(data));
+    const recorder = new MediaRecorder(stream);
+    recorderRef.current = recorder;
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
     };
-
-    source.connect(processor);
-    processor.connect(ctx.destination);
+    recorder.start(100);
     setRecording(true);
   };
 
   const stopRecording = async () => {
     setRecording(false);
-    processorRef.current?.disconnect();
-    audioCtxRef.current?.close();
+    const recorder = recorderRef.current;
+    if (!recorder) return;
+
+    await new Promise<void>((resolve) => {
+      recorder.onstop = () => resolve();
+      recorder.stop();
+    });
     streamRef.current?.getTracks().forEach(t => t.stop());
 
     setProcessing(true);
     try {
-      const allSamples = samplesRef.current;
-      const total = allSamples.reduce((n, s) => n + s.length, 0);
-      const merged = new Float32Array(total);
-      let offset = 0;
-      for (const chunk of allSamples) { merged.set(chunk, offset); offset += chunk.length; }
+      const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
+      const arrayBuffer = await blob.arrayBuffer();
 
-      const wav = encodeWav(merged, 16000);
+      // Decode in browser (handles whatever format MediaRecorder used)
+      const audioCtx = new AudioContext();
+      const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+      await audioCtx.close();
+
+      // Resample to mono 16 kHz via OfflineAudioContext
+      const TARGET_RATE = 16000;
+      const offlineCtx = new OfflineAudioContext(
+        1,
+        Math.ceil(decoded.duration * TARGET_RATE),
+        TARGET_RATE,
+      );
+      const src = offlineCtx.createBufferSource();
+      src.buffer = decoded;
+      src.connect(offlineCtx.destination);
+      src.start();
+      const rendered = await offlineCtx.startRendering();
+      const pcm = rendered.getChannelData(0);
+
+      const wav = encodeWav(pcm, TARGET_RATE);
       const form = new FormData();
       form.append("file", wav, "recording.wav");
 

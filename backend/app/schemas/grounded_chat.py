@@ -34,6 +34,7 @@ class GroundedChatRequest(BaseModel):
     messages: list[dict]            # [{role, content}]
     mode: str = "chat"
     org_id: str | None = None
+    project_id: str | None = None
     policy_mode: Literal[
         "strict_grounded",
         "grounded_with_explicit_uncertainty",

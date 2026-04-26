@@ -105,6 +105,14 @@ class UserStory(Base):
         order_by="StoryVersion.version_number",
         passive_deletes=True,
     )
+    # ── Soft-delete (CRITICAL: never expose deleted stories) ─────────────────
+    # All queries MUST add .where(UserStory.is_deleted == False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

@@ -23,6 +23,11 @@ entryPoints:
     address: ":443"
     http:
       tls: {}
+    # Trust X-Forwarded-* headers from Cloudflare (the only upstream proxy).
+    # Without this, Traefik strips Cloudflare's X-Forwarded-Proto: https and
+    # Ghost (trustProxy=true) falls back to HTTP-redirect loops on static assets.
+    forwardedHeaders:
+      insecure: true
 
 providers:
   file:

@@ -20,6 +20,11 @@ class Process(Base):
         ForeignKey("organizations.id"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(500), nullable=False)
+    # Link to the capability node this process belongs to (optional — unlinked = "global")
+    capability_node_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("capability_nodes.id", ondelete="SET NULL"),
+        nullable=True, index=True
+    )
     confluence_page_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

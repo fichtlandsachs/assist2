@@ -28,6 +28,7 @@ class EmbeddingIndexService:
         page_canonical_url: str,
         chunks: list[Chunk],
         source_key: str,
+        external_source_id: uuid.UUID | None = None,
     ) -> int:
         """Embed chunks and upsert into document_chunks. Returns count upserted."""
         if not chunks:
@@ -52,7 +53,8 @@ class EmbeddingIndexService:
             )
         )
 
-        # Insert new chunks
+        # Insert new chunks — external_source_id links to Integration Layer source
+        # This is required so RAG can gate retrieval on external_sources.is_enabled
         for chunk, embedding in zip(chunks, embeddings):
             dc = DocumentChunk(
                 id=uuid.uuid4(),
@@ -67,6 +69,7 @@ class EmbeddingIndexService:
                 embedding=embedding,
                 zone_id=None,
                 is_global=True,
+                external_source_id=external_source_id,
             )
             db.add(dc)
 

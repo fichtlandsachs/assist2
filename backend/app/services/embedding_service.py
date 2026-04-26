@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.models.story_embedding import StoryEmbedding
+from app.core.story_filter import active_stories
 from app.models.user_story import UserStory
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ async def embed_story(story_id: str, org_id: str, db: AsyncSession) -> None:
     story_uuid = uuid.UUID(story_id)
     org_uuid = uuid.UUID(org_id)
 
-    result = await db.execute(select(UserStory).where(UserStory.id == story_uuid))
+    result = await db.execute(active_stories().where(UserStory.id == story_uuid))
     story = result.scalar_one_or_none()
     if story is None:
         logger.warning("embed_story: story %s not found, skipping", story_id)

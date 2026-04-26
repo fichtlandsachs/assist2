@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import AsyncSessionLocal, get_db
 from app.deps import get_current_user
 from app.core.billing_guard import require_active_subscription
+from app.core.story_filter import active_stories, require_active_story, soft_delete_story
 from app.models.user import User
 from app.models.user_story import UserStory, StoryStatus
 from app.models.test_case import TestCase
@@ -185,7 +186,7 @@ async def _regenerate_docs_bg(
                 "technical_notes": docs.technical_notes,
                 "business_value": docs.business_value,
             }
-            stmt = select(UserStory).where(UserStory.id == story_id)
+            stmt = active_stories().where(UserStory.id == story_id)
             result = await db.execute(stmt)
             story = result.scalar_one_or_none()
             if story:
@@ -208,9 +209,9 @@ async def list_user_stories(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[UserStoryRead]:
-    """List all user stories for the given organization."""
+    """List all user stories for the given organization. Deleted stories are NEVER returned."""
     stmt = (
-        select(UserStory)
+        active_stories()
         .options(selectinload(UserStory.features))
         .where(UserStory.organization_id == org_id)
         .order_by(UserStory.created_at.desc())
@@ -279,9 +280,9 @@ async def get_user_story(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> UserStoryRead:
-    """Get a specific user story by ID."""
+    """Get a specific user story by ID. Deleted stories return 404."""
     stmt = (
-        select(UserStory)
+        active_stories()
         .options(selectinload(UserStory.features))
         .where(UserStory.id == story_id)
     )
@@ -304,7 +305,7 @@ async def force_jira_sync(
     current_user: User = Depends(get_current_user),
 ) -> UserStoryRead:
     """Force an immediate Jira sync regardless of last sync time."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -333,7 +334,7 @@ async def update_user_story(
     current_user: User = Depends(get_current_user),
 ) -> UserStoryRead:
     """Update a user story."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -401,13 +402,13 @@ async def delete_user_story(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
-    """Delete a user story."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
-    result = await db.execute(stmt)
-    story = result.scalar_one_or_none()
+    """
+    Soft-delete a user story.
+    CRITICAL: Hard delete is forbidden. Deleted stories must never appear in any query.
+    """
+    story = await soft_delete_story(db, story_id, current_user.id)
     if story is None:
         raise NotFoundException("User story not found")
-    await db.delete(story)
     await db.commit()
 
 
@@ -422,7 +423,7 @@ async def score_user_story(
     current_user: User = Depends(get_current_user),
 ) -> StoryScoreResponse:
     """Run heuristic scoring on a story. No DB write, no LLM."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -452,7 +453,7 @@ async def validate_user_story(
     current_user: User = Depends(get_current_user),
 ) -> UserStoryRead:
     """Run AI quality analysis, persist quality_score + ai_suggestions, return updated story."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -517,7 +518,7 @@ async def ai_suggest(
     ai_settings: Optional[dict] = None
     story_obj = None
     if data.story_id:
-        stmt = select(UserStory).where(UserStory.id == data.story_id)
+        stmt = active_stories().where(UserStory.id == data.story_id)
         result = await db.execute(stmt)
         story_obj = result.scalar_one_or_none()
         if story_obj:
@@ -557,7 +558,7 @@ async def ai_suggest_test_cases(
     """Generate AI test cases and save them persistently.
     Overwrites existing AI-generated test cases if story status < 'testing'.
     """
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -623,7 +624,7 @@ async def ai_suggest_test_cases_preview(
     current_user: User = Depends(get_current_user),  # noqa: ARG001
 ) -> AITestCaseSuggestResponse:
     """Return AI test case suggestions without persisting them."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -652,7 +653,7 @@ async def ai_suggest_dod(
     current_user: User = Depends(get_current_user),
 ) -> AIDoDSuggestResponse:
     """Suggest DoD criteria and measurable KPIs for a story using AI."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -681,7 +682,7 @@ async def ai_suggest_features(
     current_user: User = Depends(get_current_user),
 ) -> AIFeatureSuggestResponse:
     """Suggest concrete, implementable features (sub-functions) for a story using AI."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -710,7 +711,7 @@ async def get_story_docs(
     current_user: User = Depends(get_current_user),
 ) -> Optional[StoryDocsRead]:
     """Return the saved documentation, or null if none saved yet."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -739,7 +740,7 @@ async def save_story_docs(
     Persist the generated docs on the story.
     If confluence_space_key is provided, also creates a Confluence page.
     """
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -819,7 +820,7 @@ async def ai_split_suggestion(
     current_user: User = Depends(get_current_user),
 ) -> StorySplitSuggestion:
     """Ask the AI to suggest how to split this story into independent sub-stories."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -848,7 +849,7 @@ async def save_story_split(
     2. Create each sub-story linked to parent + epic
     3. Mark the parent story as split
     """
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     parent = result.scalar_one_or_none()
     if parent is None:
@@ -981,7 +982,7 @@ async def regenerate_story_docs(
     current_user: User = Depends(get_current_user),
 ) -> StoryDocsRead:
     """Generate fresh docs from AI and persist them immediately."""
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -1041,7 +1042,7 @@ async def publish_docs_to_confluence(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> StoryDocsRead:
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -1197,7 +1198,7 @@ async def confluence_sync_preview(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ConfluenceSyncResponse:
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     story = (await db.execute(stmt)).scalar_one_or_none()
     if story is None:
         raise NotFoundException("User story not found")
@@ -1262,7 +1263,7 @@ async def generate_and_upload_pdf(
     then upload it to Nextcloud under Organizations/{org_slug}/Dokumentation/.
     Returns {"ok": True, "path": "<nextcloud path>"}.
     """
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:

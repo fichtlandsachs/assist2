@@ -9,6 +9,7 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models.user import User
 from app.models.test_case import TestCase
+from app.core.story_filter import active_stories
 from app.models.user_story import UserStory, StoryStatus
 from app.schemas.test_case import TestCaseCreate, TestCaseRead, TestCaseUpdate
 from app.core.exceptions import NotFoundException
@@ -40,7 +41,7 @@ async def list_test_cases(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[TestCaseRead]:
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -68,7 +69,7 @@ async def create_test_case(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TestCaseRead:
-    stmt = select(UserStory).where(UserStory.id == story_id)
+    stmt = active_stories().where(UserStory.id == story_id)
     result = await db.execute(stmt)
     story = result.scalar_one_or_none()
     if story is None:
@@ -112,7 +113,7 @@ async def update_test_case(
     fields = data.model_dump(exclude_unset=True)
     content_fields = {k for k in fields if k != "result" and k != "notes"}
     if content_fields:
-        stmt2 = select(UserStory).where(UserStory.id == test_case.story_id)
+        stmt2 = active_stories().where(UserStory.id == test_case.story_id)
         res2 = await db.execute(stmt2)
         story = res2.scalar_one_or_none()
         if story:
@@ -155,7 +156,7 @@ async def delete_test_case(
     if test_case is None:
         raise NotFoundException("Test case not found")
 
-    stmt2 = select(UserStory).where(UserStory.id == test_case.story_id)
+    stmt2 = active_stories().where(UserStory.id == test_case.story_id)
     res2 = await db.execute(stmt2)
     story = res2.scalar_one_or_none()
     if story:

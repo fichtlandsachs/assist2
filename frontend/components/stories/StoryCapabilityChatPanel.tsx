@@ -20,15 +20,18 @@ interface Props {
 export function StoryCapabilityChatPanel({ storyId, orgId, story, onAssigned }: Props) {
   const handleAccept = async (item: unknown) => {
     const proposal = item as CapabilityProposalItem;
-    try {
-      await apiRequest(`/api/v1/user-stories/${storyId}/capability-assignment?org_id=${orgId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ node_id: proposal.node_id }),
-      });
-      onAssigned();
-    } catch {
-      // Fehler werden im Panel nicht angezeigt — Nutzer kann es erneut versuchen
-    }
+    await apiRequest(`/api/v1/user-stories/${storyId}/capability-assignment?org_id=${orgId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ node_id: proposal.node_id }),
+    });
+    // Clear the proposal from the DB session so it doesn't reappear when the chat is reopened.
+    // (The local setSession call in StoryAssistantPanel may not run if onAssigned() closes the
+    // chat panel before the Promise chain completes.)
+    await apiRequest(`/api/v1/stories/${storyId}/assistant/capability/dismiss`, {
+      method: "POST",
+      body: JSON.stringify({ org_id: orgId }),
+    }).catch(() => {});
+    onAssigned();
   };
 
   return (

@@ -7,7 +7,7 @@ from typing import Optional
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
@@ -46,6 +46,14 @@ class DocumentChunk(Base):
         index=True,
     )
     is_global: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Links chunk back to its ExternalSource — enforces callstack: Integration Layer → RAG
+    # RAG queries must JOIN on external_sources.is_enabled=true for is_global chunks
+    external_source_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("external_sources.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

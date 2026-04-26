@@ -15,6 +15,7 @@ class UserRead(BaseModel):
     locale: str
     timezone: str
     is_active: bool
+    is_superuser: bool = False
     created_at: datetime
     # NOTE: password_hash is intentionally excluded for security
 

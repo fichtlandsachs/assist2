@@ -13,7 +13,7 @@ from app.routers.nextcloud import router as nextcloud_router
 from app.routers.ai import router as ai_router
 from app.routers.superadmin import router as superadmin_router
 from app.routers.superadmin_config import router as superadmin_config_router
-from app.routers.external_sources import router as external_sources_router
+from app.routers.external_sources import router as external_sources_router, rag_meta_router
 from app.routers.auth_atlassian import router as auth_atlassian_router
 from app.routers.auth_github import router as auth_github_router
 from app.routers.jira import router as jira_router
@@ -35,6 +35,19 @@ from app.routers.story_assistant import router as story_assistant_router
 from app.routers.rag_zones import router as rag_zones_router
 from app.routers.capabilities import router as capabilities_router
 from app.routers.controls import router as controls_router
+from app.routers.bcm import router as bcm_router
+from app.routers.trust_admin import router as trust_admin_router
+from app.routers.product_governance import router as product_governance_router
+from app.routers.compliance import router as compliance_router
+from app.routers.compliance_chat import router as compliance_chat_router
+from app.routers.control_standards import router as control_standards_router
+from app.routers.platform import router as platform_router
+from app.routers.conversation_engine import router as conversation_engine_router
+from app.routers.conversation_engine_admin import router as conversation_engine_admin_router
+from app.routers.conversation import router as conversation_router
+from app.routers.story import router as story_router
+from app.routers.conversation_admin import router as conversation_admin_router
+from app.routers.conversation_observer import router as conversation_observer_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -125,6 +138,11 @@ app.include_router(ai_router, prefix="/api/v1", tags=["AI"])
 app.include_router(superadmin_router)
 app.include_router(superadmin_config_router)
 app.include_router(external_sources_router, prefix="/api/v1/superadmin")
+app.include_router(rag_meta_router, prefix="/api/v1/superadmin")
+# Backward-compatible aliases for older frontend bundles.
+# Keep auth unchanged (router endpoints still depend on get_admin_user).
+app.include_router(external_sources_router, prefix="/api/v1")
+app.include_router(rag_meta_router, prefix="/api/v1")
 app.include_router(auth_atlassian_router, prefix="/api/v1")
 app.include_router(auth_github_router, prefix="/api/v1")
 app.include_router(jira_router, prefix="/api/v1", tags=["Jira"])
@@ -145,4 +163,17 @@ app.include_router(refinement_router, prefix="/api/v1", tags=["Refinement"])
 app.include_router(story_assistant_router, prefix="/api/v1", tags=["StoryAssistant"])
 app.include_router(rag_zones_router, prefix="/api/v1", tags=["RAG Zones"])
 app.include_router(capabilities_router, prefix="/api/v1", tags=["Capabilities"])
+app.include_router(trust_admin_router, prefix="/api/v1", tags=["admin-trust"])
+app.include_router(product_governance_router, prefix="/api/v1", tags=["product-governance"])
+app.include_router(compliance_router, prefix="/api/v1", tags=["compliance"])
+app.include_router(compliance_chat_router, prefix="/api/v1", tags=["compliance-chat"])
+app.include_router(control_standards_router, prefix="/api/v1", tags=["control-standards"])
+app.include_router(platform_router, prefix="/api/v1", tags=["platform"])
+app.include_router(conversation_engine_router, prefix="/api/v1", tags=["conversation-engine"])
+app.include_router(conversation_engine_admin_router, prefix="/api/v1", tags=["conversation-engine-admin"])
+app.include_router(conversation_router)
+app.include_router(story_router)
+app.include_router(conversation_admin_router)
+app.include_router(conversation_observer_router)
 app.include_router(controls_router, tags=["Controls"])
+app.include_router(bcm_router)

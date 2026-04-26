@@ -16,6 +16,7 @@ from app.models.jira_story import JiraStory
 from app.models.organization import Organization
 from app.models.test_case import TestCase
 from app.models.user import User
+from app.core.story_filter import active_stories
 from app.models.user_story import UserStory
 from app.services import org_integrations_service as org_svc
 from app.services.jira_service import jira_service
@@ -213,7 +214,7 @@ async def sync_preview(
     b, u, t = auth["base_url"], auth["user"], auth["api_token"]
 
     story_result = await db.execute(
-        select(UserStory).where(UserStory.id == body.story_id, UserStory.organization_id == body.org_id)
+        active_stories().where(UserStory.id == body.story_id, UserStory.organization_id == body.org_id)
     )
     story = story_result.scalar_one_or_none()
     if not story:
@@ -292,7 +293,7 @@ async def sync_apply(
     b, u, t = auth["base_url"], auth["user"], auth["api_token"]
 
     story_result = await db.execute(
-        select(UserStory).where(UserStory.id == body.story_id, UserStory.organization_id == body.org_id)
+        active_stories().where(UserStory.id == body.story_id, UserStory.organization_id == body.org_id)
     )
     story = story_result.scalar_one_or_none()
     if not story:
@@ -364,7 +365,7 @@ async def push_story_full(
 
     # Load story
     story_result = await db.execute(
-        select(UserStory).where(UserStory.id == body.story_id, UserStory.organization_id == body.org_id)
+        active_stories().where(UserStory.id == body.story_id, UserStory.organization_id == body.org_id)
     )
     story = story_result.scalar_one_or_none()
     if not story:

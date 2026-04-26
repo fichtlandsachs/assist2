@@ -15,6 +15,7 @@
 
   /* Text */
   --ink:          #231F1F;
+  --ink-body:     #231F1F;
   --ink-mid:      #534D5F;
   --ink-faint:    #8E8A86;
   --ink-faintest: #B8B3AE;
@@ -22,6 +23,7 @@
   /* Accents */
   --accent-red:     #534D5F;
   --accent-red-rgb: 83,77,95;
+  --accent-blue:    #6366f1;
   --green:          #10b981;
   --brown:          #f59e0b;
   --navy:           #6366f1;
@@ -115,11 +117,13 @@ button { cursor: pointer; font-family: var(--font-body); }
   --paper-rule2:  #ece8e0;
   --margin-red:   #e8b4b0;
   --ink:          #1c1810;
+  --ink-body:     #1c1810;
   --ink-mid:      #5a5040;
   --ink-faint:    #a09080;
   --ink-faintest: #cec8bc;
   --accent-red:   #8b5e52;
   --accent-red-rgb: 139,94,82;
+  --accent-blue:  #4a5568;
   --green:        #526b5e;
   --brown:        #7a6450;
   --navy:         #4a5568;
@@ -183,12 +187,14 @@ button { cursor: pointer; font-family: var(--font-body); }
   --margin-red:   rgba(255,92,0,0.15);
 
   --ink:          #0A0A0A;
+  --ink-body:     #0A0A0A;
   --ink-mid:      #3A3A3A;
   --ink-faint:    #6B6B6B;
   --ink-faintest: #A0A0A0;
 
   --accent-red:     #FF5C00;
   --accent-red-rgb: 255,92,0;
+  --accent-blue:    #3B82F6;
   --green:          #00D4AA;
   --brown:          #FFD700;
   --navy:           #3B82F6;

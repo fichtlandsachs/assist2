@@ -1,0 +1,151 @@
+[
+  {
+    "source_key": "jira_software_docs",
+    "display_name": "Jira Software Documentation",
+    "base_url": "https://support.atlassian.com/jira-software-cloud/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["support.atlassian.com"],
+      "include_url_prefixes": [
+        "https://support.atlassian.com/jira-software-cloud/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium", "utm_campaign"],
+      "seed_urls": [
+        "https://support.atlassian.com/jira-software-cloud/docs/what-is-jira-software/",
+        "https://support.atlassian.com/jira-software-cloud/docs/manage-your-workflow/",
+        "https://support.atlassian.com/jira-software-cloud/docs/configure-issue-types/",
+        "https://support.atlassian.com/jira-software-cloud/docs/work-with-epics-in-jira-software/",
+        "https://support.atlassian.com/jira-software-cloud/docs/use-automation-rules/"
+      ],
+      "crawl_policy": {
+        "max_concurrency": 2,
+        "request_delay_seconds": 1.5,
+        "request_timeout_seconds": 30,
+        "max_retries": 3,
+        "respect_robots_txt": true,
+        "user_agent": "heyKarl-DocBot/1.0 (compatible; +https://heykarl.de/bot)"
+      },
+      "extraction_policy": {
+        "content_selectors": ["article", "main", ".content-body", "#content", ".article-body"],
+        "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".feedback", ".cookie-banner", ".related-articles"],
+        "min_content_length": 150
+      },
+      "chunking_policy": {
+        "target_chunk_tokens": 700,
+        "overlap_tokens": 100,
+        "max_chunk_tokens": 1100,
+        "heading_split_levels": [1, 2, 3]
+      },
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 4 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {
+        "vendor": "jira",
+        "doc_category": "jira_software",
+        "language": "en"
+      }
+    }
+  },
+  {
+    "source_key": "jira_workflows_docs",
+    "display_name": "Jira Workflow & Automation Documentation",
+    "base_url": "https://support.atlassian.com/cloud-automation/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["support.atlassian.com"],
+      "include_url_prefixes": [
+        "https://support.atlassian.com/cloud-automation/",
+        "https://support.atlassian.com/jira-work-management/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://support.atlassian.com/cloud-automation/docs/automate-jira-with-cloud-automation/",
+        "https://support.atlassian.com/cloud-automation/docs/jira-automation-triggers/",
+        "https://support.atlassian.com/cloud-automation/docs/jira-automation-conditions/",
+        "https://support.atlassian.com/cloud-automation/docs/jira-automation-actions/"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {"content_selectors": ["article", "main", ".content-body", "#content"], "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".feedback"], "min_content_length": 150},
+      "chunking_policy": {"target_chunk_tokens": 700, "overlap_tokens": 100, "max_chunk_tokens": 1100, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 4 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "jira", "doc_category": "jira_automation", "language": "en"}
+    }
+  },
+  {
+    "source_key": "jira_admin_permissions",
+    "display_name": "Jira Administration & Permissions",
+    "base_url": "https://support.atlassian.com/jira-cloud-administration/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["support.atlassian.com"],
+      "include_url_prefixes": [
+        "https://support.atlassian.com/jira-cloud-administration/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://support.atlassian.com/jira-cloud-administration/docs/manage-project-roles/",
+        "https://support.atlassian.com/jira-cloud-administration/docs/use-permission-schemes/",
+        "https://support.atlassian.com/jira-cloud-administration/docs/manage-global-permissions/",
+        "https://support.atlassian.com/jira-cloud-administration/docs/use-issue-security-schemes/"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {"content_selectors": ["article", "main", ".content-body", "#content"], "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".feedback"], "min_content_length": 150},
+      "chunking_policy": {"target_chunk_tokens": 700, "overlap_tokens": 100, "max_chunk_tokens": 1100, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 4 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "jira", "doc_category": "jira_admin", "language": "en"}
+    }
+  },
+  {
+    "source_key": "atlassian_rest_api",
+    "display_name": "Atlassian REST API Documentation",
+    "base_url": "https://developer.atlassian.com/cloud/jira/platform/rest/v3/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["developer.atlassian.com"],
+      "include_url_prefixes": [
+        "https://developer.atlassian.com/cloud/jira/platform/rest/v3/",
+        "https://developer.atlassian.com/cloud/confluence/rest/v1/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/",
+        "https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/",
+        "https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-workflows/",
+        "https://developer.atlassian.com/cloud/confluence/rest/v1/intro/"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {"content_selectors": ["main", "article", ".content", "#swagger-ui"], "exclude_selectors": ["header", "footer", "nav", ".sidebar"], "min_content_length": 100},
+      "chunking_policy": {"target_chunk_tokens": 600, "overlap_tokens": 80, "max_chunk_tokens": 1000, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 4 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "jira", "doc_category": "atlassian_api", "language": "en"}
+    }
+  },
+  {
+    "source_key": "confluence_docs",
+    "display_name": "Confluence Cloud Documentation",
+    "base_url": "https://support.atlassian.com/confluence-cloud/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["support.atlassian.com"],
+      "include_url_prefixes": [
+        "https://support.atlassian.com/confluence-cloud/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://support.atlassian.com/confluence-cloud/docs/confluence-cloud-documentation/",
+        "https://support.atlassian.com/confluence-cloud/docs/use-page-templates/",
+        "https://support.atlassian.com/confluence-cloud/docs/confluence-spaces/",
+        "https://support.atlassian.com/confluence-cloud/docs/add-permissions-to-spaces/",
+        "https://support.atlassian.com/confluence-cloud/docs/organize-pages-with-labels/"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {"content_selectors": ["article", "main", ".content-body", "#content"], "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".feedback", ".cookie-banner"], "min_content_length": 150},
+      "chunking_policy": {"target_chunk_tokens": 700, "overlap_tokens": 100, "max_chunk_tokens": 1100, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 4 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "confluence", "doc_category": "confluence_cloud", "language": "en"}
+    }
+  }
+]

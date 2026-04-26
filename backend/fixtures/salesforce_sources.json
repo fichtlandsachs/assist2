@@ -1,0 +1,318 @@
+[
+  {
+    "source_key": "sf_object_reference",
+    "display_name": "Salesforce Object Reference",
+    "base_url": "https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["developer.salesforce.com"],
+      "include_url_prefixes": [
+        "https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium", "utm_campaign"],
+      "seed_urls": [
+        "https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_account.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_contact.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_lead.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_opportunity.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_case.htm"
+      ],
+      "crawl_policy": {
+        "max_concurrency": 2,
+        "request_delay_seconds": 1.5,
+        "request_timeout_seconds": 30,
+        "max_retries": 3,
+        "respect_robots_txt": true,
+        "user_agent": "heyKarl-DocBot/1.0 (compatible; +https://heykarl.de/bot)"
+      },
+      "extraction_policy": {
+        "content_selectors": [
+          "article.content",
+          ".helpBody",
+          "div.body",
+          "main",
+          "article"
+        ],
+        "exclude_selectors": [
+          "header", "footer", "nav", ".breadcrumb",
+          ".related-links", ".feedback-widget", ".cookie-banner",
+          ".TOC", "#toc"
+        ],
+        "min_content_length": 150
+      },
+      "chunking_policy": {
+        "target_chunk_tokens": 700,
+        "overlap_tokens": 100,
+        "max_chunk_tokens": 1100,
+        "heading_split_levels": [1, 2, 3]
+      },
+      "embedding_policy": {
+        "model": "ionos-embed",
+        "batch_size": 32,
+        "dimensions": 1024
+      },
+      "refresh_policy": {
+        "schedule_cron": "0 3 * * 0",
+        "use_etag": true,
+        "use_last_modified": true,
+        "force_reindex_on_hash_change": true
+      },
+      "metadata_defaults": {
+        "vendor": "Salesforce",
+        "doc_category": "object_reference",
+        "language": "en"
+      }
+    }
+  },
+  {
+    "source_key": "sf_metadata_api",
+    "display_name": "Salesforce Metadata API Developer Guide",
+    "base_url": "https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["developer.salesforce.com"],
+      "include_url_prefixes": [
+        "https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_intro.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deploy.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieve.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_types_list.htm"
+      ],
+      "crawl_policy": {
+        "max_concurrency": 2,
+        "request_delay_seconds": 1.5,
+        "request_timeout_seconds": 30,
+        "max_retries": 3,
+        "respect_robots_txt": true,
+        "user_agent": "heyKarl-DocBot/1.0 (compatible; +https://heykarl.de/bot)"
+      },
+      "extraction_policy": {
+        "content_selectors": ["article.content", ".helpBody", "div.body", "main"],
+        "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".related-links", ".TOC"],
+        "min_content_length": 150
+      },
+      "chunking_policy": {
+        "target_chunk_tokens": 700,
+        "overlap_tokens": 100,
+        "max_chunk_tokens": 1100,
+        "heading_split_levels": [1, 2, 3]
+      },
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 3 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "Salesforce", "doc_category": "metadata_api", "language": "en"}
+    }
+  },
+  {
+    "source_key": "sf_tooling_api",
+    "display_name": "Salesforce Tooling API Developer Guide",
+    "base_url": "https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["developer.salesforce.com"],
+      "include_url_prefixes": [
+        "https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/intro_rest_resources.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_apexclass.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_apextrigger.htm"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {"content_selectors": ["article.content", ".helpBody", "div.body", "main"], "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".related-links", ".TOC"], "min_content_length": 150},
+      "chunking_policy": {"target_chunk_tokens": 700, "overlap_tokens": 100, "max_chunk_tokens": 1100, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 3 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "Salesforce", "doc_category": "tooling_api", "language": "en"}
+    }
+  },
+  {
+    "source_key": "sf_flow_automation",
+    "display_name": "Salesforce Flow and Automation Help",
+    "base_url": "https://help.salesforce.com/s/articleView?id=sf.flow.htm",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["help.salesforce.com"],
+      "include_url_prefixes": [
+        "https://help.salesforce.com/s/articleView?id=sf.flow"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium", "language"],
+      "seed_urls": [
+        "https://help.salesforce.com/s/articleView?id=sf.flow.htm&type=5",
+        "https://help.salesforce.com/s/articleView?id=sf.flow_concepts.htm&type=5",
+        "https://help.salesforce.com/s/articleView?id=sf.flow_ref_elements_actions_apex.htm&type=5",
+        "https://help.salesforce.com/s/articleView?id=sf.flow_ref_elements_decision.htm&type=5",
+        "https://help.salesforce.com/s/articleView?id=sf.flow_build_logic_loop.htm&type=5"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 2.0, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {
+        "content_selectors": [".article-body", "article", "main", ".content"],
+        "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".related-links", ".feedback", ".cookie-banner"],
+        "min_content_length": 150
+      },
+      "chunking_policy": {"target_chunk_tokens": 600, "overlap_tokens": 80, "max_chunk_tokens": 1000, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 3 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "Salesforce", "doc_category": "flow_automation", "language": "en"}
+    }
+  },
+  {
+    "source_key": "sf_integration_patterns",
+    "display_name": "Salesforce Integration Patterns and Practices",
+    "base_url": "https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["developer.salesforce.com"],
+      "include_url_prefixes": [
+        "https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integration_patterns_and_practices_intro.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integration_patterns_and_practices_pattern_remote_call_in.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integration_patterns_and_practices_pattern_request_reply.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integration_patterns_and_practices_pattern_fire_forget.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integration_patterns_and_practices_pattern_batch_data_synchronization.htm"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {"content_selectors": ["article.content", ".helpBody", "div.body", "main"], "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".related-links", ".TOC"], "min_content_length": 150},
+      "chunking_policy": {"target_chunk_tokens": 800, "overlap_tokens": 120, "max_chunk_tokens": 1200, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 3 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "Salesforce", "doc_category": "integration_patterns", "language": "en"}
+    }
+  },
+  {
+    "source_key": "sf_security_guide",
+    "display_name": "Salesforce Security Guide",
+    "base_url": "https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["developer.salesforce.com"],
+      "include_url_prefixes": [
+        "https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/security_intro.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/security_data_access.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/security_user_auth.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/security_networks.htm"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {"content_selectors": ["article.content", ".helpBody", "div.body", "main"], "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".related-links", ".TOC"], "min_content_length": 150},
+      "chunking_policy": {"target_chunk_tokens": 700, "overlap_tokens": 100, "max_chunk_tokens": 1100, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 3 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "Salesforce", "doc_category": "security", "language": "en"}
+    }
+  },
+  {
+    "source_key": "sf_well_architected",
+    "display_name": "Salesforce Well-Architected Framework",
+    "base_url": "https://architect.salesforce.com/well-architected/overview",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["architect.salesforce.com"],
+      "include_url_prefixes": [
+        "https://architect.salesforce.com/well-architected/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://architect.salesforce.com/well-architected/overview",
+        "https://architect.salesforce.com/well-architected/trusted/security",
+        "https://architect.salesforce.com/well-architected/trusted/reliability",
+        "https://architect.salesforce.com/well-architected/adaptable/integration",
+        "https://architect.salesforce.com/well-architected/adaptable/scalability"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {
+        "content_selectors": ["main", "article", ".page-content", ".content-body"],
+        "exclude_selectors": ["header", "footer", "nav", ".sidebar", ".breadcrumb", ".cookie-banner"],
+        "min_content_length": 150
+      },
+      "chunking_policy": {"target_chunk_tokens": 700, "overlap_tokens": 100, "max_chunk_tokens": 1100, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 3 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "Salesforce", "doc_category": "well_architected", "language": "en"}
+    }
+  },
+  {
+    "source_key": "sf_rest_api",
+    "display_name": "Salesforce REST API Developer Guide",
+    "base_url": "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["developer.salesforce.com"],
+      "include_url_prefixes": [
+        "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_rest.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_upsert.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_sobject_basic_info.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_query.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/errorcodes.htm"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {"content_selectors": ["article.content", ".helpBody", "div.body", "main"], "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".related-links", ".TOC"], "min_content_length": 150},
+      "chunking_policy": {"target_chunk_tokens": 700, "overlap_tokens": 100, "max_chunk_tokens": 1100, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 3 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "Salesforce", "doc_category": "rest_api", "language": "en"}
+    }
+  },
+  {
+    "source_key": "sf_bulk_api",
+    "display_name": "Salesforce Bulk API 2.0 Developer Guide",
+    "base_url": "https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["developer.salesforce.com"],
+      "include_url_prefixes": [
+        "https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_intro.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_bulk_query_intro.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_jobs_intro.htm"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {"content_selectors": ["article.content", ".helpBody", "div.body", "main"], "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".related-links", ".TOC"], "min_content_length": 150},
+      "chunking_policy": {"target_chunk_tokens": 700, "overlap_tokens": 100, "max_chunk_tokens": 1100, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 3 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "Salesforce", "doc_category": "bulk_api", "language": "en"}
+    }
+  },
+  {
+    "source_key": "sf_platform_events",
+    "display_name": "Salesforce Platform Events Developer Guide",
+    "base_url": "https://developer.salesforce.com/docs/atlas.en-us.platform_events.meta/platform_events/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["developer.salesforce.com"],
+      "include_url_prefixes": [
+        "https://developer.salesforce.com/docs/atlas.en-us.platform_events.meta/platform_events/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://developer.salesforce.com/docs/atlas.en-us.platform_events.meta/platform_events/platform_events_intro.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.platform_events.meta/platform_events/platform_events_define.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.platform_events.meta/platform_events/platform_events_publish_apex.htm",
+        "https://developer.salesforce.com/docs/atlas.en-us.platform_events.meta/platform_events/platform_events_subscribe_flow.htm"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 1.5, "request_timeout_seconds": 30, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {"content_selectors": ["article.content", ".helpBody", "div.body", "main"], "exclude_selectors": ["header", "footer", "nav", ".breadcrumb", ".related-links", ".TOC"], "min_content_length": 150},
+      "chunking_policy": {"target_chunk_tokens": 700, "overlap_tokens": 100, "max_chunk_tokens": 1100, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 3 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "Salesforce", "doc_category": "platform_events", "language": "en"}
+    }
+  }
+]

@@ -15,49 +15,31 @@ from app.models.user import User
 security = HTTPBearer()
 
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    """
-    Validate JWT (HS256 or Authentik OIDC), return the matching local User.
-    HS256 tokens carry sub=user_id (UUID). Authentik tokens carry sub=authentik_id.
-    """
-    token = credentials.credentials
+async def _lookup_user_hs256(payload: dict, db: AsyncSession) -> User | None:
+    user_id: str | None = payload.get("sub")
+    if not user_id:
+        raise UnauthorizedException(detail="Invalid token claims")
+    result = await db.execute(
+        select(User).where(
+            User.id == uuid.UUID(user_id),
+            User.deleted_at.is_(None),
+        )
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise UnauthorizedException(detail="User not found")
+    if not user.is_active:
+        raise UnauthorizedException(detail="Account is disabled")
+    return user
 
-    # Try HS256 first (issued by our own login endpoint)
-    try:
-        payload = decode_token(token)
-        if payload.get("type") == "access":
-            user_id: str | None = payload.get("sub")
-            if not user_id:
-                raise UnauthorizedException(detail="Invalid token claims")
-            result = await db.execute(
-                select(User).where(
-                    User.id == uuid.UUID(user_id),
-                    User.deleted_at.is_(None),
-                )
-            )
-            user = result.scalar_one_or_none()
-            if not user:
-                raise UnauthorizedException(detail="User not found")
-            if not user.is_active:
-                raise UnauthorizedException(detail="Account is disabled")
-            return user
-    except UnauthorizedException:
-        raise
-    except Exception:
-        pass  # Not an HS256 token — fall through to Authentik OIDC
 
-    # Fall back to Authentik OIDC validation
-    payload = await validate_authentik_token(token)
+async def _lookup_user_oidc(payload: dict, db: AsyncSession) -> User:
     authentik_id: str | None = payload.get("sub")
     email: str | None = payload.get("email")
-
     if not authentik_id or not email:
         raise UnauthorizedException(detail="Invalid token claims")
 
-    # Primary lookup: by authentik_id
+    # Primary lookup: exact authentik_id match
     result = await db.execute(
         select(User).where(
             User.authentik_id == authentik_id,
@@ -67,27 +49,93 @@ async def get_current_user(
     user = result.scalar_one_or_none()
 
     if not user:
-        # Lazy migration: user exists but authentik_id not yet set
+        # Fallback: look up by email regardless of existing authentik_id value.
+        # This handles cases where the stored authentik_id is stale/incorrect.
         result = await db.execute(
             select(User).where(
                 User.email == email.lower(),
-                User.authentik_id.is_(None),
                 User.deleted_at.is_(None),
             )
         )
         user = result.scalar_one_or_none()
         if user:
+            # Sync the correct authentik_id
             user.authentik_id = authentik_id
             await db.commit()
             await db.refresh(user)
 
     if not user:
         raise UnauthorizedException(detail="User not found")
-
     if not user.is_active:
         raise UnauthorizedException(detail="Account is disabled")
-
     return user
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """
+    Validate JWT (HS256 or Authentik OIDC), return the matching local User.
+
+    Strategy:
+    1. Peek at the JWT header — if alg=HS256, treat as internal token.
+    2. Otherwise (RS256 etc.) go straight to Authentik OIDC validation.
+    This avoids the old pattern where any HS256 decode failure would
+    short-circuit the OIDC fallback.
+    """
+    import logging as _logging
+    import jwt as _pyjwt
+
+    _log = _logging.getLogger("app.auth")
+    token = credentials.credentials
+
+    # Peek at header without verifying signature
+    try:
+        header = _pyjwt.get_unverified_header(token)
+        alg = header.get("alg", "")
+    except Exception:
+        raise UnauthorizedException(detail="Malformed token")
+
+    if alg == "HS256":
+        # Internal HS256 token — validate fully
+        return await _lookup_user_hs256(decode_token(token), db)
+
+    # Authentik OIDC token (RS256 or similar)
+    try:
+        payload = await validate_authentik_token(token)
+    except UnauthorizedException:
+        raise
+    except Exception as e:
+        _log.warning(f"OIDC validation error: {e}")
+        raise UnauthorizedException(detail="Could not validate credentials")
+
+    return await _lookup_user_oidc(payload, db)
+
+
+async def get_current_user_with_groups(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db),
+) -> tuple[User, list[str]]:
+    """Like get_current_user but also returns AD groups from the Authentik OIDC groups claim."""
+    import jwt as _pyjwt
+
+    token = credentials.credentials
+
+    try:
+        header = _pyjwt.get_unverified_header(token)
+        alg = header.get("alg", "")
+    except Exception:
+        raise UnauthorizedException(detail="Malformed token")
+
+    if alg == "HS256":
+        user = await _lookup_user_hs256(decode_token(token), db)
+        return user, []
+
+    payload = await validate_authentik_token(token)
+    user = await _lookup_user_oidc(payload, db)
+    groups = [str(g) for g in payload.get("groups", []) if g]
+    return user, groups
 
 
 async def get_current_active_user(

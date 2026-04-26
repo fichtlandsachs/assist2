@@ -22,7 +22,6 @@ volumes:
   heykarl_nextcloud_db_data:
   heykarl_openwebui_data:
   heykarl_pgadmin_data:
-  heykarl_vscode_config:
 
 services:
   postgres:
@@ -104,6 +103,7 @@ services:
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL}
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-}
       AUTHENTIK_LOG_LEVEL: info
     volumes:
       - heykarl_authentik_media:/media
@@ -149,6 +149,9 @@ services:
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL}
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-}
       AUTHENTIK_LOG_LEVEL: info
       AUTHENTIK_WORKER_MULTIPLIER: "1"
     volumes:
@@ -190,7 +193,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AUTHENTIK_URL: http://heykarl-authentik-server:9000
       AUTHENTIK_API_TOKEN: ${AUTHENTIK_API_TOKEN}
       AUTHENTIK_BACKEND_CLIENT_ID: ${AUTHENTIK_BACKEND_CLIENT_ID}
@@ -209,21 +212,21 @@ services:
       PROVIDER_ROUTING_DOCS: ${PROVIDER_ROUTING_DOCS:-claude-sonnet-4-6}
       PROVIDER_ROUTING_FALLBACK: ${PROVIDER_ROUTING_FALLBACK:-ionos-fast}
       AI_FEATURE_FLAGS: ${AI_FEATURE_FLAGS:-streaming,embeddings}
-      NEXTCLOUD_URL: ${NEXTCLOUD_URL:-https://nextcloud.heykarl.app}
+      NEXTCLOUD_URL: ${NEXTCLOUD_URL:-https://nextcloud.${DOMAIN}}
       NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
       NEXTCLOUD_ADMIN_APP_PASSWORD: ${NEXTCLOUD_ADMIN_APP_PASSWORD}
-      APP_BASE_URL: ${APP_BASE_URL:-https://heykarl.app}
-      GITHUB_REDIRECT_URI: ${GITHUB_REDIRECT_URI:-https://heykarl.app/api/v1/auth/github/callback}
+      APP_BASE_URL: ${APP_BASE_URL:-https://${DOMAIN}}
+      GITHUB_REDIRECT_URI: ${GITHUB_REDIRECT_URI:-https://${DOMAIN}/api/v1/auth/github/callback}
       ATLASSIAN_CLIENT_ID: ${ATLASSIAN_CLIENT_ID:-}
       ATLASSIAN_CLIENT_SECRET: ${ATLASSIAN_CLIENT_SECRET:-}
-      ATLASSIAN_REDIRECT_URI: ${ATLASSIAN_REDIRECT_URI:-https://heykarl.app/api/v1/auth/atlassian/callback}
+      ATLASSIAN_REDIRECT_URI: ${ATLASSIAN_REDIRECT_URI:-https://${DOMAIN}/api/v1/auth/atlassian/callback}
       ATLASSIAN_SCOPES: ${ATLASSIAN_SCOPES:-read:me read:jira-work write:jira-work read:jira-user offline_access}
       SMTP_HOST: ${SMTP_HOST:-smtp.hostinger.com}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
-      SMTP_FROM: ${SMTP_FROM:-info@heykarl.app}
-      CONTACT_EMAIL_TO: ${CONTACT_EMAIL_TO:-info@heykarl.app}
+      SMTP_FROM: ${SMTP_FROM:-noreply@${DOMAIN}}
+      CONTACT_EMAIL_TO: ${CONTACT_EMAIL_TO:-noreply@${DOMAIN}}
     networks:
       - proxy
       - internal
@@ -260,7 +263,7 @@ services:
       ENVIRONMENT: ${ENVIRONMENT}
       N8N_WEBHOOK_URL: http://heykarl-n8n:5678
       N8N_API_KEY: ${N8N_API_KEY}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://heykarl-stirling-pdf:8080}
       WHISPER_URL: ${WHISPER_URL:-http://heykarl-whisper:9000}
       LITELLM_URL: ${LITELLM_URL:-http://heykarl-litellm:4000}
@@ -307,7 +310,7 @@ services:
       ENVIRONMENT: ${ENVIRONMENT}
       N8N_WEBHOOK_URL: http://heykarl-n8n:5678
       N8N_API_KEY: ${N8N_API_KEY}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       LITELLM_URL: ${LITELLM_URL:-http://heykarl-litellm:4000}
       LITELLM_API_KEY: ${LITELLM_API_KEY}
     networks:
@@ -350,13 +353,13 @@ services:
       context: ../frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://heykarl.app
-        NEXT_PUBLIC_APP_URL: https://heykarl.app
+        NEXT_PUBLIC_API_URL: https://${DOMAIN}
+        NEXT_PUBLIC_APP_URL: https://${DOMAIN}
     container_name: heykarl-frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: https://heykarl.app
-      NEXT_PUBLIC_APP_URL: https://heykarl.app
+      NEXT_PUBLIC_API_URL: https://${DOMAIN}
+      NEXT_PUBLIC_APP_URL: https://${DOMAIN}
     networks:
       - proxy
     depends_on:
@@ -373,10 +376,10 @@ services:
       context: ../admin-frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://heykarl.app
-        NEXT_PUBLIC_AUTHENTIK_URL: https://authentik.heykarl.app
+        NEXT_PUBLIC_API_URL: https://${DOMAIN}
+        NEXT_PUBLIC_AUTHENTIK_URL: https://authentik.${DOMAIN}
         NEXT_PUBLIC_ADMIN_CLIENT_ID: ${AUTHENTIK_ADMIN_CLIENT_ID}
-        NEXT_PUBLIC_ADMIN_REDIRECT_URI: https://admin.heykarl.app/callback
+        NEXT_PUBLIC_ADMIN_REDIRECT_URI: https://admin.${DOMAIN}/callback
     container_name: heykarl-admin
     restart: unless-stopped
     networks:
@@ -385,7 +388,7 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.admin.rule=Host(`admin.heykarl.app`)"
+      - "traefik.http.routers.admin.rule=Host(`admin.${DOMAIN}`)"
       - "traefik.http.routers.admin.entrypoints=websecure"
       - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
       - "traefik.http.services.admin.loadbalancer.server.port=3001"
@@ -402,7 +405,7 @@ services:
     container_name: heykarl-litellm
     restart: unless-stopped
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       IONOS_API_KEY: ${IONOS_API_KEY:-}
       IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.inference.de-txl.ionos.com/v1}
       LITELLM_MASTER_KEY: ${LITELLM_API_KEY:-sk-heykarl}
@@ -433,12 +436,12 @@ services:
     labels:
       - "traefik.enable=true"
       # Main route: /litellm prefix
-      - "traefik.http.routers.litellm.rule=Host(`admin.heykarl.app`) && PathPrefix(`/litellm`)"
+      - "traefik.http.routers.litellm.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/litellm`)"
       - "traefik.http.routers.litellm.entrypoints=websecure"
       - "traefik.http.routers.litellm.tls.certresolver=letsencrypt"
       - "traefik.http.services.litellm.loadbalancer.server.port=4000"
       # Redirect /ui and /sso (LiteLLM ignores SERVER_ROOT_PATH on some redirects)
-      - "traefik.http.routers.litellm-fix.rule=Host(`admin.heykarl.app`) && (PathPrefix(`/ui`) || PathPrefix(`/sso`))"
+      - "traefik.http.routers.litellm-fix.rule=Host(`admin.${DOMAIN}`) && (PathPrefix(`/ui`) || PathPrefix(`/sso`))"
       - "traefik.http.routers.litellm-fix.entrypoints=websecure"
       - "traefik.http.routers.litellm-fix.tls.certresolver=letsencrypt"
       - "traefik.http.routers.litellm-fix.middlewares=litellm-prefix@docker"
@@ -520,6 +523,7 @@ services:
       DOCKER_ENABLE_SECURITY: "false"
       SECURITY_ENABLELOGIN: "false"
       INSTALL_BOOK_AND_ADVANCED_HTML_OPS: "true"
+      SERVER_SERVLET_CONTEXT_PATH: "/pdf"
     volumes:
       - heykarl_pdf_templates:/app/pdf_templates
       - heykarl_pdf_cache:/app/pdf_cache
@@ -576,9 +580,12 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
+      - "traefik.http.middlewares.nextcloud-badpath.replacepathregex.regex=^/nextcloud/Nextcloud/?$$"
+      - "traefik.http.middlewares.nextcloud-badpath.replacepathregex.replacement=/nextcloud/login"
       - "traefik.http.routers.nextcloud.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/nextcloud`)"
       - "traefik.http.routers.nextcloud.entrypoints=websecure"
       - "traefik.http.routers.nextcloud.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.nextcloud.middlewares=nextcloud-badpath"
       - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
       - "traefik.docker.network=assist-proxy"
     healthcheck:
@@ -627,7 +634,7 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pgadmin.rule=Host(`admin.heykarl.app`) && PathPrefix(`/pgadmin`)"
+      - "traefik.http.routers.pgadmin.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/pgadmin`)"
       - "traefik.http.routers.pgadmin.entrypoints=websecure"
       - "traefik.http.routers.pgadmin.tls.certresolver=letsencrypt"
       - "traefik.http.services.pgadmin.loadbalancer.server.port=80"
@@ -641,7 +648,7 @@ services:
     environment:
       PMA_HOST: heykarl-nextcloud-db
       PMA_PORT: 3306
-      PMA_ABSOLUTE_URI: https://admin.heykarl.app/phpmyadmin/
+      PMA_ABSOLUTE_URI: https://admin.${DOMAIN}/phpmyadmin/
     networks:
       - internal
       - proxy
@@ -663,7 +670,7 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.redis-commander.rule=Host(`admin.heykarl.app`) && PathPrefix(`/redis`)"
+      - "traefik.http.routers.redis-commander.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/redis`)"
       - "traefik.http.routers.redis-commander.entrypoints=websecure"
       - "traefik.http.routers.redis-commander.tls.certresolver=letsencrypt"
       - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
@@ -698,23 +705,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-
-  vscode:
-    image: gitpod/openvscode-server:latest
-    pull_policy: never
-    container_name: heykarl-vscode
-    restart: unless-stopped
-    user: root
-    entrypoint: ["/home/.openvscode-server/bin/openvscode-server", "--host", "0.0.0.0", "--server-base-path", "/code", "--without-connection-token", "--user-data-dir", "/config", "/opt"]
-    volumes:
-      - /opt:/opt
-      - heykarl_vscode_config:/config
-    networks:
-      - proxy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.vscode.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/code`)"
-      - "traefik.http.routers.vscode.entrypoints=websecure"
-      - "traefik.http.routers.vscode.tls.certresolver=letsencrypt"
-      - "traefik.http.services.vscode.loadbalancer.server.port=3000"
-      - "traefik.docker.network=assist-proxy"

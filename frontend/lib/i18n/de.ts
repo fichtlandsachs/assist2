@@ -607,6 +607,7 @@ const de = {
   refinement_field_ac: "Akzeptanzkriterien",
   assistant_proposal_title: "Vorschläge",
   assistant_add_button: "Hinzufügen",
+  assistant_add_error: "Fehler beim Übernehmen. Bitte erneut versuchen.",
   assistant_dod_title: "DoD-Assistent",
   assistant_dod_empty_title: "DoD gemeinsam erarbeiten",
   assistant_dod_empty_desc: "Der Assistent hilft dir, vollständige und messbare Done-Kriterien zu formulieren.",

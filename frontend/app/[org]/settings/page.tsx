@@ -12,8 +12,9 @@ import useSWR from "swr";
 import type { User, UserStory, Process } from "@/types";
 import {
   Building2, Mail, CalendarDays, AlertCircle,
-  Layers, Cloud, CheckCircle, Trash2, Plus, Eye, EyeOff, RefreshCw, UserCircle2, Sparkles, CreditCard,
+  Layers, Cloud, CheckCircle, Trash2, Plus, Eye, EyeOff, RefreshCw, UserCircle2, Sparkles, CreditCard, Shield,
 } from "lucide-react";
+import { RagZonesSection } from "@/components/settings/RagZonesSection";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -111,7 +112,7 @@ function SectionMessage({ msg }: { msg: { type: "success" | "error"; text: strin
 
 // ── Tab definitions ────────────────────────────────────────────────────────
 
-const TAB_IDS = ["profile", "general", "email", "calendar", "jira", "confluence", "processes", "ai", "billing"] as const;
+const TAB_IDS = ["profile", "general", "email", "calendar", "jira", "confluence", "processes", "ai", "billing", "zones"] as const;
 type TabId = typeof TAB_IDS[number];
 
 // ── Section: Profile ───────────────────────────────────────────────────────
@@ -1286,6 +1287,7 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
     { id: "processes" as const,  label: t("process_manage_title"),    Icon: Layers },
     { id: "ai" as const,         label: t("settings_tab_ai"),         Icon: Sparkles },
     { id: "billing" as const,    label: "Abrechnung",                 Icon: CreditCard },
+    { id: "zones" as const,      label: "RAG Zonen",                  Icon: Shield },
   ];
 
   const tabFromUrl = searchParams.get("tab") as TabId | null;
@@ -1396,6 +1398,12 @@ export default function SettingsPage({ params }: { params: Promise<{ org: string
           )}
           {activeTab === "billing" && (
             <BillingInline orgSlug={resolvedParams.org} orgId={org.id} />
+          )}
+          {activeTab === "zones" && (
+            <>
+              <h2 className="text-base font-semibold text-[var(--ink)] mb-5">RAG Zonen & Zugriffssteuerung</h2>
+              <RagZonesSection orgId={org.id} />
+            </>
           )}
       </div>
     </div>

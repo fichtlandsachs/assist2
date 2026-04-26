@@ -1,0 +1,113 @@
+[
+  {
+    "source_key": "sap_s4hana_help_en",
+    "display_name": "SAP S/4HANA Help Portal (EN)",
+    "base_url": "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["help.sap.com"],
+      "include_url_prefixes": [
+        "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE"
+      ],
+      "required_query_params": {
+        "locale": "en-US",
+        "state": "PRODUCTION"
+      },
+      "dropped_query_params": ["q", "search", "sort", "page"],
+      "seed_urls": [
+        "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE?locale=en-US&state=PRODUCTION",
+        "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/f9f4c4d9cf074900ac20c70a2c98ade9?locale=en-US&state=PRODUCTION",
+        "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/8a3b1a4b0c1842b0a7a3765a7f3f7e19?locale=en-US&state=PRODUCTION"
+      ],
+      "crawl_policy": {
+        "max_concurrency": 2,
+        "request_delay_seconds": 2.0,
+        "request_timeout_seconds": 45,
+        "max_retries": 3,
+        "respect_robots_txt": true,
+        "user_agent": "heyKarl-DocBot/1.0 (compatible; +https://heykarl.de/bot)"
+      },
+      "extraction_policy": {
+        "content_selectors": [
+          "article", "main", "[role=\"main\"]",
+          ".help-content", ".ltr", ".innerContent", ".content"
+        ],
+        "exclude_selectors": [
+          "header", "footer", "nav", ".cookie-banner", ".feedback-section",
+          "[role=\"navigation\"]", "[role=\"search\"]", ".TOC"
+        ],
+        "min_content_length": 150
+      },
+      "chunking_policy": {
+        "target_chunk_tokens": 800,
+        "overlap_tokens": 120,
+        "max_chunk_tokens": 1200,
+        "heading_split_levels": [1, 2, 3]
+      },
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 2 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "sap", "doc_category": "sap_s4hana_help", "language": "en"}
+    }
+  },
+  {
+    "source_key": "sap_api_business_hub",
+    "display_name": "SAP API Business Hub (S/4HANA APIs)",
+    "base_url": "https://api.sap.com/package/SAPS4HANACloud",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["api.sap.com"],
+      "include_url_prefixes": [
+        "https://api.sap.com/package/SAPS4HANACloud",
+        "https://api.sap.com/api/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://api.sap.com/package/SAPS4HANACloud/overview",
+        "https://api.sap.com/api/API_SALES_ORDER_SRV/overview",
+        "https://api.sap.com/api/API_PURCHASEORDER_PROCESS_SRV/overview",
+        "https://api.sap.com/api/API_BUSINESS_PARTNER/overview",
+        "https://api.sap.com/api/API_PRODUCT_SRV/overview"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 2.0, "request_timeout_seconds": 45, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {
+        "content_selectors": ["main", "article", ".content", "#content", ".api-content"],
+        "exclude_selectors": ["header", "footer", "nav", ".sidebar", ".cookie-banner"],
+        "min_content_length": 100
+      },
+      "chunking_policy": {"target_chunk_tokens": 700, "overlap_tokens": 100, "max_chunk_tokens": 1100, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 2 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "sap", "doc_category": "sap_api_hub", "language": "en"}
+    }
+  },
+  {
+    "source_key": "sap_best_practices",
+    "display_name": "SAP Best Practices Explorer",
+    "base_url": "https://rapid.sap.com/bp/",
+    "visibility_scope": "global",
+    "config": {
+      "allowed_domains": ["rapid.sap.com"],
+      "include_url_prefixes": [
+        "https://rapid.sap.com/bp/"
+      ],
+      "dropped_query_params": ["utm_source", "utm_medium"],
+      "seed_urls": [
+        "https://rapid.sap.com/bp/scopeitems/J62",
+        "https://rapid.sap.com/bp/scopeitems/BEI",
+        "https://rapid.sap.com/bp/scopeitems/13F",
+        "https://rapid.sap.com/bp/scopeitems/BDA",
+        "https://rapid.sap.com/bp/scopeitems/BCF"
+      ],
+      "crawl_policy": {"max_concurrency": 2, "request_delay_seconds": 2.0, "request_timeout_seconds": 45, "max_retries": 3, "respect_robots_txt": true, "user_agent": "heyKarl-DocBot/1.0"},
+      "extraction_policy": {
+        "content_selectors": ["main", "article", ".scope-item-content", ".content"],
+        "exclude_selectors": ["header", "footer", "nav", ".sidebar", ".cookie-banner"],
+        "min_content_length": 150
+      },
+      "chunking_policy": {"target_chunk_tokens": 800, "overlap_tokens": 120, "max_chunk_tokens": 1200, "heading_split_levels": [1, 2, 3]},
+      "embedding_policy": {"model": "ionos-embed", "batch_size": 32, "dimensions": 1024},
+      "refresh_policy": {"schedule_cron": "0 2 * * 0", "use_etag": true, "use_last_modified": true, "force_reindex_on_hash_change": true},
+      "metadata_defaults": {"vendor": "sap", "doc_category": "sap_best_practices", "language": "en"}
+    }
+  }
+]

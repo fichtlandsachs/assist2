@@ -116,6 +116,7 @@ class MyReadinessResponse(BaseModel):
 class EvaluateMyStoriesRequest(BaseModel):
     """Optional filters for batch evaluation."""
     story_ids: Optional[list[uuid.UUID]] = None   # if None → evaluate all assigned
+    force: bool = False
 
 
 class EvaluateMyStoriesResponse(BaseModel):

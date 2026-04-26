@@ -37,7 +37,17 @@ interface StoryData {
   features: { title: string; description: string | null }[];
 }
 
-type ChatMode = "chat" | "docs" | "tasks" | "jira";
+// Live dialog fields collected step-by-step during guided story creation
+interface DialogFields {
+  role?: string;
+  function?: string;
+  benefit?: string;
+  acceptance?: string;
+  priority?: string;
+  complete?: boolean;
+}
+
+type ChatMode = "chat" | "docs" | "tasks" | "jira" | "story";
 type WorkspaceTab = "story";
 
 interface JiraStoryPanel {
@@ -136,6 +146,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
   const [mode, setMode] = useState<ChatMode>("chat");
   const [streaming, setStreaming] = useState(false);
   const [storyData, setStoryData] = useState<StoryData | null>(null);
+  const [dialogFields, setDialogFields] = useState<DialogFields>({});
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -219,9 +230,19 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
     if (imageFiles.length > 0) addImages(imageFiles);
   }, [addImages]);
 
+  // Detect story-creation intent in user message
+  const _STORY_INTENT_RE = /story|stories|durchgehen|erarbeiten|erstell|aufschreiben|formulier/i;
+
   const sendMessage = useCallback(async () => {
     const text = input.trim();
     if ((!text && pendingImages.length === 0) || streaming) return;
+
+    // Auto-switch to story mode when user expresses story creation intent
+    const activeMode = (mode !== "jira" && _STORY_INTENT_RE.test(text)) ? "story" : mode;
+    if (activeMode === "story" && mode !== "story") {
+      setMode("story");
+      setDialogFields({});
+    }
 
     const userMsg: Message = { role: "user", content: text, images: pendingImages.length > 0 ? [...pendingImages] : undefined };
     const newMessages: Message[] = [...messages, userMsg];
@@ -251,7 +272,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
             if (m.content) blocks.push({ type: "text", text: m.content });
             return { role: m.role, content: blocks };
           }),
-          mode,
+          mode: activeMode,
           org_id: org?.id,
         }),
       });
@@ -292,6 +313,15 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
               }
               continue;
             }
+            if (chunk.startsWith("[STORYFIELD]")) {
+              try {
+                const field = JSON.parse(chunk.slice(12)) as { field: string; value: string };
+                setDialogFields(prev => ({ ...prev, [field.field]: field.field === "complete" ? true : field.value }));
+              } catch {
+                // malformed storyfield payload — ignore
+              }
+              continue;
+            }
             setMessages(prev =>
               prev.map((m, i) =>
                 i === assistantIdx ? { ...m, content: m.content + chunk } : m
@@ -312,7 +342,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
     } finally {
       setStreaming(false);
     }
-  }, [input, messages, mode, streaming, org]);
+  }, [input, messages, mode, streaming, org, setMode, setDialogFields]);
 
   // ── Extract story from transcript ────────────────────────────────────────
 
@@ -670,6 +700,22 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
               className="border-t px-4 py-3"
               style={{ borderColor: "var(--paper-rule)", background: "var(--paper-warm)" }}
             >
+              {/* Story-mode indicator */}
+              {mode === "story" && (
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <span className="flex items-center gap-1.5 text-[11px] font-[var(--font-body)] text-[var(--btn-primary)] border border-[var(--btn-primary)] rounded-sm px-2 py-0.5 opacity-80">
+                    <Sparkles size={10} />
+                    Story-Dialog aktiv
+                  </span>
+                  <button
+                    onClick={() => { setMode("chat"); setDialogFields({}); }}
+                    className="text-[11px] font-[var(--font-body)] text-[var(--ink-faint)] hover:text-[var(--ink)] transition-colors"
+                  >
+                    ✕ beenden
+                  </button>
+                </div>
+              )}
+
               {/* Pending image previews */}
               {pendingImages.length > 0 && (
                 <div className="flex gap-2 mb-2 flex-wrap">
@@ -709,7 +755,7 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                   onKeyDown={handleKeyDown}
                   onPaste={handlePaste}
                   rows={2}
-                  placeholder="Nachricht oder Bild einfügen… (Strg+V für Screenshot)"
+                  placeholder={mode === "story" ? "Antwort eingeben…" : "Nachricht oder Bild einfügen… (Strg+V für Screenshot)"}
                   className="flex-1 resize-none rounded-sm px-3 py-2 outline-none w-full"
                   style={{
                     fontFamily: "var(--font-body)",
@@ -849,18 +895,29 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                   <span style={{ fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>
                     User Story
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={extractStory}
-                    disabled={extracting || messages.length < 2}
-                  >
-                    <Sparkles size={10} />
-                    {extracting ? "Extrahiere…" : "Extrahieren"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {Object.keys(dialogFields).length > 0 && (
+                      <button
+                        onClick={() => setDialogFields({})}
+                        title="Dialog-Felder zurücksetzen"
+                        className="text-[11px] font-[var(--font-body)] text-[var(--ink-faint)] hover:text-[var(--ink)] transition-colors"
+                      >
+                        ↺ zurücksetzen
+                      </button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={extractStory}
+                      disabled={extracting || messages.length < 2}
+                    >
+                      <Sparkles size={10} />
+                      {extracting ? "Extrahiere…" : "Extrahieren"}
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
                   {extractError && (
                     <p
                       className="text-center mt-4 px-2 py-2 rounded-sm"
@@ -869,6 +926,94 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                       {extractError}
                     </p>
                   )}
+
+                  {/* ── Live dialog field blocks ─────────────────────────── */}
+                  {Object.keys(dialogFields).length > 0 && !storyData && (
+                    <div className="space-y-2">
+                      <DialogFieldBlock
+                        label="Rolle"
+                        value={dialogFields.role}
+                        onAccept={(v) => setDialogFields(prev => ({ ...prev, role: v }))}
+                        onDiscard={() => setDialogFields(prev => { const n = { ...prev }; delete n.role; return n; })}
+                      />
+                      <DialogFieldBlock
+                        label="Funktion"
+                        value={dialogFields.function}
+                        onAccept={(v) => setDialogFields(prev => ({ ...prev, function: v }))}
+                        onDiscard={() => setDialogFields(prev => { const n = { ...prev }; delete n.function; return n; })}
+                      />
+                      <DialogFieldBlock
+                        label="Businessnutzen"
+                        value={dialogFields.benefit}
+                        onAccept={(v) => setDialogFields(prev => ({ ...prev, benefit: v }))}
+                        onDiscard={() => setDialogFields(prev => { const n = { ...prev }; delete n.benefit; return n; })}
+                      />
+                      <DialogFieldBlock
+                        label="Akzeptanzkriterien"
+                        value={dialogFields.acceptance}
+                        onAccept={(v) => setDialogFields(prev => ({ ...prev, acceptance: v }))}
+                        onDiscard={() => setDialogFields(prev => { const n = { ...prev }; delete n.acceptance; return n; })}
+                        multiline
+                      />
+                      <DialogFieldBlock
+                        label="Priorität"
+                        value={dialogFields.priority}
+                        onAccept={(v) => setDialogFields(prev => ({ ...prev, priority: v }))}
+                        onDiscard={() => setDialogFields(prev => { const n = { ...prev }; delete n.priority; return n; })}
+                      />
+
+                      {/* When all fields collected: offer to create story directly */}
+                      {dialogFields.role && dialogFields.function && dialogFields.benefit &&
+                        dialogFields.acceptance && dialogFields.priority && org && (
+                        <div className="pt-2">
+                          <ProjectSelector
+                            orgId={org.id}
+                            value={saveProjectId}
+                            onChange={setSaveProjectId}
+                            label="Projekt (optional)"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              setCreating(true);
+                              try {
+                                const token = getAccessToken();
+                                const storyText = `Als ${dialogFields.role} möchte ich ${dialogFields.function}, damit ${dialogFields.benefit}.`;
+                                const acItems = (dialogFields.acceptance ?? "").split(",").map(s => s.trim()).filter(Boolean);
+                                const resp = await fetch(`${API_BASE}/api/v1/user-stories?org_id=${org.id}`, {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                                  },
+                                  body: JSON.stringify({
+                                    title: `Als ${dialogFields.role}: ${dialogFields.function}`.slice(0, 80),
+                                    description: storyText,
+                                    acceptance_criteria: acItems.join("\n"),
+                                    priority: dialogFields.priority === "hoch" ? "high" : dialogFields.priority === "niedrig" ? "low" : "medium",
+                                    project_id: saveProjectId || null,
+                                  }),
+                                });
+                                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                                const created = await resp.json();
+                                window.location.href = `/${org.slug}/stories/${created.id}`;
+                              } catch (err) {
+                                console.error("Create story from dialog error:", err);
+                              } finally {
+                                setCreating(false);
+                              }
+                            }}
+                            disabled={creating}
+                            className="w-full mt-2"
+                          >
+                            <Plus size={10} />
+                            {creating ? "Wird angelegt…" : "Story aus Dialog anlegen"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {!storyData && !extractError && extracting && (
                     <div className="flex flex-col items-center gap-3 mt-8 opacity-70">
                       <div className="flex gap-1.5 items-center">
@@ -881,12 +1026,9 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
                       </p>
                     </div>
                   )}
-                  {!storyData && !extractError && !extracting && (
-                    <p
-                      className="text-center opacity-40 mt-8"
-                      style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--ink-mid)" }}
-                    >
-                      Führe ein Gespräch und klicke auf „Extrahieren", um eine User Story zu generieren.
+                  {!storyData && !extractError && !extracting && Object.keys(dialogFields).length === 0 && (
+                    <p className="text-center text-[13px] text-[var(--ink-faint)] font-[var(--font-body)] opacity-60 mt-8">
+                      Führe ein Gespräch — Felder werden Schritt für Schritt hier angezeigt.
                     </p>
                   )}
 
@@ -930,6 +1072,106 @@ export default function AiWorkspacePage({ params }: { params: Promise<{ org: str
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── DialogFieldBlock sub-component ─────────────────────────────────────────
+
+function DialogFieldBlock({
+  label,
+  value,
+  onAccept,
+  onDiscard,
+  multiline = false,
+}: {
+  label: string;
+  value?: string;
+  onAccept: (v: string) => void;
+  onDiscard: () => void;
+  multiline?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+
+  if (!value) return null;
+
+  const inputClass = [
+    "w-full outline-none rounded-sm px-2 py-1.5 text-[13px]",
+    "bg-[var(--paper)] text-[var(--ink)]",
+    "border border-[var(--paper-rule2)]",
+    "focus:border-[var(--btn-primary)]",
+    "font-[var(--font-body)]",
+    "transition-colors",
+  ].join(" ");
+
+  return (
+    <div className="rounded-sm overflow-hidden border border-[var(--paper-rule2)] bg-[var(--paper)]">
+
+      {/* Header row */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--paper-rule2)] bg-[var(--paper-warm)]">
+        <span className="text-[10px] uppercase tracking-widest text-[var(--ink-faint)] font-[var(--font-mono)]">
+          {label}
+        </span>
+        <div className="flex items-center gap-3">
+          {!editing && (
+            <button
+              onClick={() => { setDraft(value); setEditing(true); }}
+              className="text-[11px] text-[var(--ink-faint)] hover:text-[var(--ink)] font-[var(--font-body)] transition-colors"
+            >
+              bearbeiten
+            </button>
+          )}
+          <button
+            onClick={onDiscard}
+            className="text-[11px] text-[var(--ink-faint)] hover:text-[var(--accent-red)] font-[var(--font-body)] transition-colors leading-none"
+            aria-label="Feld entfernen"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-3 py-2.5">
+        {editing ? (
+          <div className="flex flex-col gap-2">
+            {multiline ? (
+              <textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                rows={3}
+                className={`${inputClass} resize-y`}
+              />
+            ) : (
+              <input
+                type="text"
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                className={inputClass}
+              />
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { onAccept(draft); setEditing(false); }}
+                className="px-3 py-1 rounded-sm text-[11px] font-[var(--font-body)] bg-[var(--btn-primary)] text-[var(--paper)] hover:opacity-80 transition-opacity"
+              >
+                übernehmen
+              </button>
+              <button
+                onClick={() => setEditing(false)}
+                className="px-3 py-1 rounded-sm text-[11px] font-[var(--font-body)] border border-[var(--paper-rule2)] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:border-[var(--ink-faint)] transition-colors"
+              >
+                abbrechen
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-[13px] leading-relaxed text-[var(--ink)] font-[var(--font-body)] m-0">
+            {value}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

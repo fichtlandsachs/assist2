@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { apiRequest, fetcher } from "@/lib/api/client";
+import { useT } from "@/lib/i18n/context";
 import type { MyReadinessResponse, StoryWithReadiness, StoryReadinessEvaluation } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -169,6 +170,7 @@ function StoryRow({
   onEvaluate: () => void;
   evaluating: boolean;
 }) {
+  const { t } = useT();
   const ev = story.latest_evaluation;
   const priorityCfg = PRIORITY_CONFIG[story.priority] ?? PRIORITY_CONFIG.medium;
 
@@ -192,7 +194,7 @@ function StoryRow({
             {story.story_points != null && (
               <span className="text-xs text-gray-400">{story.story_points} SP</span>
             )}
-            <span className="text-xs text-gray-400 capitalize">{story.status.replace("_", " ")}</span>
+            <span className="text-xs text-gray-400">{t(`story_status_${story.status}` as Parameters<typeof t>[0])}</span>
           </div>
         </div>
 
@@ -251,7 +253,7 @@ export default function MyStoryReadinessPage() {
     if (!orgId) return;
     setEvaluating(s => new Set(s).add(storyId));
     try {
-      await apiRequest(`/api/v1/story-readiness/${storyId}/evaluate?org_id=${orgId}`, { method: "POST" });
+      await apiRequest(`/api/v1/story-readiness/${storyId}/evaluate?org_id=${orgId}&force=true`, { method: "POST" });
       await mutate(swrKey);
     } catch (e) {
       console.error(e);
@@ -264,7 +266,7 @@ export default function MyStoryReadinessPage() {
     if (!orgId) return;
     setBatchEvaluating(true);
     try {
-      await apiRequest(`/api/v1/story-readiness/evaluate?org_id=${orgId}`, { method: "POST", body: JSON.stringify({}) });
+      await apiRequest(`/api/v1/story-readiness/evaluate?org_id=${orgId}`, { method: "POST", body: JSON.stringify({ force: true }) });
       await mutate(swrKey);
     } catch (e) {
       console.error(e);

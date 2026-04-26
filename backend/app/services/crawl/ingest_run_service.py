@@ -18,6 +18,7 @@ from app.services.crawl.discovery_service import DiscoveryService
 from app.services.crawl.embedding_index_service import EmbeddingIndexService
 from app.services.crawl.extraction_service import ExtractionService
 from app.services.crawl.fetch_service import FetchService
+from app.services.crawl.universal_entity_service import UniversalEntityExtractor
 from app.services.crawl.url_canonicalizer import UrlCanonicalizer
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,7 @@ class IngestRunService:
         self.embedder = EmbeddingIndexService(
             batch_size=embed_cfg.get("batch_size", 32),
         )
+        self.entity_extractor = UniversalEntityExtractor()
         self.metadata_defaults = cfg.get("metadata_defaults", {})
         self.max_concurrency = crawl_cfg.get("max_concurrency", 2)
 
@@ -211,12 +213,29 @@ class IngestRunService:
                 )
                 stats["extracted"] += 1
 
+                # Run universal entity extraction and merge into chunk metadata
+                entity_result = self.entity_extractor.extract(
+                    text=extracted.plain_text,
+                    page_title=extracted.title,
+                    breadcrumb=extracted.breadcrumb,
+                    source_key=self.source.source_key,
+                    metadata_defaults=self.metadata_defaults,
+                )
+                chunk_metadata = {
+                    **self.metadata_defaults,
+                    **entity_result.to_chunk_meta(
+                        vendor=self.metadata_defaults.get("vendor", ""),
+                        doc_category=self.metadata_defaults.get("doc_category", ""),
+                        language=self.metadata_defaults.get("language", "en"),
+                    ),
+                }
+
                 chunks = self.chunker.chunk_page(
                     canonical_url=canonical_url,
                     page_title=extracted.title,
                     sections=extracted.structured_sections,
                     plain_text=extracted.plain_text,
-                    source_metadata=self.metadata_defaults,
+                    source_metadata=chunk_metadata,
                 )
                 stats["chunked"] += len(chunks)
 
@@ -227,6 +246,7 @@ class IngestRunService:
                         page_canonical_url=canonical_url,
                         chunks=chunks,
                         source_key=self.source.source_key,
+                        external_source_id=self.source.id,
                     )
                     stats["embedded"] += count
 

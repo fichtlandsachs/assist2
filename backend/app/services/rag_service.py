@@ -122,6 +122,18 @@ async def retrieve(
 
     try:
         embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+        # Callstack enforcement:
+        # Global (is_global=TRUE) chunks from external documentation sources must only be
+        # returned when their Integration Layer source (ExternalSource) is still enabled.
+        # Chunks without an external_source_id are org-internal content — always allowed.
+        global_gate = (
+            "dc.is_global = TRUE "
+            "AND (dc.external_source_id IS NULL "
+            "     OR EXISTS ("
+            "         SELECT 1 FROM external_sources es "
+            "         WHERE es.id = dc.external_source_id AND es.is_enabled = TRUE"
+            "     ))"
+        )
         if source_types:
             sql = text(f"""
                 SELECT dc.chunk_text,
@@ -131,11 +143,13 @@ async def retrieve(
                        dc.created_at,
                        1 - (dc.embedding <=> :embedding ::vector) AS score
                 FROM document_chunks dc
-                WHERE (dc.org_id = :org_id
-                  AND dc.embedding IS NOT NULL
-                  AND dc.source_type = ANY(:source_types)
-                  {zone_clause})
-                  OR dc.is_global = TRUE
+                WHERE dc.embedding IS NOT NULL
+                  AND (
+                    (dc.org_id = :org_id
+                     AND dc.source_type = ANY(:source_types)
+                     {zone_clause})
+                    OR ({global_gate})
+                  )
                 ORDER BY score DESC
                 LIMIT 5
             """)
@@ -154,10 +168,12 @@ async def retrieve(
                        dc.created_at,
                        1 - (dc.embedding <=> :embedding ::vector) AS score
                 FROM document_chunks dc
-                WHERE (dc.org_id = :org_id
-                  AND dc.embedding IS NOT NULL
-                  {zone_clause})
-                  OR dc.is_global = TRUE
+                WHERE dc.embedding IS NOT NULL
+                  AND (
+                    (dc.org_id = :org_id
+                     {zone_clause})
+                    OR ({global_gate})
+                  )
                 ORDER BY score DESC
                 LIMIT 5
             """)

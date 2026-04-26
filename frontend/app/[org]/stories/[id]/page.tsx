@@ -10,12 +10,14 @@ import { StoryRefinementPanel } from "@/components/stories/StoryRefinementPanel"
 import { StoryDoDChatPanel } from "@/components/stories/StoryDoDChatPanel";
 import { StoryFeaturesChatPanel } from "@/components/stories/StoryFeaturesChatPanel";
 import { CapabilityAssignmentSection } from "@/components/stories/CapabilityAssignmentSection";
+import { StoryCompliancePanel } from "@/components/governance/StoryCompliancePanel";
 import { EpicSelector } from "@/components/stories/EpicSelector";
 import { ProjectSelector } from "@/components/stories/ProjectSelector";
 import { DoDItem as DoDItemComponent } from "@/components/stories/DoDItem";
 import { AISuggestionItem } from "@/components/stories/AISuggestionItem";
-import { ArrowLeft, Save, Pencil, X, Plus, CheckCircle, XCircle, Sparkles, GripVertical, GitBranch, ClipboardCheck, Trash2, FileText, RefreshCw, Users, Package, Lock, UserCircle, Upload, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save, Pencil, X, Plus, CheckCircle, XCircle, Sparkles, GripVertical, GitBranch, ClipboardCheck, Trash2, FileText, RefreshCw, Package, Lock, UserCircle, Upload, AlertTriangle } from "lucide-react";
 import { SplitStoryPanel } from "@/components/stories/SplitStoryPanel";
+import { ProcessRequestChatPanel } from "@/components/stories/ProcessRequestChatPanel";
 import { useAuth } from "@/lib/auth/context";
 import Link from "next/link";
 import { useT } from "@/lib/i18n/context";
@@ -2172,26 +2174,75 @@ function FeaturesSection({ storyId, orgId, editing, story }: { storyId: string; 
 // Story Process Section
 // ---------------------------------------------------------------------------
 
-function StoryProcessSection({ storyId, orgId }: { storyId: string; orgId: string }) {
+interface CapabilityAssignmentForProcess {
+  assignment_id: string;
+  node_id: string;
+  node_path: string;
+}
+
+interface ProcessRequestResult {
+  id: string;
+  proposed_name: string;
+  capability_node_id: string | null;
+  epic_id: string;
+  story_id: string;
+  status: string;
+}
+
+function StoryProcessSection({ storyId, orgId, orgSlug }: { storyId: string; orgId: string; orgSlug: string }) {
   const { t } = useT();
+
+  // Get the current capability assignment for this story (to filter processes)
+  const { data: capabilityAssignment } = useSWR<CapabilityAssignmentForProcess | null>(
+    `/api/v1/user-stories/${storyId}/capability-assignment?org_id=${orgId}`,
+    fetcher,
+  );
+  const capNodeId = capabilityAssignment?.node_id;
+
+  // Processes filtered by capability (includes global processes without a capability)
+  const processesUrl = capNodeId
+    ? `/api/v1/processes?org_id=${orgId}&capability_node_id=${capNodeId}`
+    : `/api/v1/processes?org_id=${orgId}`;
+  const { data: processes } = useSWR<Process[]>(processesUrl, fetcher);
+
   const { data: changes, mutate } = useSWR<StoryProcessChange[]>(
     `/api/v1/user-stories/${storyId}/process-changes`,
     fetcher,
   );
-  const { data: processes } = useSWR<Process[]>(
-    `/api/v1/processes?org_id=${orgId}`,
-    fetcher,
-  );
 
   const [adding, setAdding] = useState(false);
-  const [processId, setProcessId] = useState("");
+  const [processId, setProcessId] = useState("__new__");  // default: assume existing
+  const [newProcessName, setNewProcessName] = useState("");
   const [sectionAnchor, setSectionAnchor] = useState("");
   const [deltaText, setDeltaText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [processRequest, setProcessRequest] = useState<ProcessRequestResult | null>(null);
+  const [showRequestChat, setShowRequestChat] = useState(false);
 
   const inputClass = "w-full px-3 py-2 text-sm border border-[var(--ink-faintest)] rounded-sm outline-none focus:border-[var(--accent-red)] focus:ring-2 focus:ring-[var(--accent-red)] bg-[var(--card)]";
 
   const handleAdd = async () => {
+    if (processId === "__new__") {
+      // New process requested → create Epic + Story + ProcessRequest
+      if (!newProcessName.trim()) return;
+      setSaving(true);
+      try {
+        const res = await apiRequest(`/api/v1/process-requests?org_id=${orgId}`, {
+          method: "POST",
+          body: JSON.stringify({
+            proposed_name: newProcessName.trim(),
+            capability_node_id: capNodeId ?? null,
+          }),
+        }) as ProcessRequestResult;
+        setProcessRequest(res);
+        setShowRequestChat(true);
+        setAdding(false);
+        setNewProcessName("");
+      } catch { /* ignore */ }
+      finally { setSaving(false); }
+      return;
+    }
+
     if (!processId) return;
     setSaving(true);
     try {
@@ -2201,7 +2252,7 @@ function StoryProcessSection({ storyId, orgId }: { storyId: string; orgId: strin
       });
       await mutate();
       setAdding(false);
-      setProcessId(""); setSectionAnchor(""); setDeltaText("");
+      setProcessId("__new__"); setSectionAnchor(""); setDeltaText("");
     } catch { /* ignore */ }
     finally { setSaving(false); }
   };
@@ -2213,13 +2264,58 @@ function StoryProcessSection({ storyId, orgId }: { storyId: string; orgId: strin
     } catch { /* ignore */ }
   };
 
+  // Capability context hint
+  const capabilityHint = capabilityAssignment?.node_path
+    ? `Prozesse für: ${capabilityAssignment.node_path}`
+    : capNodeId
+    ? "Capability-Prozesse werden geladen…"
+    : "Alle Prozesse (keine Capability zugewiesen)";
+
   return (
     <div className="space-y-4">
+      {/* Process Request Chat - shown after requesting new process */}
+      {showRequestChat && processRequest && (
+        <div className="h-[480px]">
+          <ProcessRequestChatPanel
+            orgSlug={orgSlug}
+            processRequest={processRequest}
+            onClose={() => setShowRequestChat(false)}
+            onDone={() => { setShowRequestChat(false); setProcessRequest(null); }}
+          />
+        </div>
+      )}
+
+      {/* After request: badge link to created artifacts */}
+      {processRequest && !showRequestChat && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-violet-50 border border-violet-200 rounded-sm">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-violet-800">
+              Neuer Prozess beantragt: <strong>{processRequest.proposed_name}</strong>
+            </p>
+            <p className="text-xs text-violet-600 mt-0.5">Epic und User Story wurden angelegt.</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Link href={`/${orgSlug}/stories/epics/${processRequest.epic_id}`}
+              className="text-xs px-2 py-1 bg-violet-100 text-violet-700 rounded hover:bg-violet-200">
+              Epic →
+            </Link>
+            <Link href={`/${orgSlug}/stories/${processRequest.story_id}`}
+              className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+              Story →
+            </Link>
+            <button onClick={() => setShowRequestChat(true)}
+              className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded hover:bg-slate-200">
+              Chat fortsetzen
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-[var(--card)] rounded-sm border border-[var(--paper-rule)] overflow-hidden">
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--paper-rule)]">
           <div>
             <h3 className="text-sm font-semibold text-[var(--ink)]">{t("process_section_title")}</h3>
-            <p className="text-xs text-[var(--ink-faint)] mt-0.5">{t("process_section_desc")}</p>
+            <p className="text-xs text-[var(--ink-faint)] mt-0.5">{capabilityHint}</p>
           </div>
           {!adding && (
             <button onClick={() => setAdding(true)}
@@ -2231,31 +2327,69 @@ function StoryProcessSection({ storyId, orgId }: { storyId: string; orgId: strin
 
         {adding && (
           <div className="px-4 sm:px-6 py-4 space-y-3 border-b border-[var(--paper-rule)] bg-[var(--paper-warm)]">
+            {/* Process selector */}
             <div>
-              <label className="text-xs font-medium text-[var(--ink-mid)] block mb-1">{t("process_select_placeholder")}</label>
+              <label className="text-xs font-medium text-[var(--ink-mid)] block mb-1">Prozess</label>
               <select value={processId} onChange={(e) => setProcessId(e.target.value)} className={inputClass}>
-                <option value="">{t("process_select_placeholder")}</option>
-                {(processes ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
+                {(processes ?? []).length > 0 && (
+                  <>
+                    <optgroup label="Vorhandene Prozesse">
+                      {(processes ?? []).map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Neuer Prozess">
+                      <option value="__new__">➕ Neuen Prozess beantragen…</option>
+                    </optgroup>
+                  </>
+                )}
+                {(processes ?? []).length === 0 && (
+                  <option value="__new__">➕ Neuen Prozess beantragen…</option>
+                )}
               </select>
             </div>
-            <div>
-              <label className="text-xs font-medium text-[var(--ink-mid)] block mb-1">{t("process_section_anchor_label")}</label>
-              <input value={sectionAnchor} onChange={(e) => setSectionAnchor(e.target.value)}
-                placeholder={t("process_section_anchor_placeholder")} className={inputClass} />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-[var(--ink-mid)] block mb-1">{t("process_delta_label")}</label>
-              <textarea value={deltaText} onChange={(e) => setDeltaText(e.target.value)}
-                placeholder={t("process_delta_placeholder")} rows={3} className={inputClass} />
-            </div>
+
+            {/* New process name input */}
+            {processId === "__new__" && (
+              <div>
+                <label className="text-xs font-medium text-[var(--ink-mid)] block mb-1">Name des neuen Prozesses</label>
+                <input
+                  value={newProcessName}
+                  onChange={(e) => setNewProcessName(e.target.value)}
+                  placeholder="z. B. Produktionsvorbereitung, Qualitätskontrolle Eingang…"
+                  className={inputClass}
+                />
+                <p className="text-xs text-violet-700 mt-1.5 flex items-center gap-1">
+                  <span>💡</span>
+                  Es wird automatisch ein Epic und eine User Story angelegt. Der Assistent führt dich durch die Beschreibung.
+                </p>
+              </div>
+            )}
+
+            {/* Section anchor + delta only for existing process */}
+            {processId !== "__new__" && processId !== "" && (
+              <>
+                <div>
+                  <label className="text-xs font-medium text-[var(--ink-mid)] block mb-1">{t("process_section_anchor_label")}</label>
+                  <input value={sectionAnchor} onChange={(e) => setSectionAnchor(e.target.value)}
+                    placeholder={t("process_section_anchor_placeholder")} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[var(--ink-mid)] block mb-1">{t("process_delta_label")}</label>
+                  <textarea value={deltaText} onChange={(e) => setDeltaText(e.target.value)}
+                    placeholder={t("process_delta_placeholder")} rows={3} className={inputClass} />
+                </div>
+              </>
+            )}
+
             <div className="flex gap-2">
-              <button onClick={() => void handleAdd()} disabled={!processId || saving}
+              <button
+                onClick={() => void handleAdd()}
+                disabled={(processId === "__new__" ? !newProcessName.trim() : !processId) || saving}
                 className="px-3 py-1.5 text-xs font-medium bg-[var(--accent-red)] text-white rounded-sm disabled:opacity-50">
-                {saving ? "…" : t("process_save")}
+                {saving ? "…" : processId === "__new__" ? "Prozess beantragen & Assistent starten" : t("process_save")}
               </button>
-              <button onClick={() => setAdding(false)}
+              <button onClick={() => { setAdding(false); setProcessId("__new__"); setNewProcessName(""); }}
                 className="px-3 py-1.5 text-xs font-medium border border-[var(--ink-faintest)] text-[var(--ink-mid)] rounded-sm">
                 {t("process_cancel")}
               </button>
@@ -2425,27 +2559,8 @@ function JiraSection({
 // Main Page
 // ---------------------------------------------------------------------------
 
-type ActiveTab = "story" | "dod" | "tests" | "features" | "docs" | "prompt" | "processes";
+type ActiveTab = "story" | "dod" | "tests" | "features" | "docs" | "prompt" | "processes" | "compliance";
 
-type DemoRole = "user" | "ba" | "architect" | "developer" | "tester" | "release";
-
-const DEMO_ROLES: { id: DemoRole; label: string; description: string; color: string }[] = [
-  { id: "user",      label: "User",              description: "Gesamtüberblick",                         color: "bg-[var(--paper-warm)] text-[var(--ink-mid)] border-[var(--ink-faintest)]" },
-  { id: "ba",        label: "Business Analyst",  description: "Story, DoD & Akzeptanzkriterien",         color: "bg-[rgba(74,85,104,.06)] text-[var(--navy)] border-[rgba(74,85,104,.3)]" },
-  { id: "architect", label: "Senior Architekt",  description: "Story, DoD, Features & Dokumentation",    color: "bg-[rgba(var(--btn-primary-rgb),.08)] text-[var(--btn-primary)] border-[rgba(var(--btn-primary-rgb),.3)]" },
-  { id: "developer", label: "Developer",         description: "Story, DoD, Testfälle & Features",         color: "bg-[rgba(122,100,80,.1)] text-[var(--brown)] border-[rgba(122,100,80,.3)]" },
-  { id: "tester",    label: "Tester",            description: "Story, Akzeptanzkriterien & Testfälle",   color: "bg-[rgba(var(--accent-red-rgb),.08)] text-[var(--accent-red)] border-[rgba(var(--accent-red-rgb),.3)]" },
-  { id: "release",   label: "Releasemanager",    description: "Story, Testfälle & Dokumentation",        color: "bg-[rgba(82,107,94,.1)] text-[var(--green)] border-[rgba(82,107,94,.3)]" },
-];
-
-const ROLE_TABS: Record<DemoRole, ActiveTab[]> = {
-  user:      ["story", "processes", "dod", "tests", "features", "docs"],
-  ba:        ["story", "processes", "dod", "tests", "features", "docs"],
-  architect: ["story", "processes", "dod", "features", "docs", "prompt"],
-  developer: ["story", "processes", "dod", "tests", "features", "prompt"],
-  tester:    ["story", "tests"],
-  release:   ["story", "processes", "tests", "features", "docs"],
-};
 
 export default function StoryDetailPage({
   params,
@@ -2463,9 +2578,6 @@ export default function StoryDetailPage({
   const [docsRefreshTrigger, setDocsRefreshTrigger] = useState(0);
   const [showSplitPanel, setShowSplitPanel] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("story");
-  const [demoRole, setDemoRole] = useState<DemoRole>("user");
-  const [showRolePicker, setShowRolePicker] = useState(false);
-  const rolePickerRef = useRef<HTMLDivElement>(null);
   const [score, setScore] = useState<{ level: "low" | "medium" | "high"; confidence: number; clarity: number; complexity: number; risk: number; domain: string } | null>(null);
   const [isScoring, setIsScoring] = useState(false);
 
@@ -2796,17 +2908,6 @@ export default function StoryDetailPage({
     }
   }
 
-  useEffect(() => {
-    if (!showRolePicker) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (rolePickerRef.current && !rolePickerRef.current.contains(e.target as Node)) {
-        setShowRolePicker(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showRolePicker]);
-
   if (isLoading || !story) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -2816,27 +2917,17 @@ export default function StoryDetailPage({
   }
 
   const ALL_TABS: { id: ActiveTab; label: string }[] = [
-    { id: "story",     label: t("story_detail_tab_story") },
-    { id: "processes", label: t("process_tab") },
-    { id: "features",  label: t("story_detail_tab_features") },
-    { id: "tests",     label: t("story_detail_tab_tests") },
-    { id: "dod",       label: t("story_detail_tab_dod") },
-    { id: "docs",      label: t("story_detail_tab_docs") },
-    { id: "prompt",    label: t("story_detail_tab_prompt") },
+    { id: "story",      label: t("story_detail_tab_story") },
+    { id: "processes",  label: t("process_tab") },
+    { id: "features",   label: t("story_detail_tab_features") },
+    { id: "tests",      label: t("story_detail_tab_tests") },
+    { id: "dod",        label: t("story_detail_tab_dod") },
+    { id: "compliance", label: "Compliance" },
+    { id: "docs",       label: t("story_detail_tab_docs") },
+    { id: "prompt",     label: t("story_detail_tab_prompt") },
   ];
 
-  const visibleTabIds = ROLE_TABS[demoRole];
-  const tabs = ALL_TABS.filter((tab) => visibleTabIds.includes(tab.id));
-
-  function handleRoleChange(role: DemoRole) {
-    setDemoRole(role);
-    setShowRolePicker(false);
-    if (!ROLE_TABS[role].includes(activeTab)) {
-      setActiveTab(ROLE_TABS[role][0]);
-    }
-  }
-
-  const currentRole = DEMO_ROLES.find((r) => r.id === demoRole)!;
+  const tabs = ALL_TABS;
 
   return (
     <div className="space-y-4">
@@ -3276,53 +3367,6 @@ export default function StoryDetailPage({
         </div>
       )}
 
-      {/* Demo role switcher */}
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm">
-        <div className="flex items-center gap-2 min-w-0">
-          <Users size={14} className="text-[var(--ink-faint)] shrink-0" />
-          <span className="text-xs text-[var(--ink-faint)] font-medium shrink-0">Demo-Ansicht:</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${currentRole.color}`}>
-            {currentRole.label}
-          </span>
-          <span className="text-xs text-[var(--ink-faint)] hidden sm:inline truncate">{currentRole.description}</span>
-        </div>
-        <div ref={rolePickerRef} className="relative shrink-0">
-          <button
-            onClick={() => setShowRolePicker((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--ink-faintest)] text-[var(--ink-mid)] hover:bg-[var(--card)] rounded-sm text-xs font-medium transition-colors"
-          >
-            Rolle wechseln
-          </button>
-          {showRolePicker && (
-            <div className="absolute right-0 top-full mt-1 w-72 bg-[var(--card)] border border-[var(--paper-rule)] rounded-sm z-50 overflow-hidden">
-              <div className="px-3 py-2 border-b border-[var(--paper-rule)] bg-[var(--paper-warm)]">
-                <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">Perspektive wählen</p>
-              </div>
-              {DEMO_ROLES.map((role) => (
-                <button
-                  key={role.id}
-                  onClick={() => handleRoleChange(role.id)}
-                  className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-[var(--paper-warm)] transition-colors border-b border-[var(--paper-rule)] last:border-0 ${
-                    demoRole === role.id ? "bg-[rgba(var(--accent-red-rgb),.08)]" : ""
-                  }`}
-                >
-                  <span className={`mt-0.5 shrink-0 px-1.5 py-0.5 rounded-sm text-xs font-semibold border ${role.color}`}>
-                    {role.label.split(" ")[0]}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-[var(--ink)]">{role.label}</p>
-                    <p className="text-xs text-[var(--ink-faint)]">{role.description}</p>
-                  </div>
-                  {demoRole === role.id && (
-                    <CheckCircle size={14} className="shrink-0 mt-0.5 text-[var(--accent-red)]" />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Tab navigation */}
       <div className="flex gap-1 border-b border-[var(--paper-rule)] overflow-x-auto">
         {tabs.map((tab) => (
@@ -3570,8 +3614,16 @@ export default function StoryDetailPage({
             orgId={story.organization_id}
             story={story}
           />
-          <StoryProcessSection storyId={resolvedParams.id} orgId={story.organization_id} />
+          <StoryProcessSection storyId={resolvedParams.id} orgId={story.organization_id} orgSlug={resolvedParams.org} />
         </div>
+      )}
+
+      {/* Compliance tab */}
+      {activeTab === "compliance" && (
+        <StoryCompliancePanel
+          storyId={resolvedParams.id}
+          orgId={resolvedParams.org}
+        />
       )}
     </div>
   );

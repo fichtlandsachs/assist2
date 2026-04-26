@@ -7,10 +7,11 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, desc
+from sqlalchemy import delete, func, select, desc, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.document_chunk import DocumentChunk
 from app.models.external_source import ExternalSource, ExternalSourcePage, ExternalSourceRun
 from app.models.user import User
 from app.routers.superadmin import get_admin_user
@@ -24,6 +25,7 @@ from app.schemas.external_source import (
 )
 
 router = APIRouter(prefix="/knowledge-sources/external", tags=["external-sources-admin"])
+rag_meta_router = APIRouter(prefix="/knowledge-sources", tags=["rag-meta"])
 
 
 def _source_to_read(source: ExternalSource) -> ExternalSourceRead:
@@ -159,8 +161,49 @@ async def disable_source(
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
     source.is_enabled = False
+
+    # Callstack enforcement: remove all indexed chunks for this source from the
+    # document_chunks vector index so they are immediately invisible to RAG and
+    # Hybrid Retrieval — even before the is_enabled gate would filter them.
+    result = await db.execute(
+        delete(DocumentChunk).where(
+            DocumentChunk.external_source_id == source_id
+        )
+    )
+    chunks_removed = result.rowcount
     await db.commit()
-    return {"status": "disabled"}
+
+    return {"status": "disabled", "chunks_removed": chunks_removed}
+
+
+@router.post("/{source_id}/enable", status_code=status.HTTP_200_OK)
+async def enable_source(
+    source_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+) -> dict:
+    """Re-enable a source. Chunks are only available again after a re-ingest."""
+    source = await db.get(ExternalSource, source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+    source.is_enabled = True
+    await db.commit()
+
+    # Automatically trigger a refresh ingest to rebuild the index
+    run = ExternalSourceRun(
+        source_id=source_id,
+        run_type="refresh",
+        status="pending",
+        triggered_by=admin.email,
+    )
+    db.add(run)
+    await db.commit()
+    await db.refresh(run)
+
+    from app.tasks.external_ingest_tasks import run_refresh_ingest
+    run_refresh_ingest.delay(str(source_id), str(run.id))
+
+    return {"status": "enabled", "run_id": str(run.id), "message": "Re-ingest started to rebuild index"}
 
 
 @router.get("/{source_id}/runs", response_model=list[ExternalSourceRunRead])
@@ -306,3 +349,259 @@ async def preview_page(
         fetch_method=fetch_result.fetch_method,
         extraction_quality_score=extracted.extraction_quality_score,
     )
+
+
+@router.get("/{source_id}/chunk-stats")
+async def chunk_stats(
+    source_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> dict:
+    """Return indexed chunk count for this source (callstack integrity check)."""
+    from sqlalchemy import func as sa_func, select as sa_select
+    result = await db.execute(
+        sa_select(sa_func.count()).where(
+            DocumentChunk.external_source_id == source_id
+        )
+    )
+    count = result.scalar() or 0
+    return {"source_id": str(source_id), "indexed_chunks": count}
+
+
+@router.post("/{source_id}/deindex", status_code=status.HTTP_200_OK)
+async def deindex_source(
+    source_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> dict:
+    """Remove all indexed chunks for this source without disabling it.
+    Use before a full re-ingest to ensure clean state.
+    """
+    source = await db.get(ExternalSource, source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    result = await db.execute(
+        delete(DocumentChunk).where(
+            DocumentChunk.external_source_id == source_id
+        )
+    )
+    chunks_removed = result.rowcount
+    await db.commit()
+    return {"status": "deindexed", "chunks_removed": chunks_removed}
+
+
+# ── Global stats ──────────────────────────────────────────────────────────────
+
+@rag_meta_router.get("/stats")
+async def global_stats(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> dict:
+    """System-wide RAG stats: source count, total chunks, enabled/disabled."""
+    total_sources = (await db.execute(select(func.count()).select_from(ExternalSource))).scalar() or 0
+    enabled_sources = (await db.execute(
+        select(func.count()).select_from(ExternalSource).where(ExternalSource.is_enabled == True)
+    )).scalar() or 0
+    total_chunks = (await db.execute(select(func.count()).select_from(DocumentChunk))).scalar() or 0
+    chunks_with_embedding = (await db.execute(
+        select(func.count()).select_from(DocumentChunk).where(DocumentChunk.embedding.isnot(None))
+    )).scalar() or 0
+    pending_runs = (await db.execute(
+        select(func.count()).select_from(ExternalSourceRun).where(ExternalSourceRun.status == "pending")
+    )).scalar() or 0
+    running_runs = (await db.execute(
+        select(func.count()).select_from(ExternalSourceRun).where(ExternalSourceRun.status == "running")
+    )).scalar() or 0
+
+    # Per-source chunk counts
+    per_source = await db.execute(
+        select(
+            ExternalSource.id,
+            ExternalSource.display_name,
+            ExternalSource.source_key,
+            ExternalSource.is_enabled,
+            func.count(DocumentChunk.id).label("chunk_count"),
+        )
+        .outerjoin(DocumentChunk, DocumentChunk.external_source_id == ExternalSource.id)
+        .group_by(ExternalSource.id)
+        .order_by(desc(func.count(DocumentChunk.id)))
+    )
+    source_stats = [
+        {
+            "id": str(r.id),
+            "display_name": r.display_name,
+            "source_key": r.source_key,
+            "is_enabled": r.is_enabled,
+            "chunk_count": r.chunk_count,
+        }
+        for r in per_source.fetchall()
+    ]
+
+    return {
+        "total_sources": total_sources,
+        "enabled_sources": enabled_sources,
+        "disabled_sources": total_sources - enabled_sources,
+        "total_chunks": total_chunks,
+        "chunks_with_embedding": chunks_with_embedding,
+        "chunks_missing_embedding": total_chunks - chunks_with_embedding,
+        "pending_runs": pending_runs,
+        "running_runs": running_runs,
+        "per_source": source_stats,
+    }
+
+
+# ── Chunk browser ─────────────────────────────────────────────────────────────
+
+@router.get("/{source_id}/chunks")
+async def list_chunks(
+    source_id: uuid.UUID,
+    q: Optional[str] = Query(None, description="Filter by text content (ILIKE)"),
+    limit: int = Query(50, le=200),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> dict:
+    """Browse indexed chunks for a source. Supports text search."""
+    source = await db.get(ExternalSource, source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    stmt = select(DocumentChunk).where(DocumentChunk.external_source_id == source_id)
+    count_stmt = select(func.count()).select_from(DocumentChunk).where(
+        DocumentChunk.external_source_id == source_id
+    )
+
+    if q:
+        stmt = stmt.where(DocumentChunk.chunk_text.ilike(f"%{q}%"))
+        count_stmt = count_stmt.where(DocumentChunk.chunk_text.ilike(f"%{q}%"))
+
+    stmt = stmt.order_by(DocumentChunk.created_at.desc()).limit(limit).offset(offset)
+
+    total = (await db.execute(count_stmt)).scalar() or 0
+    rows = (await db.execute(stmt)).scalars().all()
+
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "chunks": [
+            {
+                "id": str(c.id),
+                "source_ref": c.source_ref,
+                "source_url": c.source_url,
+                "source_title": c.source_title,
+                "chunk_index": c.chunk_index,
+                "chunk_text": c.chunk_text[:500],
+                "chunk_text_length": len(c.chunk_text),
+                "has_embedding": c.embedding is not None,
+                "is_global": c.is_global,
+                "created_at": c.created_at.isoformat(),
+            }
+            for c in rows
+        ],
+    }
+
+
+# ── Search test console ───────────────────────────────────────────────────────
+
+@rag_meta_router.post("/search-test")
+async def search_test(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+) -> dict:
+    """
+    Hybrid search test endpoint. Runs semantic+BM25 retrieval against all
+    orgs visible to superadmin (or restricted to a specific org_id).
+    Returns ranked chunks with scores for debugging.
+    """
+    query = body.get("query", "").strip()
+    if not query:
+        raise HTTPException(status_code=422, detail="query is required")
+
+    org_id_str = body.get("org_id")
+    source_types = body.get("source_types")
+    use_hybrid = body.get("use_hybrid", True)
+    min_score = float(body.get("min_score", 0.20))
+    max_chunks = int(body.get("max_chunks", 8))
+
+    if org_id_str:
+        try:
+            org_id = uuid.UUID(org_id_str)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid org_id")
+    else:
+        # Default: use a synthetic org_id = nil UUID to match global chunks only
+        org_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+
+    try:
+        if use_hybrid:
+            from app.services.hybrid_retrieval_service import hybrid_retrieve
+            result = await hybrid_retrieve(
+                query=query,
+                org_id=org_id,
+                db=db,
+                source_systems=source_types,
+                min_score=min_score,
+                max_chunks=max_chunks,
+            )
+            chunks = [
+                {
+                    "text": c.text[:600],
+                    "source_system": c.source_system,
+                    "source_type": c.source_type,
+                    "source_url": c.source_url,
+                    "source_title": c.source_title,
+                    "chunk_type": c.chunk_type,
+                    "semantic_score": round(c.semantic_score, 4),
+                    "bm25_score": round(c.bm25_score, 4),
+                    "final_score": round(c.final_score, 4),
+                    "trust_class": c.trust_class,
+                    "trust_score": round(c.trust_score, 4),
+                    "evidence_type": c.evidence_type,
+                    "is_global": c.is_global,
+                    "indexed_at": c.indexed_at,
+                }
+                for c in result.chunks
+            ]
+            return {
+                "mode": result.mode,
+                "query": query,
+                "chunk_count": len(chunks),
+                "chunks": chunks,
+                "conflicts": [
+                    {"type": c.conflict_type, "description": c.description}
+                    for c in result.conflicts
+                ],
+                "guardrail_warnings": result.guardrail_warnings,
+                "retrieval_type": "hybrid",
+            }
+        else:
+            from app.services.rag_service import retrieve
+            result = await retrieve(
+                query=query,
+                org_id=org_id,
+                db=db,
+                min_score=min_score,
+                source_types=source_types,
+            )
+            return {
+                "mode": result.mode,
+                "query": query,
+                "chunk_count": len(result.chunks),
+                "chunks": [
+                    {
+                        "text": c.text[:600],
+                        "score": round(c.score, 4),
+                        "source_type": c.source_type,
+                        "source_url": c.source_url,
+                        "source_title": c.source_title,
+                        "indexed_at": c.indexed_at,
+                    }
+                    for c in result.chunks
+                ],
+                "retrieval_type": "semantic",
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {e}")

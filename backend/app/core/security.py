@@ -43,23 +43,42 @@ async def _fetch_jwks() -> dict:
 def _decode_jwt(token: str, jwks: dict) -> dict:
     """
     Decode and verify a JWT using keys from the provided JWKS dict.
-    Uses pyjwt.PyJWK to parse each key, matching by `kid` header if present.
+    Accepts tokens issued for either the backend or the admin application.
     """
     header = pyjwt.get_unverified_header(token)
     kid = header.get("kid")
     alg = header.get("alg", "RS256")
 
     settings = get_settings()
+    # Accept tokens from either the backend OIDC app or the admin OIDC app.
+    accepted_audiences = [
+        aud for aud in [
+            settings.AUTHENTIK_BACKEND_CLIENT_ID,
+            settings.AUTHENTIK_ADMIN_CLIENT_ID,
+        ] if aud
+    ]
+
     for key_data in jwks.get("keys", []):
         if kid is None or key_data.get("kid") == kid:
             signing_key = pyjwt.PyJWK(key_data).key
-            return pyjwt.decode(
-                token,
-                signing_key,
-                algorithms=[alg],
-                audience=settings.AUTHENTIK_BACKEND_CLIENT_ID,
-                options={"verify_exp": True},
-            )
+            last_err: Exception | None = None
+            for audience in accepted_audiences:
+                try:
+                    return pyjwt.decode(
+                        token,
+                        signing_key,
+                        algorithms=[alg],
+                        audience=audience,
+                        options={
+                            "verify_exp": True,
+                            "verify_iss": False,  # issuer varies per Authentik app
+                        },
+                    )
+                except pyjwt.InvalidAudienceError as e:
+                    last_err = e
+                    continue
+            if last_err:
+                raise last_err
 
     raise pyjwt.InvalidKeyError("No matching key found in JWKS")
 
@@ -75,7 +94,7 @@ async def validate_authentik_token(token: str) -> dict:
     except pyjwt.ExpiredSignatureError:
         raise UnauthorizedException(detail="Token has expired")
     except pyjwt.InvalidTokenError as e:
-        logger.debug(f"Token validation failed: {e}")
+        logger.warning(f"OIDC token validation failed: {type(e).__name__}: {e}")
         raise UnauthorizedException(detail="Could not validate credentials")
 
 

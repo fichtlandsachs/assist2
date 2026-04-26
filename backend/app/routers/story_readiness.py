@@ -24,6 +24,7 @@ from app.models.epic import Epic
 from app.models.membership import Membership
 from app.models.story_readiness import StoryReadinessEvaluation
 from app.models.user import User
+from app.core.story_filter import active_stories
 from app.models.user_story import UserStory
 from app.schemas.story_readiness import (
     EvaluateMyStoriesRequest,
@@ -187,6 +188,7 @@ async def evaluate_my_stories(
         org_id=org_id,
         db=db,
         story_ids=body.story_ids,
+        force_refresh=body.force,
     )
 
     return EvaluateMyStoriesResponse(

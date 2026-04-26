@@ -609,6 +609,7 @@ const en: Record<TranslationKey, string> = {
   refinement_field_ac: "Acceptance criteria",
   assistant_proposal_title: "Suggestions",
   assistant_add_button: "Add",
+  assistant_add_error: "Failed to apply. Please try again.",
   assistant_dod_title: "DoD Assistant",
   assistant_dod_empty_title: "Build your DoD together",
   assistant_dod_empty_desc: "The assistant helps you formulate complete, measurable done criteria.",

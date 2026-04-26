@@ -8,11 +8,13 @@ from app.models.story_process_change import ProcessChangeStatus
 class ProcessCreate(BaseModel):
     name: str
     confluence_page_id: Optional[str] = None
+    capability_node_id: Optional[uuid.UUID] = None
 
 
 class ProcessUpdate(BaseModel):
     name: Optional[str] = None
     confluence_page_id: Optional[str] = None
+    capability_node_id: Optional[uuid.UUID] = None
 
 
 class ProcessRead(BaseModel):
@@ -21,6 +23,7 @@ class ProcessRead(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID
     name: str
+    capability_node_id: Optional[uuid.UUID] = None
     confluence_page_id: Optional[str]
     created_at: datetime
     updated_at: datetime

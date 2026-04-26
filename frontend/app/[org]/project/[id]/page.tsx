@@ -22,7 +22,9 @@ import {
   Pencil,
   Save,
   X,
+  Shield,
 } from "lucide-react";
+import { ComplianceTab } from "@/components/compliance/ComplianceTab";
 
 // ── Labels ────────────────────────────────────────────────────────────────────
 
@@ -551,6 +553,26 @@ export default function ProjectDetailPage({
 
         {/* RIGHT column (1/3) */}
         <div className="flex flex-col gap-6 xl:sticky xl:top-6 xl:self-start">
+          {/* Compliance */}
+          {org && (
+            <SectionCard>
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--ink-mid)] flex items-center mb-4">
+                <Shield size={13} className="mr-1.5" />
+                Compliance
+              </h2>
+              <ComplianceTab
+                orgId={org.id}
+                objectType="project"
+                objectId={projectId}
+                objectName={project.name}
+                contextParams={{
+                  effort: project.effort,
+                  complexity: project.complexity,
+                  status: project.status,
+                }}
+              />
+            </SectionCard>
+          )}
           {/* Block 5 — Metrics */}
           <SectionCard>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--ink-mid)] flex items-center">

@@ -32,7 +32,7 @@ export function StoryDoDChatPanel({ storyId, orgId, story, onAddItem }: Props) {
         },
         emptyLabel: "",
       }}
-      onProposalItemAdd={(item) => onAddItem((item as DoDProposalItem).text)}
+      onProposalItemAdd={async (item) => onAddItem((item as DoDProposalItem).text)}
     />
   );
 }

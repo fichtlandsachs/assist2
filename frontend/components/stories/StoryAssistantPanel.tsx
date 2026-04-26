@@ -26,7 +26,7 @@ interface Props {
   startButtonLabel: string;
   consolidateMessage: string;
   proposalRenderer: ProposalItemRenderer;
-  onProposalItemAdd: (item: unknown) => void;
+  onProposalItemAdd: (item: unknown) => Promise<void>;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -136,13 +136,24 @@ export function StoryAssistantPanel({
     }).catch(() => {});
   };
 
-  const handleAddItem = (item: unknown, index: number) => {
-    onProposalItemAdd(item);
-    setSession((prev) => {
-      if (!prev?.last_proposal) return prev;
-      const remaining = (prev.last_proposal as unknown[]).filter((_, i) => i !== index);
-      return { ...prev, last_proposal: remaining.length > 0 ? remaining as typeof prev.last_proposal : null };
-    });
+  const [addingIndex, setAddingIndex] = useState<number | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const handleAddItem = async (item: unknown, index: number) => {
+    setAddingIndex(index);
+    setAddError(null);
+    try {
+      await onProposalItemAdd(item);
+      setSession((prev) => {
+        if (!prev?.last_proposal) return prev;
+        const remaining = (prev.last_proposal as unknown[]).filter((_, i) => i !== index);
+        return { ...prev, last_proposal: remaining.length > 0 ? remaining as typeof prev.last_proposal : null };
+      });
+    } catch {
+      setAddError(t("assistant_add_error"));
+    } finally {
+      setAddingIndex(null);
+    }
   };
 
   const sendMessage = useCallback(async (overrideMsg?: string) => {
@@ -300,7 +311,7 @@ export function StoryAssistantPanel({
                   : "bg-[var(--paper-warm)] text-[var(--ink-body)]"
               }`}>
                 {msg.role === "assistant" ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <div className="markdown-body text-[var(--ink-body)] text-sm [&_p]:mb-1.5 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mb-0.5 [&_strong]:font-semibold [&_code]:bg-[var(--paper-rule2)] [&_code]:px-1 [&_code]:rounded [&_code]:text-[0.8em] [&_h1]:font-bold [&_h1]:text-base [&_h2]:font-semibold [&_h3]:font-medium">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {stripMarkers(msg.content)}
                     </ReactMarkdown>
@@ -318,7 +329,7 @@ export function StoryAssistantPanel({
 
         {/* Proposal list */}
         {proposal && proposal.length > 0 && (
-          <div className="rounded-lg border border-[var(--accent-blue,#3b82f6)] bg-blue-50 p-3 space-y-2 my-2">
+          <div className="rounded-lg border border-[var(--accent-blue,#3b82f6)] bg-[var(--paper-warm)] p-3 space-y-2 my-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-[var(--accent-blue,#3b82f6)] uppercase tracking-wide">
                 {t("assistant_proposal_title")}
@@ -331,17 +342,21 @@ export function StoryAssistantPanel({
                 <X size={14} />
               </button>
             </div>
+            {addError && (
+              <p className="text-xs text-red-500">{addError}</p>
+            )}
             {proposal.map((item, idx) => (
-              <div key={idx} className="flex items-start justify-between gap-2 bg-white rounded p-2 border border-blue-100">
+              <div key={idx} className="flex items-start justify-between gap-2 bg-[var(--paper)] rounded p-2 border border-[var(--paper-rule2)]">
                 <div className="flex-1 text-xs text-[var(--ink-body)]">
                   {proposalRenderer.renderItem(item, idx, () => handleAddItem(item, idx))}
                 </div>
                 <button
                   onClick={() => handleAddItem(item, idx)}
-                  className="shrink-0 flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-[var(--btn-primary)] text-white hover:opacity-90 transition-opacity"
+                  disabled={addingIndex === idx}
+                  className="shrink-0 flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-[var(--btn-primary)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   <Plus size={10} />
-                  {t("assistant_add_button")}
+                  {addingIndex === idx ? "…" : t("assistant_add_button")}
                 </button>
               </div>
             ))}
@@ -352,7 +367,7 @@ export function StoryAssistantPanel({
         {streaming && streamingContent && (
           <div className="flex flex-col items-start">
             <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-[var(--paper-warm)] text-[var(--ink-body)]">
-              <div className="prose prose-sm max-w-none dark:prose-invert">
+              <div className="markdown-body text-[var(--ink-body)] text-sm [&_p]:mb-1.5 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mb-0.5 [&_strong]:font-semibold [&_code]:bg-[var(--paper-rule2)] [&_code]:px-1 [&_code]:rounded [&_code]:text-[0.8em] [&_h1]:font-bold [&_h1]:text-base [&_h2]:font-semibold [&_h3]:font-medium">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {stripMarkers(streamingContent)}
                 </ReactMarkdown>

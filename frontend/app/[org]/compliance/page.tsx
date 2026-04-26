@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
 import { useOrg } from "@/lib/hooks/useOrg";
 import { fetcher } from "@/lib/api/client";
 import useSWR from "swr";
@@ -8,9 +8,10 @@ import type { UserStory } from "@/types";
 import Link from "next/link";
 import {
   ShieldCheck, AlertTriangle, CheckCircle2, XCircle,
-  TrendingUp, Star, ArrowUpRight, Target,
+  TrendingUp, Star, ArrowUpRight, Target, Layers,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { ControlCapabilityMap } from "@/components/governance/ControlCapabilityMap";
 
 function GaugeMeter({ pct, color }: { pct: number; color: string }) {
   const R = 40;
@@ -56,10 +57,13 @@ function StatCard({ label, value, sub, icon: Icon, accent }: {
   );
 }
 
+type ComplianceTab = "quality" | "controls";
+
 export default function CompliancePage({ params }: { params: Promise<{ org: string }> }) {
   const resolvedParams = use(params);
   const { org } = useOrg(resolvedParams.org);
   const { t } = useT();
+  const [activeTab, setActiveTab] = useState<ComplianceTab>("quality");
 
   const { data: stories, isLoading } = useSWR<UserStory[]>(
     org ? `/api/v1/user-stories?org_id=${org.id}&page_size=500` : null,
@@ -114,13 +118,43 @@ export default function CompliancePage({ params }: { params: Promise<{ org: stri
         </Link>
       </div>
 
-      {isLoading && (
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-[var(--paper-rule)]">
+        {([
+          { id: "quality" as ComplianceTab, label: "Story-Qualität", icon: Star },
+          { id: "controls" as ComplianceTab, label: "Controls & Capabilities", icon: Layers },
+        ] as const).map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-bold border-b-2 transition-colors -mb-px whitespace-nowrap ${
+              activeTab === id
+                ? "border-[var(--accent-red)] text-[var(--accent-red)]"
+                : "border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-mid)]"
+            }`}
+          >
+            <Icon size={13} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Controls & Capabilities tab */}
+      {activeTab === "controls" && org && (
+        <div className="space-y-4">
+          <ControlCapabilityMap orgId={org.id} />
+        </div>
+      )}
+
+      {/* Story quality tab — original content below */}
+      {activeTab === "quality" && isLoading && (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--ink)]" />
         </div>
       )}
 
-      {metrics && (
+      {activeTab === "quality" && metrics && (
         <>
           {/* KPI row */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

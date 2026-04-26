@@ -15,6 +15,46 @@ from app.celery_app import celery
 
 logger = logging.getLogger(__name__)
 
+
+async def _resolve_zone_for_source_type(
+    source_type: str,
+    org_id: uuid.UUID,
+    db: AsyncSession,
+) -> uuid.UUID | None:
+    """
+    Look up the zone whose slug is configured for this source_type in
+    org.metadata_['rag_zones'][source_type]. Returns None (=default zone,
+    visible to all org members) if not configured or zone slug not found.
+    """
+    from sqlalchemy import select as _select
+    from app.models.organization import Organization
+    from app.models.rag_zone import RagZone
+
+    try:
+        org_result = await db.execute(
+            _select(Organization.metadata_).where(Organization.id == org_id)
+        )
+        row = org_result.first()
+        if row is None:
+            return None
+        metadata = row[0] or {}
+        zone_slug = metadata.get("rag_zones", {}).get(source_type)
+        if not zone_slug:
+            return None
+        zone_result = await db.execute(
+            _select(RagZone.id).where(
+                RagZone.organization_id == org_id,
+                RagZone.slug == zone_slug,
+                RagZone.is_active.is_(True),
+            )
+        )
+        zone_row = zone_result.first()
+        return zone_row[0] if zone_row else None
+    except Exception as e:
+        logger.warning("_resolve_zone_for_source_type failed: %s", e)
+        return None
+
+
 # Chunk size in approximate characters (512 tokens ≈ 2000 chars), overlap ≈ 200 chars
 CHUNK_SIZE = 2000
 CHUNK_OVERLAP = 200
@@ -167,6 +207,7 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
     from app.models.document_chunk import DocumentChunk
 
     org_uuid = uuid.UUID(org_id)
+    zone_id = await _resolve_zone_for_source_type("nextcloud", org_uuid, db)
     files = await _list_org_files(org_slug)
 
     for file_info in files:
@@ -236,6 +277,7 @@ async def _index_org_documents_async(org_id: str, org_slug: str, db: AsyncSessio
                 chunk_index=i,
                 chunk_text=chunk_text,
                 embedding=embedding,
+                zone_id=zone_id,
             )
             db.add(chunk)
 
@@ -281,6 +323,7 @@ async def _index_story_knowledge_async(story_id: str, org_id: str, org_slug: str
     from app.models.test_case import TestResult
 
     org_uuid = uuid.UUID(org_id)
+    zone_id = await _resolve_zone_for_source_type("karl_story", org_uuid, db)
     story_uuid = uuid.UUID(story_id)
     source_ref = f"story:{story_id}"
     source_url = f"/{org_slug}/stories/{story_id}"
@@ -380,6 +423,7 @@ async def _index_story_knowledge_async(story_id: str, org_id: str, org_slug: str
             chunk_index=i,
             chunk_text=chunk_text,
             embedding=embedding,
+            zone_id=zone_id,
         )
         db.add(chunk)
 
@@ -423,6 +467,7 @@ async def _index_jira_ticket_async(ticket_key: str, org_id: str, db: AsyncSessio
     from app.models.jira_story import JiraStory
 
     org_uuid = uuid.UUID(org_id)
+    zone_id = await _resolve_zone_for_source_type("jira", org_uuid, db)
 
     # Load org to check Jira config
     org_result = await db.execute(select(Organization).where(Organization.id == org_uuid))
@@ -481,6 +526,7 @@ async def _index_jira_ticket_async(ticket_key: str, org_id: str, db: AsyncSessio
         chunk_index=0,
         chunk_text=chunk_text,
         embedding=embeddings[0],
+        zone_id=zone_id,
     )
     db.add(chunk)
     try:
@@ -522,6 +568,7 @@ async def _index_confluence_space_async(org_id: str, db: AsyncSession) -> None:
     from app.models.organization import Organization
 
     org_uuid = uuid.UUID(org_id)
+    zone_id = await _resolve_zone_for_source_type("confluence", org_uuid, db)
 
     org_result = await db.execute(select(Organization).where(Organization.id == org_uuid))
     org = org_result.scalar_one_or_none()
@@ -618,6 +665,7 @@ async def _index_confluence_space_async(org_id: str, db: AsyncSession) -> None:
                         chunk_index=i,
                         chunk_text=chunk_text_item,
                         embedding=embedding,
+                        zone_id=zone_id,
                     )
                     db.add(chunk)
 
@@ -668,6 +716,7 @@ async def _index_user_action_async(
     except ValueError:
         logger.error("index_user_action: invalid org_id %r, skipping", org_id)
         return
+    zone_id = await _resolve_zone_for_source_type("user_action", org_uuid, db)
     chunk_text = f"User Action [{action_type}]: {content}"[:2000]
     # Use a deterministic source_ref so identical actions deduplicate
     source_ref = f"user_action:{action_type}:{_sha256(chunk_text.encode())[:16]}"
@@ -688,6 +737,7 @@ async def _index_user_action_async(
         chunk_index=0,
         chunk_text=chunk_text,
         embedding=embeddings[0],
+        zone_id=zone_id,
     )
     db.add(chunk)
     try:

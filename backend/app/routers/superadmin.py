@@ -14,6 +14,7 @@ from app.core.security import validate_admin_token
 from app.database import get_db
 from app.deps import get_current_user
 from app.models.feature import Feature
+from app.models.global_config import GlobalConfig
 from app.models.membership import Membership
 from app.models.organization import Organization
 from app.models.user import User
@@ -79,7 +80,9 @@ COMPONENTS = [
         "label": "Dateiverwaltung",
         "internal_url": "http://heykarl-nextcloud",
         "health_path": "/status.php",
-        "admin_url": "https://admin.heykarl.app/nextcloud",
+        # Use /login so browser base URL is not …/nextcloud/ (trailing slash), which can
+        # mis-resolve relative links to …/nextcloud/Nextcloud (Nextcloud 404).
+        "admin_url": "https://admin.heykarl.app/nextcloud/login",
     },
     {
         "name": "Stirling PDF",
@@ -145,11 +148,32 @@ async def get_component_status(
 
 # ── Organization resource overview ────────────────────────────────────────────
 
-PLAN_LIMITS: dict[str, dict[str, int]] = {
+DEFAULT_PLAN_LIMITS: dict[str, dict[str, int]] = {
     "free":       {"stories": 50,   "members": 5},
     "pro":        {"stories": 500,  "members": 50},
     "enterprise": {"stories": 9999, "members": 9999},
 }
+
+
+async def get_plan_limits(db: AsyncSession) -> dict[str, dict[str, int]]:
+    """Return plan limits, overriding defaults with any values stored in global_config."""
+    result = await db.execute(
+        select(GlobalConfig).where(GlobalConfig.key.like("plans.%"))
+    )
+    rows = {r.key: r.value for r in result.scalars().all()}
+
+    limits: dict[str, dict[str, int]] = {
+        plan: dict(vals) for plan, vals in DEFAULT_PLAN_LIMITS.items()
+    }
+    for plan in limits:
+        for metric in ("stories", "members"):
+            key = f"plans.{plan}.{metric}"
+            if rows.get(key) is not None:
+                try:
+                    limits[plan][metric] = int(rows[key])
+                except ValueError:
+                    pass
+    return limits
 
 
 @router.get("/organizations")
@@ -161,6 +185,7 @@ async def get_organizations_overview(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Return all organizations with resource usage metrics (paginated)."""
+    PLAN_LIMITS = await get_plan_limits(db)
     stmt = select(Organization).where(Organization.deleted_at.is_(None))
     if search:
         stmt = stmt.where(
@@ -203,6 +228,22 @@ async def get_organizations_overview(
         )
         feature_count: int = feature_count_res.scalar() or 0
 
+        # Last login: find the member with the most recent last_login_at
+        last_login_res = await db.execute(
+            select(User.last_login_at, User.display_name, User.email)
+            .join(Membership, Membership.user_id == User.id)
+            .where(
+                Membership.organization_id == org.id,
+                Membership.status == "active",
+                User.last_login_at.isnot(None),
+            )
+            .order_by(User.last_login_at.desc())
+            .limit(1)
+        )
+        last_login_row = last_login_res.first()
+        last_login_at = last_login_row[0].isoformat() if last_login_row else None
+        last_active_user = last_login_row[1] or last_login_row[2] if last_login_row else None
+
         plan = org.plan or "free"
         limits = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
         story_pct = (
@@ -231,6 +272,8 @@ async def get_organizations_overview(
             "member_usage_pct": member_pct,
             "warning": story_pct >= 80 or member_pct >= 80,
             "created_at": org.created_at.isoformat(),
+            "last_login_at": last_login_at,
+            "last_active_user": last_active_user,
         })
     return {"items": overview, "total": total, "page": page, "page_size": page_size}
 
@@ -286,7 +329,7 @@ async def list_all_users(
     org_id: Optional[str] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    _: User = Depends(require_superuser),
+    _: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Return all non-deleted users with their org memberships."""
@@ -596,3 +639,52 @@ async def get_org_members_superadmin(
     memberships, total = await membership_service.list(db, org_id, page, page_size)
     items = [_membership_to_read(m).model_dump(mode="json") for m in memberships]
     return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/debug/token-check")
+async def debug_token_check(
+    credentials: HTTPAuthorizationCredentials = Security(_security),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Temporary debug endpoint - shows token validation result."""
+    import jwt as pyjwt
+    from app.core.security import decode_token, validate_authentik_token
+    from app.deps import _lookup_user_hs256, _lookup_user_oidc
+    
+    token = credentials.credentials
+    result = {"token_prefix": token[:20] + "...", "steps": []}
+    
+    # Step 1: try HS256
+    try:
+        payload = decode_token(token)
+        result["steps"].append({"step": "hs256_decode", "status": "ok", "type": payload.get("type"), "sub": str(payload.get("sub",""))[:20]})
+        if payload.get("type") == "access":
+            try:
+                user = await _lookup_user_hs256(payload, db)
+                result["steps"].append({"step": "hs256_user_lookup", "status": "ok", "email": user.email, "is_superuser": user.is_superuser})
+                return result
+            except Exception as e:
+                result["steps"].append({"step": "hs256_user_lookup", "status": "fail", "error": str(e)})
+    except Exception as e:
+        result["steps"].append({"step": "hs256_decode", "status": "fail", "error": str(e)})
+    
+    # Step 2: try OIDC
+    unverified = pyjwt.decode(token, options={"verify_signature": False})
+    result["oidc_raw"] = {
+        "aud": unverified.get("aud"),
+        "iss": unverified.get("iss"),
+        "sub": str(unverified.get("sub",""))[:30],
+        "email": unverified.get("email"),
+    }
+    try:
+        payload = await validate_authentik_token(token)
+        result["steps"].append({"step": "oidc_decode", "status": "ok"})
+        try:
+            user = await _lookup_user_oidc(payload, db)
+            result["steps"].append({"step": "oidc_user_lookup", "status": "ok", "email": user.email, "is_superuser": user.is_superuser})
+        except Exception as e:
+            result["steps"].append({"step": "oidc_user_lookup", "status": "fail", "error": str(e)})
+    except Exception as e:
+        result["steps"].append({"step": "oidc_decode", "status": "fail", "error": str(e)})
+    
+    return result

@@ -29,6 +29,7 @@ from app.ai.pipeline import execute_pipeline
 from app.ai.router import route_request
 from app.models.epic import Epic
 from app.models.story_readiness import ReadinessState, StoryReadinessEvaluation
+from app.core.story_filter import active_stories
 from app.models.user_story import UserStory
 from app.schemas.story_readiness import StoryReadinessResult
 
@@ -223,7 +224,13 @@ def _parse_result(raw: str) -> StoryReadinessResult:
     if start == -1 or end == 0:
         raise ValueError(f"No JSON object found in LLM response: {text[:200]}")
 
-    data = json.loads(text[start:end])
+    json_text = text[start:end]
+    try:
+        data = json.loads(json_text)
+    except json.JSONDecodeError:
+        # LLM sometimes emits trailing commas, comments, or other quirks — use json_repair
+        from json_repair import repair_json
+        data = json.loads(repair_json(json_text))
 
     # Clamp and validate score
     score = max(0, min(100, int(data.get("readiness_score", 50))))
@@ -385,6 +392,7 @@ async def evaluate_assigned_user_stories(
     org_id: uuid.UUID,
     db: AsyncSession,
     story_ids: Optional[list[uuid.UUID]] = None,
+    force_refresh: bool = False,
 ) -> tuple[list[StoryReadinessEvaluation], int]:
     """
     Evaluate all stories assigned to (or created by) the user.
@@ -414,7 +422,7 @@ async def evaluate_assigned_user_stories(
 
     for story in stories:
         try:
-            ev = await evaluate_story_readiness(story, user_id, org_id, db)
+            ev = await evaluate_story_readiness(story, user_id, org_id, db, force_refresh=force_refresh)
             evaluations.append(ev)
         except Exception as exc:
             logger.exception("Failed to evaluate story %s: %s", story.id, exc)

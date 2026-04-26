@@ -14,6 +14,7 @@ from app.deps import get_current_user
 from app.models.evaluation_run import EvaluationRun
 from app.models.membership import Membership
 from app.models.user import User
+from app.core.story_filter import active_stories
 from app.models.user_story import UserStory
 from app.schemas.evaluation import (
     StartEvaluationResponse, EvaluationRunRead, EvaluationResultRead,
@@ -53,7 +54,7 @@ async def _get_story_and_verify_membership(
     current_user: User,
     db: AsyncSession,
 ) -> UserStory:
-    result = await db.execute(select(UserStory).where(UserStory.id == story_id))
+    result = await db.execute(active_stories().where(UserStory.id == story_id))
     story = result.scalar_one_or_none()
     if story is None:
         raise NotFoundException("Story not found")
