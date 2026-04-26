@@ -1,9 +1,11 @@
+name: ${INSTANCE_NAME:-heykarl}
+
 networks:
   proxy:
     name: assist-proxy
     external: true
   internal:
-    name: heykarl-internal
+    name: ${INSTANCE_NAME:-heykarl}-internal
     driver: bridge
     internal: true
 
@@ -27,7 +29,7 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     pull_policy: never
-    container_name: heykarl-postgres
+    container_name: ${INSTANCE_NAME:-heykarl}-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -48,7 +50,7 @@ services:
   redis:
     image: redis:7-alpine
     pull_policy: never
-    container_name: heykarl-redis
+    container_name: ${INSTANCE_NAME:-heykarl}-redis
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
@@ -64,7 +66,7 @@ services:
   authentik-db:
     image: postgres:16-alpine
     pull_policy: never
-    container_name: heykarl-authentik-db
+    container_name: ${INSTANCE_NAME:-heykarl}-authentik-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: authentik
@@ -84,7 +86,7 @@ services:
   authentik-server:
     image: ghcr.io/goauthentik/server:2024.10.5
     pull_policy: never
-    container_name: heykarl-authentik-server
+    container_name: ${INSTANCE_NAME:-heykarl}-authentik-server
     restart: unless-stopped
     command: server
     deploy:
@@ -93,10 +95,10 @@ services:
           cpus: "0.8"
           memory: 768M
     environment:
-      AUTHENTIK_REDIS__HOST: heykarl-redis
+      AUTHENTIK_REDIS__HOST: ${INSTANCE_NAME:-heykarl}-redis
       AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
       AUTHENTIK_REDIS__DB: 1
-      AUTHENTIK_POSTGRESQL__HOST: heykarl-authentik-db
+      AUTHENTIK_POSTGRESQL__HOST: ${INSTANCE_NAME:-heykarl}-authentik-db
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
@@ -118,10 +120,10 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.authentik.rule=Host(`authentik.${DOMAIN}`)"
-      - "traefik.http.routers.authentik.entrypoints=websecure"
-      - "traefik.http.routers.authentik.tls.certresolver=letsencrypt"
-      - "traefik.http.services.authentik.loadbalancer.server.port=9000"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-authentik.rule=Host(`authentik.${DOMAIN}`)"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-authentik.entrypoints=websecure"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-authentik.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${INSTANCE_NAME:-heykarl}-authentik.loadbalancer.server.port=9000"
     healthcheck:
       test: ["CMD-SHELL", "ak healthcheck"]
       interval: 30s
@@ -132,7 +134,7 @@ services:
   authentik-worker:
     image: ghcr.io/goauthentik/server:2024.10.5
     pull_policy: never
-    container_name: heykarl-authentik-worker
+    container_name: ${INSTANCE_NAME:-heykarl}-authentik-worker
     restart: unless-stopped
     command: worker
     deploy:
@@ -141,10 +143,10 @@ services:
           cpus: "0.5"
           memory: 512M
     environment:
-      AUTHENTIK_REDIS__HOST: heykarl-redis
+      AUTHENTIK_REDIS__HOST: ${INSTANCE_NAME:-heykarl}-redis
       AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
       AUTHENTIK_REDIS__DB: 1
-      AUTHENTIK_POSTGRESQL__HOST: heykarl-authentik-db
+      AUTHENTIK_POSTGRESQL__HOST: ${INSTANCE_NAME:-heykarl}-authentik-db
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
@@ -169,7 +171,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: heykarl-backend
+    container_name: ${INSTANCE_NAME:-heykarl}-backend
     restart: unless-stopped
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
     deploy:
@@ -178,8 +180,8 @@ services:
           cpus: "1.0"
           memory: 256M
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@heykarl-postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@heykarl-redis:6379/0
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${INSTANCE_NAME:-heykarl}-postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@${INSTANCE_NAME:-heykarl}-redis:6379/0
       SECRET_KEY: ${SECRET_KEY}
       JWT_SECRET: ${JWT_SECRET}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
@@ -187,23 +189,23 @@ services:
       REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS}
       ENVIRONMENT: ${ENVIRONMENT}
       CORS_ORIGINS: ${CORS_ORIGINS}
-      N8N_WEBHOOK_URL: http://heykarl-n8n:5678
+      N8N_WEBHOOK_URL: http://${INSTANCE_NAME:-heykarl}-n8n:5678
       N8N_API_KEY: ${N8N_API_KEY}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      AUTHENTIK_URL: http://heykarl-authentik-server:9000
+      AUTHENTIK_URL: http://${INSTANCE_NAME:-heykarl}-authentik-server:9000
       AUTHENTIK_API_TOKEN: ${AUTHENTIK_API_TOKEN}
       AUTHENTIK_BACKEND_CLIENT_ID: ${AUTHENTIK_BACKEND_CLIENT_ID}
       AUTHENTIK_BACKEND_CLIENT_SECRET: ${AUTHENTIK_BACKEND_CLIENT_SECRET}
       AUTHENTIK_JWKS_URL: ${AUTHENTIK_JWKS_URL}
       AUTHENTIK_APP_SLUG: ${AUTHENTIK_APP_SLUG:-backend}
       AUTHENTIK_ADMIN_CLIENT_ID: ${AUTHENTIK_ADMIN_CLIENT_ID}
-      STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://heykarl-stirling-pdf:8080}
-      WHISPER_URL: ${WHISPER_URL:-http://heykarl-whisper:9000}
-      LITELLM_URL: ${LITELLM_URL:-http://heykarl-litellm:4000}
+      STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://${INSTANCE_NAME:-heykarl}-stirling-pdf:8080}
+      WHISPER_URL: ${WHISPER_URL:-http://${INSTANCE_NAME:-heykarl}-whisper:9000}
+      LITELLM_URL: ${LITELLM_URL:-http://${INSTANCE_NAME:-heykarl}-litellm:4000}
       LITELLM_API_KEY: ${LITELLM_API_KEY}
       IONOS_API_KEY: ${IONOS_API_KEY:-}
       IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.inference.de-txl.ionos.com/v1}
@@ -246,7 +248,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: heykarl-worker
+    container_name: ${INSTANCE_NAME:-heykarl}-worker
     restart: unless-stopped
     command: celery -A app.celery_app worker --loglevel=info --concurrency=2
     deploy:
@@ -255,18 +257,18 @@ services:
           cpus: "1.0"
           memory: 320M
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@heykarl-postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@heykarl-redis:6379/0
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${INSTANCE_NAME:-heykarl}-postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@${INSTANCE_NAME:-heykarl}-redis:6379/0
       SECRET_KEY: ${SECRET_KEY}
       JWT_SECRET: ${JWT_SECRET}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       ENVIRONMENT: ${ENVIRONMENT}
-      N8N_WEBHOOK_URL: http://heykarl-n8n:5678
+      N8N_WEBHOOK_URL: http://${INSTANCE_NAME:-heykarl}-n8n:5678
       N8N_API_KEY: ${N8N_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://heykarl-stirling-pdf:8080}
-      WHISPER_URL: ${WHISPER_URL:-http://heykarl-whisper:9000}
-      LITELLM_URL: ${LITELLM_URL:-http://heykarl-litellm:4000}
+      STIRLING_PDF_URL: ${STIRLING_PDF_URL:-http://${INSTANCE_NAME:-heykarl}-stirling-pdf:8080}
+      WHISPER_URL: ${WHISPER_URL:-http://${INSTANCE_NAME:-heykarl}-whisper:9000}
+      LITELLM_URL: ${LITELLM_URL:-http://${INSTANCE_NAME:-heykarl}-litellm:4000}
       LITELLM_API_KEY: ${LITELLM_API_KEY}
       IONOS_API_KEY: ${IONOS_API_KEY:-}
       IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.inference.de-txl.ionos.com/v1}
@@ -293,7 +295,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: heykarl-beat
+    container_name: ${INSTANCE_NAME:-heykarl}-beat
     restart: unless-stopped
     command: celery -A app.celery_app beat --loglevel=info --scheduler celery.beat:PersistentScheduler
     deploy:
@@ -302,16 +304,16 @@ services:
           cpus: "0.2"
           memory: 128M
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@heykarl-postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@heykarl-redis:6379/0
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${INSTANCE_NAME:-heykarl}-postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@${INSTANCE_NAME:-heykarl}-redis:6379/0
       SECRET_KEY: ${SECRET_KEY}
       JWT_SECRET: ${JWT_SECRET}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       ENVIRONMENT: ${ENVIRONMENT}
-      N8N_WEBHOOK_URL: http://heykarl-n8n:5678
+      N8N_WEBHOOK_URL: http://${INSTANCE_NAME:-heykarl}-n8n:5678
       N8N_API_KEY: ${N8N_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      LITELLM_URL: ${LITELLM_URL:-http://heykarl-litellm:4000}
+      LITELLM_URL: ${LITELLM_URL:-http://${INSTANCE_NAME:-heykarl}-litellm:4000}
       LITELLM_API_KEY: ${LITELLM_API_KEY}
     networks:
       - internal
@@ -324,16 +326,16 @@ services:
         condition: service_healthy
 
   langgraph-service:
-    image: heykarl-langgraph
+    image: ${INSTANCE_NAME:-heykarl}-langgraph
     build:
       context: ../langgraph-service
       dockerfile: Dockerfile
-    container_name: heykarl-langgraph
+    container_name: ${INSTANCE_NAME:-heykarl}-langgraph
     restart: unless-stopped
     environment:
-      LITELLM_BASE_URL: http://heykarl-litellm:4000
+      LITELLM_BASE_URL: http://${INSTANCE_NAME:-heykarl}-litellm:4000
       LITELLM_API_KEY: ${LITELLM_API_KEY:-sk-heykarl}
-      BACKEND_BASE_URL: http://heykarl-backend:8000
+      BACKEND_BASE_URL: http://${INSTANCE_NAME:-heykarl}-backend:8000
       LANGGRAPH_API_KEY: ${LANGGRAPH_API_KEY:-dev-langgraph-secret}
       LOG_LEVEL: INFO
     networks:
@@ -355,7 +357,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: https://${DOMAIN}
         NEXT_PUBLIC_APP_URL: https://${DOMAIN}
-    container_name: heykarl-frontend
+    container_name: ${INSTANCE_NAME:-heykarl}-frontend
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: https://${DOMAIN}
@@ -380,7 +382,7 @@ services:
         NEXT_PUBLIC_AUTHENTIK_URL: https://authentik.${DOMAIN}
         NEXT_PUBLIC_ADMIN_CLIENT_ID: ${AUTHENTIK_ADMIN_CLIENT_ID}
         NEXT_PUBLIC_ADMIN_REDIRECT_URI: https://admin.${DOMAIN}/callback
-    container_name: heykarl-admin
+    container_name: ${INSTANCE_NAME:-heykarl}-admin
     restart: unless-stopped
     networks:
       - proxy
@@ -388,10 +390,10 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.admin.rule=Host(`admin.${DOMAIN}`)"
-      - "traefik.http.routers.admin.entrypoints=websecure"
-      - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
-      - "traefik.http.services.admin.loadbalancer.server.port=3001"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-admin.rule=Host(`admin.${DOMAIN}`)"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-admin.entrypoints=websecure"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-admin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${INSTANCE_NAME:-heykarl}-admin.loadbalancer.server.port=3001"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3001"]
       interval: 30s
@@ -402,14 +404,14 @@ services:
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
     pull_policy: never
-    container_name: heykarl-litellm
+    container_name: ${INSTANCE_NAME:-heykarl}-litellm
     restart: unless-stopped
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       IONOS_API_KEY: ${IONOS_API_KEY:-}
       IONOS_API_BASE: ${IONOS_API_BASE:-https://openai.inference.de-txl.ionos.com/v1}
       LITELLM_MASTER_KEY: ${LITELLM_API_KEY:-sk-heykarl}
-      DATABASE_URL: postgresql://litellm:${LITELLM_DB_PASSWORD}@heykarl-litellm-postgres:5432/litellm_db
+      DATABASE_URL: postgresql://litellm:${LITELLM_DB_PASSWORD}@${INSTANCE_NAME:-heykarl}-litellm-postgres:5432/litellm_db
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       SERVER_ROOT_PATH: /litellm
       UI_USERNAME: ${LITELLM_UI_USERNAME:-admin}
@@ -436,23 +438,23 @@ services:
     labels:
       - "traefik.enable=true"
       # Main route: /litellm prefix
-      - "traefik.http.routers.litellm.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/litellm`)"
-      - "traefik.http.routers.litellm.entrypoints=websecure"
-      - "traefik.http.routers.litellm.tls.certresolver=letsencrypt"
-      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-litellm.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/litellm`)"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-litellm.entrypoints=websecure"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-litellm.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${INSTANCE_NAME:-heykarl}-litellm.loadbalancer.server.port=4000"
       # Redirect /ui and /sso (LiteLLM ignores SERVER_ROOT_PATH on some redirects)
-      - "traefik.http.routers.litellm-fix.rule=Host(`admin.${DOMAIN}`) && (PathPrefix(`/ui`) || PathPrefix(`/sso`))"
-      - "traefik.http.routers.litellm-fix.entrypoints=websecure"
-      - "traefik.http.routers.litellm-fix.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.litellm-fix.middlewares=litellm-prefix@docker"
-      - "traefik.http.routers.litellm-fix.service=litellm@docker"
-      - "traefik.http.middlewares.litellm-prefix.addprefix.prefix=/litellm"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-litellm-fix.rule=Host(`admin.${DOMAIN}`) && (PathPrefix(`/ui`) || PathPrefix(`/sso`))"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-litellm-fix.entrypoints=websecure"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-litellm-fix.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-litellm-fix.middlewares=${INSTANCE_NAME:-heykarl}-litellm-prefix@docker"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-litellm-fix.service=${INSTANCE_NAME:-heykarl}-litellm@docker"
+      - "traefik.http.middlewares.${INSTANCE_NAME:-heykarl}-litellm-prefix.addprefix.prefix=/litellm"
       - "traefik.docker.network=assist-proxy"
 
   litellm-postgres:
     image: postgres:16-alpine
     pull_policy: never
-    container_name: heykarl-litellm-postgres
+    container_name: ${INSTANCE_NAME:-heykarl}-litellm-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: litellm_db
@@ -472,7 +474,7 @@ services:
   n8n:
     image: n8nio/n8n:1.51.1
     pull_policy: never
-    container_name: heykarl-n8n
+    container_name: ${INSTANCE_NAME:-heykarl}-n8n
     restart: unless-stopped
     deploy:
       resources:
@@ -481,7 +483,7 @@ services:
           memory: 256M
     environment:
       DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: heykarl-postgres
+      DB_POSTGRESDB_HOST: ${INSTANCE_NAME:-heykarl}-postgres
       DB_POSTGRESDB_PORT: 5432
       DB_POSTGRESDB_DATABASE: n8n_db
       DB_POSTGRESDB_USER: ${POSTGRES_USER}
@@ -512,7 +514,7 @@ services:
   stirling-pdf:
     image: stirlingtools/stirling-pdf:latest
     pull_policy: never
-    container_name: heykarl-stirling-pdf
+    container_name: ${INSTANCE_NAME:-heykarl}-stirling-pdf
     restart: unless-stopped
     deploy:
       resources:
@@ -534,7 +536,7 @@ services:
   nextcloud-db:
     image: mariadb:10.11
     pull_policy: never
-    container_name: heykarl-nextcloud-db
+    container_name: ${INSTANCE_NAME:-heykarl}-nextcloud-db
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${NEXTCLOUD_DB_ROOT_PASSWORD}
@@ -555,7 +557,7 @@ services:
   nextcloud:
     image: nextcloud:28-apache
     pull_policy: never
-    container_name: heykarl-nextcloud
+    container_name: ${INSTANCE_NAME:-heykarl}-nextcloud
     restart: unless-stopped
     environment:
       NEXTCLOUD_TRUSTED_DOMAINS: nextcloud.${DOMAIN} admin.${DOMAIN}
@@ -580,13 +582,13 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.middlewares.nextcloud-badpath.replacepathregex.regex=^/nextcloud/Nextcloud/?$$"
-      - "traefik.http.middlewares.nextcloud-badpath.replacepathregex.replacement=/nextcloud/login"
-      - "traefik.http.routers.nextcloud.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/nextcloud`)"
-      - "traefik.http.routers.nextcloud.entrypoints=websecure"
-      - "traefik.http.routers.nextcloud.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.nextcloud.middlewares=nextcloud-badpath"
-      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.${INSTANCE_NAME:-heykarl}-nextcloud-badpath.replacepathregex.regex=^/nextcloud/Nextcloud/?$$"
+      - "traefik.http.middlewares.${INSTANCE_NAME:-heykarl}-nextcloud-badpath.replacepathregex.replacement=/nextcloud/login"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-nextcloud.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/nextcloud`)"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-nextcloud.entrypoints=websecure"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-nextcloud.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-nextcloud.middlewares=${INSTANCE_NAME:-heykarl}-nextcloud-badpath"
+      - "traefik.http.services.${INSTANCE_NAME:-heykarl}-nextcloud.loadbalancer.server.port=80"
       - "traefik.docker.network=assist-proxy"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/status.php"]
@@ -598,7 +600,7 @@ services:
   whisper:
     image: onerahmet/openai-whisper-asr-webservice:latest
     pull_policy: never
-    container_name: heykarl-whisper
+    container_name: ${INSTANCE_NAME:-heykarl}-whisper
     restart: unless-stopped
     deploy:
       resources:
@@ -619,7 +621,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     pull_policy: never
-    container_name: heykarl-pgadmin
+    container_name: ${INSTANCE_NAME:-heykarl}-pgadmin
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
@@ -634,19 +636,19 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pgadmin.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/pgadmin`)"
-      - "traefik.http.routers.pgadmin.entrypoints=websecure"
-      - "traefik.http.routers.pgadmin.tls.certresolver=letsencrypt"
-      - "traefik.http.services.pgadmin.loadbalancer.server.port=80"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-pgadmin.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/pgadmin`)"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-pgadmin.entrypoints=websecure"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-pgadmin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${INSTANCE_NAME:-heykarl}-pgadmin.loadbalancer.server.port=80"
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     pull_policy: never
-    container_name: heykarl-phpmyadmin
+    container_name: ${INSTANCE_NAME:-heykarl}-phpmyadmin
     restart: "no"
     profiles: ["tools"]
     environment:
-      PMA_HOST: heykarl-nextcloud-db
+      PMA_HOST: ${INSTANCE_NAME:-heykarl}-nextcloud-db
       PMA_PORT: 3306
       PMA_ABSOLUTE_URI: https://admin.${DOMAIN}/phpmyadmin/
     networks:
@@ -656,10 +658,10 @@ services:
   redis-commander:
     image: rediscommander/redis-commander:latest
     pull_policy: never
-    container_name: heykarl-redis-commander
+    container_name: ${INSTANCE_NAME:-heykarl}-redis-commander
     restart: unless-stopped
     environment:
-      REDIS_HOST: heykarl-redis
+      REDIS_HOST: ${INSTANCE_NAME:-heykarl}-redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       URL_PREFIX: /redis
@@ -670,19 +672,19 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.redis-commander.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/redis`)"
-      - "traefik.http.routers.redis-commander.entrypoints=websecure"
-      - "traefik.http.routers.redis-commander.tls.certresolver=letsencrypt"
-      - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-redis-commander.rule=Host(`admin.${DOMAIN}`) && PathPrefix(`/redis`)"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-redis-commander.entrypoints=websecure"
+      - "traefik.http.routers.${INSTANCE_NAME:-heykarl}-redis-commander.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${INSTANCE_NAME:-heykarl}-redis-commander.loadbalancer.server.port=8081"
 
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
     pull_policy: never
-    container_name: heykarl-openwebui
+    container_name: ${INSTANCE_NAME:-heykarl}-openwebui
     restart: "no"
     profiles: ["optional"]
     environment:
-      OPENAI_API_BASE_URL: http://heykarl-litellm:4000/v1
+      OPENAI_API_BASE_URL: http://${INSTANCE_NAME:-heykarl}-litellm:4000/v1
       OPENAI_API_KEY: ${LITELLM_API_KEY:-sk-heykarl}
       WEBUI_SECRET_KEY: ${OPENWEBUI_SECRET_KEY}
       ENABLE_OLLAMA_API: "false"
